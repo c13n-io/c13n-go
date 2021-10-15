@@ -1,0 +1,38 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+c13n
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove/comment below line to include it)
+vendor/
+
+# Local configurations
+.vscode/
+*.swp
+*.swo
+*.yaml
+!config.sample.yaml
+*.db
+
+# Generated protobuf source code
+#*.pb.go
+
+# RPC documentation
+docs/*.html
+
+# Test logs
+lnchat/tests/*.log
+lnchat/tests/.*/
+
+# Test executables
+lnchat/tests/*-itest
+

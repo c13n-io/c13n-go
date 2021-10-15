@@ -1,0 +1,630 @@
+syntax = "proto3";
+
+option go_package = "github.com/c13n-io/c13n-backend/rpc/services";
+
+package services;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/mwitkow/go-proto-validators/validator.proto";
+
+/**
+ Corresponds to pagination parameters for requests.
+ Represents a request for page_size elements,
+ skipping the most recent skip_recent elements (reverse order).
+*/
+message PageOptions {
+	/** The number of most recent elements to skip. */
+	int64 skip_recent = 1 [(validator.field) = {msg_exists: true}];
+	/** The number of elements to return. */
+	int64 page_size = 2 [(validator.field) = {msg_exists: true}];
+}
+
+/**
+ Corresponds to pagination parameters for requests.
+ Represents a request for page_size elements,
+ terminating with the element with id last_id.
+ If reverse is true, the returned elements end with last_id.
+*/
+message KeySetPageOptions {
+	/** The id of the first element of the requested range. */
+	uint64 last_id = 1;
+	/** The number of elements to return. */
+	int64 page_size = 2;
+	/** Whether the range starts or ends with last_id element. */
+	bool reverse = 3;
+}
+
+/**
+ NodeInfoService exposes functionality
+ pertaining to queries about node information.
+ */
+service NodeInfoService {
+	/**
+	 Returns version information about the current daemon.
+	*/
+	rpc GetVersion(VersionRequest) returns (Version) {}
+	/**
+	 Returns info about the current underlying node.
+	*/
+	rpc GetSelfInfo(SelfInfoRequest) returns (SelfInfoResponse) {}
+	/**
+	 Returns the balance of the current underlying node.
+	*/
+	rpc GetSelfBalance(SelfBalanceRequest) returns (SelfBalanceResponse) {}
+	/**
+	 Lists all nodes on the Lightning network.
+
+	 Returns a list of all nodes visible to the underlying Lightning node,
+	 including the address of the current node.
+	 Nodes with private channels are not visible if not directly connected to
+	 the underlying node.
+	*/
+	rpc GetNodes(GetNodesRequest) returns (NodeInfoResponse) {}
+	/**
+	 Searches for a Lighting node based on their Lightning address.
+
+	 Returns a list of all nodes with that address, which will be at most 1.
+	 The node must be visible from the underlying node.
+	*/
+	rpc SearchNodeByAddress(SearchNodeByAddressRequest) returns (NodeInfoResponse) {}
+	/**
+	 Searches for a Lightning node based on their Lightning alias.
+
+	 Returns a list of all nodes with that alias visible from the underlying node.
+	*/
+	rpc SearchNodeByAlias(SearchNodeByAliasRequest) returns (NodeInfoResponse) {}
+	/**
+	 Connects a node as a peer.
+	*/
+	rpc ConnectNode(ConnectNodeRequest) returns (ConnectNodeResponse) {}
+}
+
+message VersionRequest {}
+
+/** A message containing the current c13n version and build information. */
+message Version {
+	/** The semantic version of c13n. */
+	string version = 1;
+	/** The commit descriptor of the build. */
+	string commit = 2;
+	/** The commit hash of the build. */
+	string commit_hash = 3;
+}
+
+/** A message representing a node on the Lightning network. */
+message NodeInfo {
+	/** A node's Lightning alias. */
+	string alias = 1;
+	/** A node's Lightning address. */
+	string address = 2 [(validator.field) = {msg_exists: true, regex: "^[a-z0-9]{66}$"}];
+}
+
+/** Correponds to a query to retrieve the information of the underlying lightning node. */
+message SelfInfoRequest {
+}
+
+/** Represents a blockchain and network for a Lightning node. */
+message Chain {
+	/** The blockchain in use. */
+	string chain = 1;
+	/** The network a node is operating on. */
+	string network = 2;
+}
+
+/** A SelfInfoResponse is received in response to a GetSelfInfo rpc call. */
+message SelfInfoResponse {
+	/** General node information about the current node. */
+	NodeInfo info = 1 [(validator.field) = {msg_exists: true}];
+	/** A list of chain networks the node is operating on. */
+	repeated Chain chains = 2;
+}
+
+/** Corresponds to a query to retrieve the balance of the underlying lightning node. */
+message SelfBalanceRequest {
+}
+
+/** A SelfBalanceResponse is received in response to a GetSelfBalance rpc call. */
+message SelfBalanceResponse {
+	/** The confirmed balance of the node's wallet (in satoshi). */
+	int64 wallet_confirmed_sat = 1;
+	/** The unconfirmed balance of the node's wallet (in satoshi). */
+	int64 wallet_unconfirmed_sat = 2;
+	/** The local balance available across all open channels (in millisatoshi). */
+	uint64 channel_local_msat = 3;
+	/** The remote balance available across all open channels (in millisatoshi). */
+	uint64 channel_remote_msat = 4;
+	/** The local balance in pending open channels (in millisatoshi). */
+	uint64 pending_open_local_msat = 5;
+	/** The remote balance in pending open channels (in millisatoshi). */
+	uint64 pending_open_remote_msat = 6;
+	/** The local balance unsettled across all open channels (in millisatoshi). */
+	uint64 unsettled_local_msat = 7;
+	/** The remote balance unsettled across all open channels (in millisatoshi). */
+	uint64 unsettled_remote_msat = 8;
+}
+
+/** Corresponds to a request to list all nodes on the Lightning Network. */
+message GetNodesRequest {
+}
+
+/** Corresponds to a node query based on the node address. */
+message SearchNodeByAddressRequest {
+	/** The node address to search. */
+	string address = 1 [(validator.field) = {regex: "^[a-z0-9]{66}$"}];
+}
+
+/** Corresponds to a node query based on the node alias. */
+message SearchNodeByAliasRequest {
+	/** The node alias substring to search. */
+	string alias = 1;
+}
+
+/**
+ A NodeInfoResponse is received in response to a node query.
+
+ It contains all visible nodes corresponding to the query.
+*/
+message NodeInfoResponse {
+	/** The list of Lightning nodes matching the query. */
+	repeated NodeInfo nodes = 1;
+}
+
+/** Corresponds to a request to create a peer connection with a node. */
+message ConnectNodeRequest {
+	/** The address of the node to connect. */
+	string address = 1 [(validator.field) = {regex: "^[a-z0-9]{66}$"}];
+	/** The network location of the node. */
+	string hostport = 2;
+}
+
+/** A ConnectNodeResponse is received in response to a ConnectNode request. */
+message ConnectNodeResponse{
+}
+
+/**
+ ChannelService exposes endpoints pertaining
+ to channel management.
+ */
+service ChannelService {
+	/**
+	 Opens a channel to a node.
+
+	 Returns immediately after the funding transaction has been published,
+	 but does not wait for the channel to be considered open.
+	*/
+	rpc OpenChannel(OpenChannelRequest) returns (OpenChannelResponse) {}
+}
+
+/** Corresponds to a request to open a channel. */
+message OpenChannelRequest {
+	/** The address of the node to open a channel to. */
+	string address = 1;
+	/** The total amount to be committed to the channel (in millisatoshi). */
+	uint64 amt_msat = 2;
+	/** The amount to be sent to the other party (in millisatoshi). */
+	uint64 push_amt_msat = 3;
+	/** The minimum number of confirmations each input
+	 of the channel funding transaction must have.
+
+	 In case of a negative value being provided, unconfirmed funds can be used.
+	*/
+	int32 min_input_confs = 4;
+	/** The number of blocks the funding transaction should confirm by.
+	 This is used for fee estimation.
+	*/
+	uint32 target_confirmation_block = 5;
+	/** The fee rate (satoshis per virtual byte) the funding transaction should cost. */
+	uint64 sat_per_vbyte = 6;
+}
+
+/** An OpenChannelResponse is received in response to an OpenChannel call. */
+message OpenChannelResponse {
+	/** The channel funding transaction. */
+	string funding_txid = 1;
+	/** The output index of the funding transaction. */
+	uint32 output_index = 2;
+}
+
+/**
+ ContactService exposes endpoints pertaining to handling
+ nodes of the Lightning network and contacts.
+ */
+service ContactService {
+	/**
+	 Lists all current contacts.
+
+	 Returns a list of all contacts currently in the database.
+	*/
+	rpc GetContacts(GetContactsRequest) returns (GetContactsResponse) {}
+	/**
+	 Adds a node as a contact.
+
+	 Accepts a node and adds them as a contact in the database.
+	*/
+	rpc AddContact(AddContactRequest) returns (AddContactResponse) {}
+	/**
+	 Removes a contact.
+
+	 Accepts a contact id and removes it from the database.
+	*/
+	rpc RemoveContactByID(RemoveContactByIDRequest) returns (RemoveContactResponse) {}
+	/**
+	 Removes a contact.
+
+	 Accepts a contact address and removes it from the database.
+	*/
+	rpc RemoveContactByAddress(RemoveContactByAddressRequest) returns (RemoveContactResponse) {}
+}
+
+/** A message representing a contact of the application. */
+message ContactInfo {
+	/** The node corresponding to the contact. */
+	NodeInfo node = 1 [(validator.field) = {msg_exists: true}];
+	/** The contact id. */
+	uint64 id = 2 [(validator.field) = {msg_exists: true}];
+	/** A contact's chat nickname. */
+	string display_name = 3;
+}
+
+/** Corresponds to a request to list all contacts. */
+message GetContactsRequest {
+}
+
+/** A GetContactsResponse is received in response to a GetContacts rpc call. */
+message GetContactsResponse {
+	/** The list of contacts in the database. */
+	repeated ContactInfo contacts = 1;
+}
+
+/** Corresponds to a request to add a node as a contact. */
+message AddContactRequest {
+	/** The node to add as a contact. */
+	ContactInfo contact = 1 [(validator.field) = {msg_exists: true}];
+}
+
+/** A AddContactResponse is received in response to an AddContact rpc call. */
+message AddContactResponse {
+	/** The newly added contact's information. */
+	ContactInfo contact = 1 [(validator.field) = {msg_exists: true}];
+}
+
+/** Corresponds to a request to remove a contact. */
+message RemoveContactByIDRequest {
+	/** The id of the contact to remove. */
+	uint64 id = 1 [(validator.field) = {msg_exists: true}];
+}
+
+/** Corresponds to a request to remove a contact. */
+message RemoveContactByAddressRequest {
+	/** The Lightning address of the contact to remove. */
+	string address = 1 [(validator.field) = {msg_exists: true, regex: "^[a-z0-9]{66}$"}];
+}
+
+/** A RemoveContactResponse is received in response to a RemoveContactBy* rpc call. */
+message RemoveContactResponse {
+}
+
+/**
+ MessageService exposes functionality pertaining
+ to message creation and exchange.
+*/
+service MessageService {
+	/**
+	 Estimates the route and fees for the requested message.
+
+	 In case of failure (payment amount too large or small, payload too large),
+	 an empty response is returned.
+	*/
+	rpc EstimateMessage(EstimateMessageRequest) returns (EstimateMessageResponse) {}
+	/**
+	 Sends a message
+
+	 In case of failure (payment amount too large or small, payload too large),
+	 an empty response is returned.
+	*/
+	rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
+	/**
+	 Creates a unidirectional stream from server to client
+	 over which all received messages are sent.
+
+	 The stream does not terminate until the client stops it.
+	*/
+	rpc SubscribeMessages(SubscribeMessageRequest) returns (stream SubscribeMessageResponse) {}
+}
+
+/** A message representing a message of the application. */
+message Message {
+	/** The unique id of the message. */
+	uint64 id = 1;
+	/** The discussion id this message is associated with. */
+	uint64 discussion_id = 2;
+	/** The Lightning address of the sender node. */
+	string sender = 3 [(validator.field) = {regex: "^[a-z0-9]{66}$"}];
+	/** The Lightning address of the receiver node. */
+	string receiver = 4 [(validator.field) = {msg_exists: true, regex: "^[a-z0-9]{66}$"}];
+	/** Whether the message sender was verified. */
+	bool sender_verified = 11;
+	/** The message payload. */
+	string payload = 5;
+	/** The amount paid over this message (in millisatoshi). */
+	int64 amt_msat = 6 [(validator.field) = {msg_exists: true}];
+	/** The total routing fees paid for this message across all routes (in millisatoshi).
+
+	 This field is meaningful only for sent and estimated messages.
+	*/
+	int64 total_fees_msat = 7 [(validator.field) = {msg_exists: true}];
+	/** The time the message was sent. */
+	google.protobuf.Timestamp sent_timestamp = 8;
+	/** The time the message was received. */
+	google.protobuf.Timestamp received_timestamp = 9;
+	/** The routes that fulfilled this message.
+
+	 This field is meaningful only for sent and estimated messages.
+	*/
+	repeated PaymentRoute payment_routes = 10;
+	/** The preimage belonging to the associated payment.
+
+	 This field is only meaningful for received messages and
+	 messages sent successfully to non-group discussions.
+	*/
+	string preimage = 12;
+	/** The payment request this message was paid to.
+
+	 If empty, corresponds to a spontaneous payment.
+	*/
+	string pay_req = 13;
+}
+
+/** A message representing a route fulfilling a payment HTLC. */
+message PaymentRoute {
+	/** The list of hops for this route. */
+	repeated PaymentHop hops = 1;
+	/** The total timelock of the route. */
+	uint32 total_timelock = 2;
+	/** The amount sent via this route, disregarding the route fees (in millisatoshi). */
+	int64 route_amt_msat = 3;
+	/** The fees paid for this route (in millisatoshi). */
+	int64 route_fees_msat = 4;
+}
+
+/** A message representing a hop of the route for sending a message. */
+message PaymentHop {
+	/** The channel id. */
+	uint64 chan_id = 1;
+	/** The address of the hop node. */
+	string hop_address = 2 [(validator.field) = {regex: "^[a-z0-9]{66}$"}];
+	/** The amount to be forwarded by the hop (in millisatoshi). */
+	int64 amt_to_forward_msat = 3;
+	/** The fee to be paid to the hop for forwarding the message (in millisatoshi). */
+	int64 fee_msat = 4;
+}
+
+/** MessageOptions represents messaging options. */
+message MessageOptions {
+	/** The maximum fee allowed for a message (in millisatoshi). */
+	int64 fee_limit_msat = 1;
+	/** Whether to include the sender address when sending a message. */
+	bool anonymous = 2;
+}
+
+/** Corresponds to a request to estimate a message. */
+message EstimateMessageRequest {
+	/** The discussion id where the message is to be sent. */
+	uint64 discussion_id = 1;
+	/** The message payload (as a string). */
+	string payload = 2;
+	/** The intended payment amount to the recipient of the message (in millisatoshi). */
+	int64 amt_msat = 3 [(validator.field) = {msg_exists: true}];
+	/** The message option overrides for the current message. */
+	MessageOptions options = 4;
+}
+
+/** A EstimateMessageResponse is received in response to a EstimateMessage rpc call. */
+message EstimateMessageResponse {
+	/**
+	 The probability of successful arrival of the message,
+	 as reported by the Lightning daemon's mission control.
+	*/
+	double	success_prob = 1 [(validator.field) = {msg_exists: true}];
+	/** Contains the estimated route and fees for the requested message. */
+	Message message = 2 [(validator.field) = {msg_exists: true}];
+}
+
+/** Corresponds to a request to send a message. */
+message SendMessageRequest {
+	/** The discussion id where the message is to be sent. */
+	uint64 discussion_id = 1;
+	/** The message payload (as a string). */
+	string payload = 2;
+	/** The intended payment amount to the recipient of the message (in millisatoshi). */
+	int64 amt_msat = 3 [(validator.field) = {msg_exists: true}];
+	/** A payment request (invoice) to pay to.
+
+	 If empty, a spontaneous message is sent.
+	 If specified, discussion_id is not used and should not be specified.
+	  Instead, the message will be sent to the discussion associated with
+	  the recipient specified by the the payment request (which will be
+	  created if it does not exist).
+	 The discussion_id will be returned in the response.
+	*/
+	string pay_req = 5;
+	/** The message option overrides for the current message. */
+	MessageOptions options = 4;
+}
+
+/** A SendMessageResponse is received in response to a SendMessage rpc call. */
+message SendMessageResponse {
+	/** The sent message. */
+	Message sent_message = 1 [(validator.field) = {msg_exists: true}];
+}
+
+/**
+ Corresponds to a request to create a stream
+ over which to be notified of received messages.
+*/
+message SubscribeMessageRequest {
+}
+
+/**
+ A SubscribeMessageResponse is received in the stream returned in response to
+ a SubscribeMessages rpc call, and represents a received message.
+*/
+message SubscribeMessageResponse {
+	/** The received message. */
+	Message received_message = 1 [(validator.field) = {msg_exists: true}];
+}
+
+/**
+ DiscussionService exposes functionality pertaining
+ to discussion creation, deletion and history.
+*/
+service DiscussionService {
+	/**
+	 Creates a unidirectional stream from server to client
+	 over which all discussions' info are sent.
+
+	 The stream terminates when all discussions' info is transmitted.
+	*/
+	rpc GetDiscussions(GetDiscussionsRequest) returns (stream GetDiscussionsResponse) {}
+	/**
+	 Creates a unidirectional stream from server to client
+	 over which all previously exchanged messages belonging to
+	 a specific discussion are sent.
+
+	 The stream terminates when all discussion history is transmitted.
+	*/
+	rpc GetDiscussionHistoryByID(GetDiscussionHistoryByIDRequest) returns (stream GetDiscussionHistoryResponse) {}
+	/**
+	 Calculates statistics about the requested discussion.
+	*/
+	rpc GetDiscussionStatistics(GetDiscussionStatisticsRequest) returns (GetDiscussionStatisticsResponse) {}
+	/**
+	 Adds a discussion to the database.
+	*/
+	rpc AddDiscussion(AddDiscussionRequest) returns (AddDiscussionResponse) {}
+	/**
+	 Updates a discussion's last read message.
+	*/
+	rpc UpdateDiscussionLastRead(UpdateDiscussionLastReadRequest) returns (UpdateDiscussionResponse) {}
+	/**
+	 Remove a discussion from the database.
+	*/
+	rpc RemoveDiscussion(RemoveDiscussionRequest) returns (RemoveDiscussionResponse) {}
+}
+
+/** Represents the information for a specific discussion. */
+message DiscussionInfo {
+	/** The discussion id. */
+	uint64 id = 1 [(validator.field) = {msg_exists: true}];
+	/** The list of participants in the discussion. */
+	repeated string participants = 2 [(validator.field) = {repeated_count_min: 1}];
+	DiscussionOptions options = 3;
+	/** The id of the last read message in the discussion. */
+	uint64 last_read_msg_id = 4;
+	/** The id of the last discussion message. */
+	uint64 last_msg_id = 5;
+}
+
+/** DiscussionOptions represents the per-discussion options. */
+message DiscussionOptions {
+	/**
+	 The maximum fee allowed for sending a message (in millisatoshi).
+
+	 If not set, the default fee limit, as defined in the app package, is used.
+	*/
+	int64 fee_limit_msat = 1;
+	/** Whether to send as anonymous on this discussion. */
+	bool anonymous = 2;
+}
+
+/** Corresponds to a request to receive all discussion info. */
+message GetDiscussionsRequest {
+}
+
+/**
+ A GetDiscussionsResponse is received in the stream returned in response
+ to a GetDiscussions rpc call, and represents a discussion.
+*/
+message GetDiscussionsResponse {
+	DiscussionInfo discussion = 1 [(validator.field) = {msg_exists: true}];
+}
+
+/**
+ Corresponds to a request to create a stream over which to receive
+ previously exchanged messages of the identified discussion.
+*/
+message GetDiscussionHistoryByIDRequest {
+	/** The discussion id of interest. */
+	uint64 id = 1 [(validator.field) = {msg_exists: true}];
+	KeySetPageOptions page_options = 2;
+}
+
+/**
+ A GetDiscussionHistoryResponse is received in response to
+ a GetHistory rpc call, and represents an exchanged message.
+*/
+message GetDiscussionHistoryResponse {
+	/** The exchanged message. */
+	Message message = 1;
+}
+
+/**
+ Corresponds to a request for statistics about the requested
+ discussion, identified by its id.
+*/
+message GetDiscussionStatisticsRequest {
+	/** The discussion id. */
+	uint64 id = 1;
+}
+
+/**
+ A GetDiscussionStatisticsResponse is received in response to
+ a GetDiscussionStatistics rpc call.
+*/
+message GetDiscussionStatisticsResponse {
+	/** The total amount sent in the discussion (in millisatoshi). */
+	uint64 amt_msat_sent = 1;
+	/** The total amount received in the discussion (in millisatoshi). */
+	uint64 amt_msat_received = 2;
+	/** The total amount of fees for sent messages in the discussion (in millisatoshi). */
+	uint64 amt_msat_fees = 3;
+	/** The total amount of sent messages in the discussion. */
+	uint64 messages_sent = 4;
+	/** The total amount of received messages in the discussion. */
+	uint64 messages_received = 5;
+}
+
+/** Corresponds to a request to add a discussion to database. */
+ message AddDiscussionRequest {
+	DiscussionInfo discussion = 1 [(validator.field) = {msg_exists: true}];
+}
+
+/** An AddDiscussionResponse is received in response to an AddDiscussion rpc call. */
+message AddDiscussionResponse {
+	DiscussionInfo discussion = 1;
+}
+
+/** Represents a request to update the last read discussion message. */
+message UpdateDiscussionLastReadRequest {
+	/** The discussion id. */
+	uint64 discussion_id = 1;
+	/** The message id to mark as the last read. */
+	uint64 last_read_msg_id = 2;
+}
+
+/**
+ An UpdateDiscussionResponse is returned in reponse
+ to an UpdateDiscussionLastRead request.
+*/
+message UpdateDiscussionResponse {
+}
+
+/** Corresponds to a request to remove a discussion. */
+message RemoveDiscussionRequest {
+	/** The id of the discussion to remove. */
+	uint64 id = 1 [(validator.field) = {msg_exists: true}];
+}
+
+/** A RemoveDiscussionResponse is received in response to a RemoveDiscussion rpc call. */
+message RemoveDiscussionResponse {
+}

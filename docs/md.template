@@ -1,0 +1,130 @@
+# RPC API
+
+## Contents
+{{ range .Files }}
+  {{$file_name := .Name}}
+  ### [{{ .Name }}](#{{.Name}})
+  <details>
+  <summary>Messages</summary>
+
+  {{range .Messages}}
+  <li>
+    <a href="#{{.FullName}}">{{.LongName}}</a>
+  </li>
+  {{end}}
+  {{range .Enums}}
+  <li>
+    <a href="#{{.FullName}}">{{.LongName}}</a>
+  </li>
+  {{end}}
+  {{range .Extensions}}
+  <li>
+    <a href="#{{$file_name}}-extensions">File-level Extensions</a>
+  </li>
+  {{end}}
+  </details>
+
+  <details>
+  <summary>Services</summary>
+
+  {{range .Services}}
+  <li>
+    <a href="#{{.FullName}}">{{.Name}}</a>
+  </li>
+  {{end}}
+  </details>
+
+{{ end }}
+### [Scalar Value Types](#scalar-value-types)
+
+{{range .Files}}
+{{$file_name := .Name}}
+
+<h2 id="{{.Name}}">{{ .Name }}</h2>
+{{replace "\n\n" "<br>" .Description}}
+
+{{range .Messages}}
+<h3 id="{{.FullName}}">{{.LongName}}</h3>
+{{replace "\n\n" "<br>" .Description}}
+
+{{if .HasFields}}
+<table class="field-table">
+  <thead>
+    <tr>
+      <td>Field</td>
+      <td>Type</td>
+      <td>Label</td>
+      <td>Description</td>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Fields}}
+    <tr>
+      <td>{{.Name}}</td>
+      <td><a href="#{{.FullType}}">{{.LongType}}</a></td>
+      <td>{{.Label}}</td>
+      <td>
+        <p>{{replace "\n\n" "<br>" .Description}}  {{if .DefaultValue}}Default: {{.DefaultValue}}{{end}}</p>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+
+{{$message := .}}
+  {{- range .FieldOptions}}
+  {{$option := .}}
+  {{if eq . "validator.field" "validate.rules" }}
+  <h4>Validated Fields</h4>
+  <table>
+    <thead>
+      <tr>
+        <td>Field</td>
+        <td>Validations</td>
+      </tr>
+    </thead>
+    <tbody>
+      {{range $message.FieldsWithOption .}}
+      <tr>
+        <td>{{.Name}}</td>
+        <td>
+          <ul>
+            {{range (.Option $option).Rules}}
+              {{if and (eq .Name "msg_exists") (.Value)}}
+                <li><b>Required</b></li>
+              {{else}}
+                <li>{{.Name}}: {{.Value}}</li>
+              {{end}}
+            {{end}}
+          </ul>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <h4>Fields with {{.}} option</h4>
+  <table>
+    <thead>
+      <tr>
+        <td>Name</td>
+        <td>Option</td>
+      </tr>
+    </thead>
+    <tbody>
+      {{range $message.FieldsWithOption .}}
+      <tr>
+        <td>{{.Name}}</td>
+        <td>
+          <p>{{ printf "%+v" (.Option $option)}}</p>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  {{end}}
+  {{end -}}
+  {{end}}
+
+{{end}}
+{{ end }}
