@@ -28,6 +28,7 @@ vendor/
 
 # RPC documentation
 docs/*.html
+docs/c13n-api-docs/docs/*
 
 # Test logs
 lnchat/tests/*.log

@@ -36,7 +36,7 @@ C13N_PACKAGES := $(BACKEND_PACKAGES) $(LNCHAT_PKG) $(LNCONNECT_PKG)
 CERT_DIR = cert
 
 # Documentation
-RPC_DOCS_FILE = rpc_documentation.html
+RPC_DOCS_FILE = index.md
 
 ############
 # Testing #
@@ -115,7 +115,7 @@ mock:
 	$(GO) generate ./...
 
 proto-doc: vendor
-	protoc $(PROTO_IMPORT_PATHS) --doc_out=./docs --doc_opt=./docs/html.template,$(RPC_DOCS_FILE) $(SERVICE_DIR)/*.proto
+	protoc $(PROTO_IMPORT_PATHS) --doc_out=./docs/c13n-api-docs/docs --doc_opt=./docs/md.template,$(RPC_DOCS_FILE) $(SERVICE_DIR)/*.proto
 
 # Testing
 test: testlib testbackend
