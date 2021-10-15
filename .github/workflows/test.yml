@@ -1,0 +1,44 @@
+name: Test c13n
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/c13n-io/c13n-backend-test-env:latest
+      options: -v ${{ github.workspace }}:/c13n
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: Cache vendor
+        uses: actions/cache@v2
+        id: cache-vendor
+        with:
+          path: |
+            ${{ github.workspace }}/vendor
+          key: ${{ runner.os }}-go-vendor-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-vendor-
+      - name: Cache GO modules
+        uses: actions/cache@v2
+        id: cache-go-modules
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install dev dependencies
+        run: cd /c13n && make dev-deps
+
+      - name: Run tests
+        run: cd /c13n && make test
