@@ -1,1 +1,12 @@
 site_name: c13n API Documentation
+
+
+#theme: null
+#theme_dir: './mkdocs-material-master'
+
+theme: 
+  name: readthedocs
+  navigation-depth: 3
+
+extra_css:
+- stylesheets/style.css

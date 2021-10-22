@@ -1,6 +1,8 @@
 {{range .Files}}
 {{$file_name := .Name}}
-# Services
+# c13n RPC API
+
+## Services
 {{range .Services}}
 ### {{.Name}}
 {{.Description}}
@@ -8,10 +10,12 @@
 | Method Name | Request Type | Response Type | Description |
 | ----------- | ------------ | ------------- | ------------|
 {{range .Methods -}}
-| {{.Name}} | {{.RequestLongType}}{{if .RequestStreaming}} stream{{end}} | [{{.ResponseLongType}}](#{{.ResponseFullType}}){{if .ResponseStreaming}} stream{{end}} | {{.Description | replace "\n" "<br />" | nobr}} |
+| {{.Name}} | [🔗](#{{lower .RequestLongType}}){{if .RequestStreaming}} stream{{end}} | [🔗](#{{lower .ResponseLongType}}){{if .ResponseStreaming}} stream{{end}} | {{.Description | replace "\n" "<br />" | nobr}} |
 {{end}}
 {{end}}
-# Messages
+
+
+## Messages
 {{range .Messages}}
 ### {{.LongName}}
 
@@ -21,7 +25,7 @@
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 {{range .Fields -}}
-| {{.Name}} | [{{.LongType}}](#{{.FullType}}) | {{.Label}} | {{if (index .Options "deprecated"|default false)}}**Deprecated.** {{end}}{{.Description | replace "\n" "<br />" | nobr}}{{if .DefaultValue}} Default: {{.DefaultValue}}{{end}} |
+| {{.Name}} | [{{.LongType}}](#{{lower .LongType}}) | {{.Label}} | {{if (index .Options "deprecated"|default false)}}**Deprecated.** {{end}}{{.Description | replace "\n" "<br />" | nobr}}{{if .DefaultValue}} Default: {{.DefaultValue}}{{end}} |
 {{end}}
 {{if .HasExtensions}}
 | Extension | Type | Base | Number | Description |
