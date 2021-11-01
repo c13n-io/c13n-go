@@ -10,7 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/lntypes"
 	"github.com/pkg/errors"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
+	"github.com/c13n-io/c13n-go/lnchat"
 )
 
 // RawMessage represents a raw message over the Lightning network,

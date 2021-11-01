@@ -1,4 +1,4 @@
-module github.com/c13n-io/c13n-backend
+module github.com/c13n-io/c13n-go
 
 go 1.14
 

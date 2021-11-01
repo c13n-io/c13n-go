@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // DefaultOptions defines the default message options to be used when

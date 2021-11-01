@@ -3,7 +3,7 @@ package store
 import (
 	"github.com/dgraph-io/badger"
 
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // AddInvoice stores an invoice.

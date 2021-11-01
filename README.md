@@ -1,4 +1,4 @@
-# c13n-backend
+# c13n-go
 
 **c13n** is a project that utilizes micro-transactions in Bitcoin's Lightning Network to transmit messages.
 
@@ -42,7 +42,7 @@ export GOPRIVATE="git.programize.com"
 
 Clone this repository.
 ```bash
-git clone https://github.com/c13n-io/c13n-backend.git
+git clone https://github.com/c13n-io/c13n-go.git
 ```
 
 ##### Build
@@ -53,7 +53,7 @@ make
 ```
 You can also do this manually:
 ```bash
-go build -i -v -o c13n github.com/c13n-io/c13n-backend/cli
+go build -i -v -o c13n github.com/c13n-io/c13n-go/cli
 ```
 
 ##### Configure

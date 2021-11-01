@@ -10,11 +10,11 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/c13n-io/c13n-backend/app"
-	"github.com/c13n-io/c13n-backend/lnchat"
-	"github.com/c13n-io/c13n-backend/rpc"
-	"github.com/c13n-io/c13n-backend/slog"
-	"github.com/c13n-io/c13n-backend/store"
+	"github.com/c13n-io/c13n-go/app"
+	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/rpc"
+	"github.com/c13n-io/c13n-go/slog"
+	"github.com/c13n-io/c13n-go/store"
 )
 
 var (

@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
-	"github.com/c13n-io/c13n-backend/lnchat/lnconnect"
+	"github.com/c13n-io/c13n-go/lnchat/lnconnect"
 )
 
 // defaultConnectTimeout is the default timeout used for peer connections (in seconds).

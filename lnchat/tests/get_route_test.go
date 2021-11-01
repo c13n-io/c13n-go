@@ -10,7 +10,7 @@ import (
 	"github.com/lightningnetwork/lnd/record"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
+	"github.com/c13n-io/c13n-go/lnchat"
 )
 
 func testGetRoute(net *lntest.NetworkHarness, t *harnessTest) {

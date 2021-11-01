@@ -11,7 +11,7 @@ import (
 	"github.com/lightningnetwork/lnd/lntest"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/c13n-io/c13n-backend/lnchat/lnconnect"
+	"github.com/c13n-io/c13n-go/lnchat/lnconnect"
 )
 
 func testInitializeConnection(net *lntest.NetworkHarness, t *harnessTest) {

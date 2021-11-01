@@ -6,10 +6,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/c13n-io/c13n-backend/app"
-	"github.com/c13n-io/c13n-backend/model"
-	pb "github.com/c13n-io/c13n-backend/rpc/services"
-	"github.com/c13n-io/c13n-backend/slog"
+	"github.com/c13n-io/c13n-go/app"
+	"github.com/c13n-io/c13n-go/model"
+	pb "github.com/c13n-io/c13n-go/rpc/services"
+	"github.com/c13n-io/c13n-go/slog"
 )
 
 type discussionServiceServer struct {

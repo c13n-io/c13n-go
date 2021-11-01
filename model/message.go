@@ -1,6 +1,6 @@
 package model
 
-import "github.com/c13n-io/c13n-backend/lnchat"
+import "github.com/c13n-io/c13n-go/lnchat"
 
 // Hop represents a hop in a payment route.
 type Hop struct {

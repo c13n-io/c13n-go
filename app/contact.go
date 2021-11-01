@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // AddContact adds a contact to the database if it doesn't exist.

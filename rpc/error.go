@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/c13n-io/c13n-backend/app"
+	"github.com/c13n-io/c13n-go/app"
 )
 
 func associateStatusCode(err error) error {

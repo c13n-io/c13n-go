@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // GetNodes returns all nodes visible in the underlying lightning network.

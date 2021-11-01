@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	lnmock "github.com/c13n-io/c13n-backend/lnchat/mocks"
-	"github.com/c13n-io/c13n-backend/model"
-	dbmock "github.com/c13n-io/c13n-backend/store/mocks"
+	"github.com/c13n-io/c13n-go/lnchat"
+	lnmock "github.com/c13n-io/c13n-go/lnchat/mocks"
+	"github.com/c13n-io/c13n-go/model"
+	dbmock "github.com/c13n-io/c13n-go/store/mocks"
 )
 
 func TestSendPayment(t *testing.T) {

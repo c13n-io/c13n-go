@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	lnmock "github.com/c13n-io/c13n-backend/lnchat/mocks"
-	"github.com/c13n-io/c13n-backend/model"
-	"github.com/c13n-io/c13n-backend/store"
-	dbmock "github.com/c13n-io/c13n-backend/store/mocks"
+	"github.com/c13n-io/c13n-go/lnchat"
+	lnmock "github.com/c13n-io/c13n-go/lnchat/mocks"
+	"github.com/c13n-io/c13n-go/model"
+	"github.com/c13n-io/c13n-go/store"
+	dbmock "github.com/c13n-io/c13n-go/store/mocks"
 )
 
 func TestAddContact(t *testing.T) {

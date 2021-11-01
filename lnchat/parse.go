@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/c13n-io/c13n-backend/lnchat/lnconnect"
+	"github.com/c13n-io/c13n-go/lnchat/lnconnect"
 )
 
 func parseLNDConnectURL(lndConnectURL string) (*lnconnect.Credentials, error) {

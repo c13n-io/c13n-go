@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/c13n-io/c13n-backend/app"
-	"github.com/c13n-io/c13n-backend/model"
-	pb "github.com/c13n-io/c13n-backend/rpc/services"
-	"github.com/c13n-io/c13n-backend/slog"
+	"github.com/c13n-io/c13n-go/app"
+	"github.com/c13n-io/c13n-go/model"
+	pb "github.com/c13n-io/c13n-go/rpc/services"
+	"github.com/c13n-io/c13n-go/slog"
 )
 
 type messageServiceServer struct {

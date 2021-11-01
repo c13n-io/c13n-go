@@ -7,9 +7,9 @@ import (
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/pkg/errors"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	"github.com/c13n-io/c13n-backend/model"
-	"github.com/c13n-io/c13n-backend/store"
+	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/model"
+	"github.com/c13n-io/c13n-go/store"
 )
 
 // ErrDiscAnonymousMessage indicates that an anonymous send

@@ -3,8 +3,8 @@ package fake
 import (
 	"syreclabs.com/go/faker"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // GenerateBalance generates a fake SelfBalance struct for testing.

@@ -6,7 +6,7 @@ import (
 
 	"github.com/timshannon/badgerhold"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
+	"github.com/c13n-io/c13n-go/lnchat"
 )
 
 // Invoice embeds lnchat.Invoice,

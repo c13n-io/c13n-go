@@ -7,8 +7,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
 
-	"github.com/c13n-io/c13n-backend/model"
-	pb "github.com/c13n-io/c13n-backend/rpc/services"
+	"github.com/c13n-io/c13n-go/model"
+	pb "github.com/c13n-io/c13n-go/rpc/services"
 )
 
 // Message transformations

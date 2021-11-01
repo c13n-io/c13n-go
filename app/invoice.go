@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // defaultInvoiceFilter is an invoice update filter,

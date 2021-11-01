@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	lnmock "github.com/c13n-io/c13n-backend/lnchat/mocks"
+	lnmock "github.com/c13n-io/c13n-go/lnchat/mocks"
 )
 
 func TestVerifySignature(t *testing.T) {

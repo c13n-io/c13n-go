@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/macaroon.v2"
 
-	"github.com/c13n-io/c13n-backend/lnchat/lnconnect"
+	"github.com/c13n-io/c13n-go/lnchat/lnconnect"
 )
 
 func TestParseLNDConnectURL(t *testing.T) {

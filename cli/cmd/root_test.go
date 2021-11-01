@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/c13n-io/c13n-backend/slog"
+	"github.com/c13n-io/c13n-go/slog"
 )
 
 func TestMain(m *testing.M) {

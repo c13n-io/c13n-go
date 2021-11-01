@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	"github.com/c13n-io/c13n-backend/store"
+	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/store"
 )
 
 // ErrKind defines the kind of an error.

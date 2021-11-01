@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/c13n-io/c13n-backend/rpc/services";
+option go_package = "github.com/c13n-io/c13n-go/rpc/services";
 
 package services;
 

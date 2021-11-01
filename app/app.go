@@ -9,9 +9,9 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/tomb.v2"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	"github.com/c13n-io/c13n-backend/slog"
-	"github.com/c13n-io/c13n-backend/store"
+	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/slog"
+	"github.com/c13n-io/c13n-go/store"
 )
 
 // App defines the c13n application logic.

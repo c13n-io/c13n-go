@@ -12,7 +12,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/c13n-io/c13n-backend-test-env:latest
+      image: ghcr.io/c13n-io/c13n-go-test-env:latest
       options: -v ${{ github.workspace }}:/c13n
     steps:
       - name: Check out Git repository

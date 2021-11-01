@@ -5,7 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/timshannon/badgerhold"
 
-	"github.com/c13n-io/c13n-backend/slog"
+	"github.com/c13n-io/c13n-go/slog"
 )
 
 type bhDatabase struct {

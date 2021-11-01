@@ -2,7 +2,7 @@
 
 TARGET := c13n
 
-MODULE_NAME = github.com/c13n-io/c13n-backend
+MODULE_NAME = github.com/c13n-io/c13n-go
 
 SERVICE_DIR = rpc/services
 
@@ -23,8 +23,8 @@ LND_PKG_VERSION := v0.13.1-beta
 BACKEND_PACKAGES := $(shell go list ./... | grep -vE "lnchat")
 
 # Library packages
-LNCHAT_PKG := github.com/c13n-io/c13n-backend/lnchat
-LNCONNECT_PKG := github.com/c13n-io/c13n-backend/lnchat/lnconnect
+LNCHAT_PKG := github.com/c13n-io/c13n-go/lnchat
+LNCONNECT_PKG := github.com/c13n-io/c13n-go/lnchat/lnconnect
 
 C13N_PACKAGES := $(BACKEND_PACKAGES) $(LNCHAT_PKG) $(LNCONNECT_PKG)
 

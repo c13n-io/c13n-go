@@ -6,7 +6,7 @@ import (
 	"github.com/dgraph-io/badger"
 	"github.com/timshannon/badgerhold"
 
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // AddRawMessage stores a raw message under a discussion

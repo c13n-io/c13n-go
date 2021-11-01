@@ -5,8 +5,8 @@ import (
 
 	"github.com/lightningnetwork/lnd/lnrpc"
 
-	"github.com/c13n-io/c13n-backend/lnchat"
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // Definition of the payload TLV types.

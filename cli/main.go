@@ -1,6 +1,6 @@
 package main
 
-import "github.com/c13n-io/c13n-backend/cli/cmd"
+import "github.com/c13n-io/c13n-go/cli/cmd"
 
 func main() {
 	cmd.Execute()

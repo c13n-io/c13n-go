@@ -1,6 +1,6 @@
 package model
 
-import "github.com/c13n-io/c13n-backend/lnchat"
+import "github.com/c13n-io/c13n-go/lnchat"
 
 // Node represents the model for network nodes.
 type Node struct {

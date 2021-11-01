@@ -17,9 +17,9 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
-	"github.com/c13n-io/c13n-backend/app"
-	pb "github.com/c13n-io/c13n-backend/rpc/services"
-	"github.com/c13n-io/c13n-backend/slog"
+	"github.com/c13n-io/c13n-go/app"
+	pb "github.com/c13n-io/c13n-go/rpc/services"
+	"github.com/c13n-io/c13n-go/slog"
 )
 
 // Server is the RPC server struct.

@@ -3,7 +3,7 @@ package fake
 import (
 	"syreclabs.com/go/faker"
 
-	"github.com/c13n-io/c13n-backend/model"
+	"github.com/c13n-io/c13n-go/model"
 )
 
 // GenerateNode generates a fake Node for testing.
