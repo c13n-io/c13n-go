@@ -1,0 +1,23 @@
+# General options
+# Accepted log levels: "panic", "fatal", "error", "warn", "info", "debug", "trace"
+log_level: "debug"
+# Server configuration
+server:
+  address: "localhost:9999"
+  tls:
+    cert_path: "./cert/c13n.pem"
+    key_path:  "./cert/c13n.key"
+  user: example
+  pass: replaceme
+  graceful_shutdown_timeout: 10
+# LN service configuration
+lnd:
+  address: "localhost:10009"
+  tls_path: "~/.lnd/tls.cert"
+  macaroon_path: "~/.lnd/data/chain/bitcoin/regtest/admin.macaroon"
+# Application configuration
+app:
+  default_fee_limit_msat: 3000
+# Database configuration
+database:
+  db_path: "./test.db"
