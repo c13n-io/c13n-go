@@ -4,6 +4,10 @@
 
 This repository stores the code for the project's server, which exposes a gRPC API to handle messaging requests.
 
+### Documentation
+
+The API documentation is hosted [here](https://docs.c13n.io/projects/api/en/latest/), while for a general introduction see [here](https://docs.c13n.io/en/latest/).
+
 ## Getting Started
 
 These instructions will help you build the project and start the gRPC server.
@@ -119,7 +123,7 @@ c13n uses [revive](https://github.com/mgechev/revive) and [staticcheck](https://
 make lint
 ```
 
-#### Documentation
+#### API Documentation
 
 To generate the RPC documentation:
 ```bash
