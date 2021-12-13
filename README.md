@@ -113,7 +113,7 @@ make test
 
 ##### Linting
 
-c13n uses [revive](https://github.com/mgechev/revive) for linting. Linter configuration is defined in [revive.toml](/revive.toml). To trigger linting use the following:
+c13n uses [revive](https://github.com/mgechev/revive) and [staticcheck](https://github.com/dominikh/go-tools) for linting. Linter configuration is defined in [revive.toml](/revive.toml) and [staticcheck.conf](/staticcheck.conf). To trigger linting use the following:
 
 ```bash
 make lint

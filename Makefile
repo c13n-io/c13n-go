@@ -146,7 +146,7 @@ lib-utest:
 lint:
 	@echo "Running revive"
 	revive -config=revive.toml -formatter=stylish $(C13N_PACKAGES)
-	@echo "Running statichceck"
+	@echo "Running staticcheck"
 	staticcheck ./...
 
 # Cleaning
