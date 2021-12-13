@@ -63,14 +63,14 @@ or you can use a preexisting one.
 
 ##### Run
 
-Run the server with `c13n.yaml` file as:
+Run the server with `c13n.yaml` file as follows:
 ```bash
-./backend -config=c13n.yaml
+./c13n -config=c13n.yaml
 ```
 You can start multiple instances of the server, possibly connected to different Lightning daemons, by using different configuration files for each instance.
 ```bash
-./backend -config=alice.yaml
-./backend -config=bob.yaml
+./c13n -config=alice.yaml
+./c13n -config=bob.yaml
 ```
 
 ### Development
