@@ -10,7 +10,7 @@ These instructions will help you build the project and start the gRPC server.
 
 ### Prerequisites
 
-##### Go 1.14
+#### Go 1.14
 
 Go is an open source programming language. You can find Go for all operating systems [here](https://golang.org/dl/).
 
@@ -25,14 +25,14 @@ Also, make sure that your `$PATH` includes the `$GOBIN` folder, which is where G
 
 ### Installing
 
-##### Download
+#### Download
 
 Clone this repository.
 ```bash
 git clone https://github.com/c13n-io/c13n-go.git
 ```
 
-##### Build
+#### Build
 
 Build the server.
 ```bash
@@ -43,7 +43,7 @@ You can also do this manually:
 go build -i -v -o c13n github.com/c13n-io/c13n-go/cli
 ```
 
-##### Configure
+#### Configure
 
 Use the `c13n.sample.yaml` file as a template to configure your app.
 ```bash
@@ -52,7 +52,7 @@ vim c13n.yaml
 ```
 Note that the application requires the connectivity credentials for a Lightning daemon (`lnd`) that accepts spontaneous payments through keysend. Provide those under the `lnd` section of the configuration file.
 
-##### TLS Certificate
+#### TLS Certificate
 
 A valid certificate (and key) file needs to be present if the application is to run with TLS enabled.
 A self-signed certificate can be created by running
@@ -61,7 +61,7 @@ make certgen
 ```
 or you can use a preexisting one.
 
-##### Run
+#### Run
 
 Run the server with `c13n.yaml` file as follows:
 ```bash
@@ -75,7 +75,7 @@ You can start multiple instances of the server, possibly connected to different 
 
 ### Development
 
-##### Protocol buffer compiler
+#### Protocol buffer compiler
 
 This project uses protocol buffers, which are Google's language-neutral, platform-neutral, extensible mechanism for serializing structured data. You can find the protocol buffer compiler [here](https://github.com/protocolbuffers/protobuf).
 
@@ -88,7 +88,7 @@ Note: The installation directory of the `protoc` binary must be in your path.
 
 Alternatively, you can find installation instructions [here](https://grpc.io/docs/quickstart/go/).
 
-##### Dependencies
+#### Dependencies
 
 Go can automatically install any required dependencies of the target build, however development dependencies have to be installed in a more manual manner.
 
@@ -104,14 +104,14 @@ You can install these dependencies using the `go get` command as outlined [below
 ```
 Please track any development dependencies in the above list.
 
-##### Tests
+#### Tests
 
 Run the tests:
 ```bash
 make test
 ```
 
-##### Linting
+#### Linting
 
 c13n uses [revive](https://github.com/mgechev/revive) and [staticcheck](https://github.com/dominikh/go-tools) for linting. Linter configuration is defined in [revive.toml](/revive.toml) and [staticcheck.conf](/staticcheck.conf). To trigger linting use the following:
 
@@ -119,11 +119,9 @@ c13n uses [revive](https://github.com/mgechev/revive) and [staticcheck](https://
 make lint
 ```
 
-##### Documentation
+#### Documentation
 
-###### RPC API documentation
-
-To generate RPC API documentation:
+To generate the RPC documentation:
 ```bash
 make proto-doc
 ```
@@ -132,11 +130,11 @@ Documentation will then be located at `docs/index.html`.
 
 ### Suggestions
 
-##### BloomRPC
+#### BloomRPC
 
 BloomRPC is an application that allows you to query gRPC services. You can download it [here](https://github.com/uw-labs/bloomrpc).
 
-##### Polar
+#### Polar
 
 Polar is an application that allows developers to quickly spin up one or more Lightning Networks locally using `docker`. You can download it [here](https://github.com/jamaljsr/polar).
 
