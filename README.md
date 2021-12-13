@@ -50,7 +50,7 @@ Use the `c13n.sample.yaml` file as a template to configure your app.
 cp c13n.sample.yaml c13n.yaml
 vim c13n.yaml
 ```
-Note that the application requires the connectivity credentials for an underlying Lightning node that accepts spontaneous payments through keysend. Provide those under the `lnd` section of the configuration file.
+Note that the application requires the connectivity credentials for a Lightning daemon (`lnd`) that accepts spontaneous payments through keysend. Provide those under the `lnd` section of the configuration file.
 
 ##### TLS Certificate
 
@@ -67,7 +67,7 @@ Run the server with `c13n.yaml` file as:
 ```bash
 ./backend -config=c13n.yaml
 ```
-You can start multiple instances of the server connected to different Lightning nodes, by using different configuration files for each instance.
+You can start multiple instances of the server, possibly connected to different Lightning daemons, by using different configuration files for each instance.
 ```bash
 ./backend -config=alice.yaml
 ./backend -config=bob.yaml
