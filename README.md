@@ -25,19 +25,6 @@ Also, make sure that your `$PATH` includes the `$GOBIN` folder, which is where G
 
 ### Installing
 
-##### Private repositories
-
-In order to access the library repository which is private at the moment, you may want to [cache](https://help.github.com/en/github/using-git/caching-your-github-password-in-git) your git credentials:
-```bash
-git config --global credential.helper cache
-export GIT_TERMINAL_PROMPT=1
-```
-
-You may also want to set the company git base URL as [private](https://golang.org/cmd/go/#hdr-Module_configuration_for_non_public_modules):
-```bash
-export GOPRIVATE="git.programize.com"
-```
-
 ##### Download
 
 Clone this repository.
