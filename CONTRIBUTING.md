@@ -16,7 +16,7 @@
 
 Any input by the community is welcome, so we want to make the process of contributing as easy as possible. Your contributions may include any of the following:
 
-- Bug reports, discussions on current state of project, or proposals for new features. For more info read [this](#Bugs-amp-Issues).
+- Bug reports, discussions on current state of project, or proposals for new features.
 - Fix submissions
 
 
@@ -43,10 +43,9 @@ git add <file_1>, <file_2>, ...
 git commit -m "Descriptive commit message"
 git push origin <my_branch_name>
 ```
-4. Ensure that the project builds correctly and the webpage launches normally.
-5. Make the Pull Request. Don't forget to write a small description of the changes you are introducing.
-6. Stay active for the review phase, as fixes and/or tweaks may be required for your PR to be approved.
-7. Final Merge from the dev team.
+4. Make the Pull Request. Don't forget to write a small description of the changes you are introducing.
+5. Stay active for the review phase, as fixes and/or tweaks may be required for your PR to be approved.
+6. Final Merge from the dev team.
 
 ### Making good commits
 These are the seven rules of a great Git commit messages:
