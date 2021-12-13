@@ -10,18 +10,6 @@ import "github.com/mwitkow/go-proto-validators/validator.proto";
 /**
  Corresponds to pagination parameters for requests.
  Represents a request for page_size elements,
- skipping the most recent skip_recent elements (reverse order).
-*/
-message PageOptions {
-	/** The number of most recent elements to skip. */
-	int64 skip_recent = 1 [(validator.field) = {msg_exists: true}];
-	/** The number of elements to return. */
-	int64 page_size = 2 [(validator.field) = {msg_exists: true}];
-}
-
-/**
- Corresponds to pagination parameters for requests.
- Represents a request for page_size elements,
  terminating with the element with id last_id.
  If reverse is true, the returned elements end with last_id.
 */
