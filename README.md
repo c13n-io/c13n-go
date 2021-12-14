@@ -153,5 +153,6 @@ BloomRPC is an application that allows you to query gRPC services. You can downl
 
 Polar is an application that allows developers to quickly spin up one or more Lightning Networks locally using `docker`. You can download it [here](https://github.com/jamaljsr/polar).
 
-### License
+### Contributing
 
+If you want to contribute to this project, either by **authoring code** or by **reporting bugs & issues**, make sure to read the [Contribution Guidelines](CONTRIBUTING.md).
