@@ -10,18 +10,6 @@ import "github.com/mwitkow/go-proto-validators/validator.proto";
 /**
  Corresponds to pagination parameters for requests.
  Represents a request for page_size elements,
- skipping the most recent skip_recent elements (reverse order).
-*/
-message PageOptions {
-	/** The number of most recent elements to skip. */
-	int64 skip_recent = 1 [(validator.field) = {msg_exists: true}];
-	/** The number of elements to return. */
-	int64 page_size = 2 [(validator.field) = {msg_exists: true}];
-}
-
-/**
- Corresponds to pagination parameters for requests.
- Represents a request for page_size elements,
  terminating with the element with id last_id.
  If reverse is true, the returned elements end with last_id.
 */
@@ -147,13 +135,13 @@ message SelfBalanceResponse {
 message GetNodesRequest {
 }
 
-/** Corresponds to a node query based on the node address. */
+/** Corresponds to a node query based on node address. */
 message SearchNodeByAddressRequest {
 	/** The node address to search. */
 	string address = 1 [(validator.field) = {regex: "^[a-z0-9]{66}$"}];
 }
 
-/** Corresponds to a node query based on the node alias. */
+/** Corresponds to a node query based on node alias. */
 message SearchNodeByAliasRequest {
 	/** The node alias substring to search. */
 	string alias = 1;
@@ -178,12 +166,11 @@ message ConnectNodeRequest {
 }
 
 /** A ConnectNodeResponse is received in response to a ConnectNode request. */
-message ConnectNodeResponse{
+message ConnectNodeResponse {
 }
 
 /**
- ChannelService exposes endpoints pertaining
- to channel management.
+ ChannelService exposes endpoints pertaining to channel management.
  */
 service ChannelService {
 	/**
@@ -203,14 +190,15 @@ message OpenChannelRequest {
 	uint64 amt_msat = 2;
 	/** The amount to be sent to the other party (in millisatoshi). */
 	uint64 push_amt_msat = 3;
-	/** The minimum number of confirmations each input
-	 of the channel funding transaction must have.
+	/** The minimum number of confirmations
+	 each input of the channel funding transaction must have.
 
 	 In case of a negative value being provided, unconfirmed funds can be used.
 	*/
 	int32 min_input_confs = 4;
 	/** The number of blocks the funding transaction should confirm by.
-	 This is used for fee estimation.
+
+	 Used for fee estimation.
 	*/
 	uint32 target_confirmation_block = 5;
 	/** The fee rate (satoshis per virtual byte) the funding transaction should cost. */
@@ -226,8 +214,7 @@ message OpenChannelResponse {
 }
 
 /**
- ContactService exposes endpoints pertaining to handling
- nodes of the Lightning network and contacts.
+ ContactService exposes endpoints pertaining to contacts.
  */
 service ContactService {
 	/**
@@ -332,7 +319,7 @@ service MessageService {
 	rpc SubscribeMessages(SubscribeMessageRequest) returns (stream SubscribeMessageResponse) {}
 }
 
-/** A message representing a message of the application. */
+/** Represents a message of the application. */
 message Message {
 	/** The unique id of the message. */
 	uint64 id = 1;
@@ -375,7 +362,7 @@ message Message {
 	string pay_req = 13;
 }
 
-/** A message representing a route fulfilling a payment HTLC. */
+/** Represents a route fulfilling a payment HTLC. */
 message PaymentRoute {
 	/** The list of hops for this route. */
 	repeated PaymentHop hops = 1;
@@ -387,7 +374,7 @@ message PaymentRoute {
 	int64 route_fees_msat = 4;
 }
 
-/** A message representing a hop of the route for sending a message. */
+/** Represents a hop of a route of a message. */
 message PaymentHop {
 	/** The channel id. */
 	uint64 chan_id = 1;
@@ -399,7 +386,7 @@ message PaymentHop {
 	int64 fee_msat = 4;
 }
 
-/** MessageOptions represents messaging options. */
+/** Represents messaging options. */
 message MessageOptions {
 	/** The maximum fee allowed for a message (in millisatoshi). */
 	int64 fee_limit_msat = 1;
@@ -483,7 +470,7 @@ service DiscussionService {
 	 Creates a unidirectional stream from server to client
 	 over which all discussions' info are sent.
 
-	 The stream terminates when all discussions' info is transmitted.
+	 The stream terminates when all discussion info is transmitted.
 	*/
 	rpc GetDiscussions(GetDiscussionsRequest) returns (stream GetDiscussionsResponse) {}
 	/**
@@ -518,6 +505,7 @@ message DiscussionInfo {
 	uint64 id = 1 [(validator.field) = {msg_exists: true}];
 	/** The list of participants in the discussion. */
 	repeated string participants = 2 [(validator.field) = {repeated_count_min: 1}];
+	/** The default options applicable for all discussion messages. */
 	DiscussionOptions options = 3;
 	/** The id of the last read message in the discussion. */
 	uint64 last_read_msg_id = 4;
@@ -527,8 +515,7 @@ message DiscussionInfo {
 
 /** DiscussionOptions represents the per-discussion options. */
 message DiscussionOptions {
-	/**
-	 The maximum fee allowed for sending a message (in millisatoshi).
+	/** The maximum fee allowed for sending a message (in millisatoshi).
 
 	 If not set, the default fee limit, as defined in the app package, is used.
 	*/
@@ -556,6 +543,7 @@ message GetDiscussionsResponse {
 message GetDiscussionHistoryByIDRequest {
 	/** The discussion id of interest. */
 	uint64 id = 1 [(validator.field) = {msg_exists: true}];
+	/** The pagination options of the request. */
 	KeySetPageOptions page_options = 2;
 }
 
