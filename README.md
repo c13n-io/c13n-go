@@ -101,10 +101,9 @@ You can install these dependencies using the `go get` command as outlined [below
 (cd && GO111MODULE=on go get github.com/golang/protobuf/protoc-gen-go@v1.4.3)
 (cd && GO111MODULE=on go get github.com/mwitkow/go-proto-validators/...@v0.3.0)
 (cd && GO111MODULE=on go get github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2)
-(cd && GO111MODULE=on go get golang.org/x/tools/cmd/goimports)
-(cd && GO111MODULE=on go get -u github.com/mgechev/revive@v1.0.2)
 (cd && GO111MODULE=on go get github.com/vektra/mockery/...@v1.0.0)
-(cd && GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck@v0.2.0)
+(cd && GO111MODULE=on go get golang.org/x/tools/cmd/goimports)
+(cd && GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0)
 ```
 Please track any development dependencies in the above list.
 
