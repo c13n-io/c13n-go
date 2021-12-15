@@ -23,7 +23,7 @@ func payOptsWithFeeLimit(feeLimit int64) lnchat.PaymentOptions {
 func mustCreatePayload(t *testing.T, participants []string,
 	payload, sender string, signature []byte) map[uint64][]byte {
 
-	rawPayload := mustJsonMarshalMessage(t, participants, payload)
+	rawPayload := mustJSONMarshalMessage(t, participants, payload)
 
 	raw := &model.RawMessage{
 		RawPayload: rawPayload,
@@ -222,7 +222,7 @@ func TestEstimatePayment(t *testing.T) {
 
 				if c.getDiscussionErr == nil {
 					if !c.opts.Anonymous {
-						marshalledPayload := mustJsonMarshalMessage(t,
+						marshalledPayload := mustJSONMarshalMessage(t,
 							c.discussion.Participants, c.payload)
 						mockLNManager.On("SignMessage", mock.Anything, marshalledPayload).Return(
 							c.signature, c.signMessageErr).Once()
