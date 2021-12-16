@@ -843,7 +843,7 @@ func assertAmountSent(amt btcutil.Amount, sndr, rcvr *lntest.HarnessNode) func()
 			sndrChannels[channel.ChanId] = true
 		}
 
-		var sndrSatoshisSent int64 = 0
+		var sndrSatoshisSent int64
 		listPayReq := &lnrpc.ListPaymentsRequest{}
 
 		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
@@ -880,7 +880,7 @@ func assertAmountSent(amt btcutil.Amount, sndr, rcvr *lntest.HarnessNode) func()
 			return fmt.Errorf("unable to query %s's channel list: %v",
 				rcvr.Name(), err)
 		}
-		var rcvrSatoshisReceived int64 = 0
+		var rcvrSatoshisReceived int64
 		for _, channel := range rcvrListChannels.Channels {
 			rcvrSatoshisReceived += channel.TotalSatoshisReceived
 		}
