@@ -50,8 +50,7 @@ func testSubscribeInvoiceUpdates(net *lntest.NetworkHarness, t *harnessTest) {
 func testSubscribeInvoiceUpdatesCreated(net *lntest.NetworkHarness, t *harnessTest) {
 	type testCase struct {
 		name string
-		test func(net *lntest.NetworkHarness, t *harnessTest,
-			mgrAlice, mgrBob lnchat.LightManager, alice, bob *lntest.HarnessNode)
+		test func(t *harnessTest, alice, bob *lntest.HarnessNode)
 	}
 
 	subTests := []testCase{
@@ -65,18 +64,10 @@ func testSubscribeInvoiceUpdatesCreated(net *lntest.NetworkHarness, t *harnessTe
 	// itself often doesn't meet the dust limit, a utxo from the wallet
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
-
 	for i := 0; i < 2; i++ {
 		ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, net.Alice)
 	}
-
-	// Create managers
-	mgrAlice, err := createNodeManager(net.Alice)
-	assert.NoError(t.t, err)
-
-	mgrBob, err := createNodeManager(net.Bob)
-	assert.NoError(t.t, err)
 
 	for _, subTest := range subTests {
 		// Needed in case of parallel testing.
@@ -84,19 +75,13 @@ func testSubscribeInvoiceUpdatesCreated(net *lntest.NetworkHarness, t *harnessTe
 
 		success := t.t.Run(subTest.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, net)
-			subTest.test(net, ht, mgrAlice, mgrBob, net.Alice, net.Bob)
+			subTest.test(ht, net.Alice, net.Bob)
 		})
 
 		if !success {
 			break
 		}
 	}
-
-	err = mgrAlice.Close()
-	assert.NoError(t.t, err)
-
-	err = mgrBob.Close()
-	assert.NoError(t.t, err)
 
 	if err := wait.NoError(
 		assertNumPendingHTLCs(0, net.Alice, net.Bob),
@@ -107,15 +92,16 @@ func testSubscribeInvoiceUpdatesCreated(net *lntest.NetworkHarness, t *harnessTe
 }
 
 // Test SubscribeInvoiceUpdates for successful invoice creation.
-func testSubscribeInvoiceUpdatesCreatedSuccess(net *lntest.NetworkHarness, t *harnessTest, mgrAlice, mgrBob lnchat.LightManager, alice, bob *lntest.HarnessNode) {
-	ctxb := context.Background()
+func testSubscribeInvoiceUpdatesCreatedSuccess(t *harnessTest, alice, _ *lntest.HarnessNode) {
+	mgrAlice, err := createNodeManager(alice)
+	assert.NoError(t.t, err)
 
 	// Setup invoice update channel
 	invoiceFilter := func(inv *lnchat.Invoice) bool {
 		return inv.State == lnchat.InvoiceOPEN
 	}
 
-	ctxc, cancel := context.WithCancel(ctxb)
+	ctxc, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	invSubscription, err := mgrAlice.SubscribeInvoiceUpdates(ctxc,
 		0, invoiceFilter)
@@ -129,7 +115,8 @@ func testSubscribeInvoiceUpdatesCreatedSuccess(net *lntest.NetworkHarness, t *ha
 		Memo:      "invoice created update test",
 		ValueMsat: requestedAmtMsat,
 	}
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancelt := context.WithTimeout(ctxc, defaultTimeout)
+	defer cancelt()
 	invoiceResp, err := alice.AddInvoice(ctxt, invoice)
 
 	assert.NotNil(t.t, invoiceResp)
@@ -144,13 +131,15 @@ func testSubscribeInvoiceUpdatesCreatedSuccess(net *lntest.NetworkHarness, t *ha
 	assert.Equal(t.t, lnchat.InvoiceOPEN, inv.State)
 	assert.Equal(t.t, int64(requestedAmtMsat), inv.Value.Msat())
 	assert.Equal(t.t, invoiceResp.GetPaymentRequest(), inv.PaymentRequest)
+
+	err = mgrAlice.Close()
+	assert.NoError(t.t, err)
 }
 
 func testSubscribeInvoiceUpdatesSettled(net *lntest.NetworkHarness, t *harnessTest) {
 	type testCase struct {
 		name string
-		test func(net *lntest.NetworkHarness, t *harnessTest,
-			mgrAlice, mgrBob lnchat.LightManager, alice, bob *lntest.HarnessNode)
+		test func(t *harnessTest, alice, bob *lntest.HarnessNode)
 	}
 
 	subTests := []testCase{
@@ -172,7 +161,6 @@ func testSubscribeInvoiceUpdatesSettled(net *lntest.NetworkHarness, t *harnessTe
 	// itself often doesn't meet the dust limit, a utxo from the wallet
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
-
 	for i := 0; i < 2; i++ {
 		ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, net.Alice)
@@ -204,32 +192,19 @@ func testSubscribeInvoiceUpdatesSettled(net *lntest.NetworkHarness, t *harnessTe
 			"timeout: %v", err)
 	}
 
-	// Create managers
-	mgrAlice, err := createNodeManager(net.Alice)
-	assert.NoError(t.t, err)
-
-	mgrBob, err := createNodeManager(net.Bob)
-	assert.NoError(t.t, err)
-
 	for _, subTest := range subTests {
 		// Needed in case of parallel testing.
 		subTest := subTest
 
 		success := t.t.Run(subTest.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, net)
-			subTest.test(net, ht, mgrAlice, mgrBob, net.Alice, net.Bob)
+			subTest.test(ht, net.Alice, net.Bob)
 		})
 
 		if !success {
 			break
 		}
 	}
-
-	err = mgrAlice.Close()
-	assert.NoError(t.t, err)
-
-	err = mgrBob.Close()
-	assert.NoError(t.t, err)
 
 	if err := wait.NoError(
 		assertNumPendingHTLCs(0, net.Alice, net.Bob),
@@ -246,7 +221,10 @@ func testSubscribeInvoiceUpdatesSettled(net *lntest.NetworkHarness, t *harnessTe
 // Test SubscribeInvoiceUpdates for successful invoice settlement
 // for an invoice with specified amount when paid to without payload
 // (simple case).
-func testSubscribeInvoiceUpdatesSettledNoPayload(net *lntest.NetworkHarness, t *harnessTest, mgrAlice, mgrBob lnchat.LightManager, alice, bob *lntest.HarnessNode) {
+func testSubscribeInvoiceUpdatesSettledNoPayload(t *harnessTest, alice, bob *lntest.HarnessNode) {
+	mgrBob, err := createNodeManager(bob)
+	assert.NoError(t.t, err)
+
 	ctxb := context.Background()
 
 	// Setup invoice update channel
@@ -296,12 +274,18 @@ func testSubscribeInvoiceUpdatesSettledNoPayload(net *lntest.NetworkHarness, t *
 	assert.Equal(t.t, lnchat.InvoiceSETTLED, inv.State)
 	assert.Equal(t.t, int64(requestedAmtMsat), inv.Value.Msat())
 	assert.Equal(t.t, invoiceResp.PaymentRequest, inv.PaymentRequest)
+
+	err = mgrBob.Close()
+	assert.NoError(t.t, err)
 }
 
 // Test SubscribeInvoiceUpdates for successful invoice settlement
 // for an invoice without specified amount when paid to without payload
 // (one-off donation case).
-func testSubscribeInvoiceUpdatesSettledNoPayloadNoAmt(net *lntest.NetworkHarness, t *harnessTest, mgrAlice, mgrBob lnchat.LightManager, alice, bob *lntest.HarnessNode) {
+func testSubscribeInvoiceUpdatesSettledNoPayloadNoAmt(t *harnessTest, alice, bob *lntest.HarnessNode) {
+	mgrBob, err := createNodeManager(bob)
+	assert.NoError(t.t, err)
+
 	ctxb := context.Background()
 
 	// Setup invoice update channel
@@ -352,11 +336,17 @@ func testSubscribeInvoiceUpdatesSettledNoPayloadNoAmt(net *lntest.NetworkHarness
 	assert.Equal(t.t, int64(0), inv.Value.Msat())
 	assert.Equal(t.t, int64(sentAmtMsat), inv.AmtPaid.Msat())
 	assert.Equal(t.t, invoiceResp.PaymentRequest, inv.PaymentRequest)
+
+	err = mgrBob.Close()
+	assert.NoError(t.t, err)
 }
 
 // Test SubscribeInvoiceUpdates for successful invoice settlement
 // for an invoice with specified amount when paid to with payload.
-func testSubscribeInvoiceUpdatesSettledWithPayload(net *lntest.NetworkHarness, t *harnessTest, mgrAlice, mgrBob lnchat.LightManager, alice, bob *lntest.HarnessNode) {
+func testSubscribeInvoiceUpdatesSettledWithPayload(t *harnessTest, alice, bob *lntest.HarnessNode) {
+	mgrBob, err := createNodeManager(bob)
+	assert.NoError(t.t, err)
+
 	ctxb := context.Background()
 
 	// Setup invoice update channel
@@ -415,4 +405,7 @@ func testSubscribeInvoiceUpdatesSettledWithPayload(net *lntest.NetworkHarness, t
 	assert.Len(t.t, inv.Htlcs, 1)
 	assert.Len(t.t, inv.GetCustomRecords(), 1)
 	assert.Equal(t.t, customRecords, inv.GetCustomRecords()[0])
+
+	err = mgrBob.Close()
+	assert.NoError(t.t, err)
 }

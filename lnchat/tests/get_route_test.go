@@ -48,8 +48,7 @@ func testGetRoute(net *lntest.NetworkHarness, t *harnessTest) {
 func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 	type testCase struct {
 		name string
-		test func(net *lntest.NetworkHarness, t *harnessTest,
-			mgrAlice lnchat.LightManager, alice, bob *lntest.HarnessNode)
+		test func(t *harnessTest, alice, bob *lntest.HarnessNode)
 	}
 
 	subTests := []testCase{
@@ -95,26 +94,19 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 			"timeout: %v", err)
 	}
 
-	mgrAlice, err := createNodeManager(net.Alice)
-
-	assert.NoError(t.t, err)
-
 	for _, subTest := range subTests {
 		// Needed in case of parallel testing.
 		subTest := subTest
 
 		success := t.t.Run(subTest.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, net)
-			subTest.test(net, ht, mgrAlice, net.Alice, net.Bob)
+			subTest.test(ht, net.Alice, net.Bob)
 		})
 
 		if !success {
 			break
 		}
 	}
-
-	err = mgrAlice.Close()
-	assert.NoError(t.t, err)
 
 	if err := wait.NoError(
 		assertNumPendingHTLCs(0, net.Alice, net.Bob),
@@ -128,8 +120,9 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 }
 
-func testGetRouteSingleHopNoFees(net *lntest.NetworkHarness, t *harnessTest,
-	mgrAlice lnchat.LightManager, alice, bob *lntest.HarnessNode) {
+func testGetRouteSingleHopNoFees(t *harnessTest, alice, bob *lntest.HarnessNode) {
+	mgrAlice, err := createNodeManager(alice)
+	assert.NoError(t.t, err)
 
 	var recordTypeKey uint64 = record.CustomTypeStart + 311
 
@@ -157,13 +150,15 @@ func testGetRouteSingleHopNoFees(net *lntest.NetworkHarness, t *harnessTest,
 	assert.Equal(t.t, expectedResponse.Fees, response.Fees)
 	assert.Len(t.t, response.Hops, 1)
 	assert.NoError(t.t, err)
+
+	err = mgrAlice.Close()
+	assert.NoError(t.t, err)
 }
 
 func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 	type testCase struct {
 		name string
-		test func(net *lntest.NetworkHarness, t *harnessTest,
-			mgrAlice lnchat.LightManager, alice, bob, carol *lntest.HarnessNode)
+		test func(t *harnessTest, source, dest *lntest.HarnessNode)
 	}
 
 	subTests := []testCase{
@@ -180,25 +175,19 @@ func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 	aliceBobChanPoint, bobCarolChanPoint, carol := createThreeHopNetwork(t,
 		net, net.Alice, net.Bob, false, commitTypeTweakless)
 
-	mgrAlice, err := createNodeManager(net.Alice)
-	assert.NoError(t.t, err)
-
 	for _, subTest := range subTests {
 		// Needed in case of parallel testing.
 		subTest := subTest
 
 		success := t.t.Run(subTest.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, net)
-			subTest.test(net, ht, mgrAlice, net.Alice, net.Bob, carol)
+			subTest.test(ht, net.Alice, carol)
 		})
 
 		if !success {
 			break
 		}
 	}
-
-	err = mgrAlice.Close()
-	assert.NoError(t.t, err)
 
 	if err := wait.NoError(
 		assertNumPendingHTLCs(0, net.Alice, net.Bob, carol),
@@ -220,13 +209,14 @@ func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 	shutdownAndAssert(net, t, carol)
 }
 
-func testGetRouteMultiHopWithFees(net *lntest.NetworkHarness, t *harnessTest,
-	mgrAlice lnchat.LightManager, alice, bob, carol *lntest.HarnessNode) {
+func testGetRouteMultiHopWithFees(t *harnessTest, alice, dest *lntest.HarnessNode) {
+	mgrAlice, err := createNodeManager(alice)
+	assert.NoError(t.t, err)
 
 	var recordTypeKey uint64 = record.CustomTypeStart + 311
 
 	// Alice creates the message
-	recipient := carol.PubKeyStr
+	recipient := dest.PubKeyStr
 	amount := lnchat.NewAmount(1000)
 	payOpts := lnchat.PaymentOptions{
 		FeeLimitMsat:   1000,
@@ -249,15 +239,19 @@ func testGetRouteMultiHopWithFees(net *lntest.NetworkHarness, t *harnessTest,
 	assert.Equal(t.t, expectedResponse.Fees, response.Fees)
 	assert.Len(t.t, response.Hops, 2)
 	assert.NoError(t.t, err)
+
+	err = mgrAlice.Close()
+	assert.NoError(t.t, err)
 }
 
-func testGetRouteMultiHopNoRouteFound(net *lntest.NetworkHarness, t *harnessTest,
-	mgrAlice lnchat.LightManager, alice, bob, carol *lntest.HarnessNode) {
+func testGetRouteMultiHopNoRouteFound(t *harnessTest, alice, dest *lntest.HarnessNode) {
+	mgrAlice, err := createNodeManager(alice)
+	assert.NoError(t.t, err)
 
 	var recordTypeKey uint64 = record.CustomTypeStart + 311
 
 	// Alice creates the message
-	recipient := carol.PubKeyStr
+	recipient := dest.PubKeyStr
 	amount := lnchat.NewAmount(1000)
 	payOpts := lnchat.PaymentOptions{
 		FeeLimitMsat:   10,
@@ -273,4 +267,7 @@ func testGetRouteMultiHopNoRouteFound(net *lntest.NetworkHarness, t *harnessTest
 
 	assert.Nil(t.t, response)
 	assert.Error(t.t, err)
+
+	err = mgrAlice.Close()
+	assert.NoError(t.t, err)
 }

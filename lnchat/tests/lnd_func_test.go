@@ -19,8 +19,7 @@ import (
 func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 	type testCase struct {
 		name string
-		test func(net *lntest.NetworkHarness, t *harnessTest,
-			alice, bob *lntest.HarnessNode)
+		test func(t *harnessTest, alice, bob *lntest.HarnessNode)
 	}
 
 	singleHopSubTests := []testCase{
@@ -67,7 +66,7 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		success := t.t.Run(subTest.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, net)
-			subTest.test(net, ht, net.Alice, net.Bob)
+			subTest.test(ht, net.Alice, net.Bob)
 		})
 
 		if !success {
@@ -90,8 +89,7 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 	type testCase struct {
 		name string
-		test func(net *lntest.NetworkHarness, t *harnessTest,
-			alice, bob *lntest.HarnessNode)
+		test func(t *harnessTest, alice, bob *lntest.HarnessNode)
 	}
 
 	multiHopSubTests := []testCase{
@@ -172,7 +170,7 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		success := t.t.Run(subTest.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, net)
-			subTest.test(net, ht, net.Alice, carol)
+			subTest.test(ht, net.Alice, carol)
 		})
 
 		if !success {
@@ -194,7 +192,7 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 }
 
-func testInvoicePaymentSync(net *lntest.NetworkHarness, t *harnessTest, alice, bob *lntest.HarnessNode) {
+func testInvoicePaymentSync(t *harnessTest, alice, bob *lntest.HarnessNode) {
 	ctxb := context.Background()
 
 	// Now that the channel is open, create an invoice for Bob which
@@ -276,7 +274,7 @@ func testInvoicePaymentSync(net *lntest.NetworkHarness, t *harnessTest, alice, b
 	}
 }
 
-func testInvoicePaymentV2(net *lntest.NetworkHarness, t *harnessTest, alice, bob *lntest.HarnessNode) {
+func testInvoicePaymentV2(t *harnessTest, alice, bob *lntest.HarnessNode) {
 	ctxb := context.Background()
 
 	// Now that the channel is open, create an invoice for Bob which
