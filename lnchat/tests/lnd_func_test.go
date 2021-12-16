@@ -258,6 +258,8 @@ func testInvoicePaymentSync(net *lntest.NetworkHarness, t *harnessTest, alice, b
 	if err != nil {
 		t.Fatalf("unable to lookup invoice: %v", err)
 	}
+
+	//nolint:staticcheck // lnd integration test code
 	if !dbInvoice.Settled {
 		t.Fatalf("bob's invoice should be marked as settled: %v",
 			spew.Sdump(dbInvoice))
