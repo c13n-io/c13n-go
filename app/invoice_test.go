@@ -387,6 +387,7 @@ func TestSubscribeInvoices(t *testing.T) {
 
 						mockDB.On("AddRawMessage", rawMsg).Return(invUpdate.addRawMsgErr).Run(
 							func(args mock.Arguments) {
+								//nolint:errcheck // no need to check cast error in mock install
 								arg := args.Get(0).(*model.RawMessage)
 								arg.ID = invUpdate.addRawMsgID
 							}).Once()

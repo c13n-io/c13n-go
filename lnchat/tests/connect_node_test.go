@@ -66,7 +66,8 @@ func findTargetInPeerList(src, target *lntest.HarnessNode) bool {
 
 func testConnectNodeNotConnected(net *lntest.NetworkHarness, t *harnessTest) {
 
-	t.lndHarness.DisconnectNodes(context.Background(), net.Alice, net.Bob)
+	err := t.lndHarness.DisconnectNodes(context.Background(), net.Alice, net.Bob)
+	assert.NoError(t.t, err)
 
 	mgrAlice, err := createNodeManager(net.Alice)
 	assert.NoError(t.t, err)
