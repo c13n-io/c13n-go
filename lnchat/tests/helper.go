@@ -303,7 +303,8 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 
 	// If the channel appears in list channels, ensure that its state
 	// contains ChanStatusCoopBroadcasted.
-	ctxt, _ := context.WithTimeout(ctx, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
 	listChansRequest := &lnrpc.ListChannelsRequest{}
 	listChansResp, err := node.ListChannels(ctxt, listChansRequest)
 	if err != nil {
@@ -325,7 +326,8 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 
 	// At this point, the channel should now be marked as being in the
 	// state of "waiting close".
-	ctxt, _ = context.WithTimeout(ctx, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
 	pendingChansRequest := &lnrpc.PendingChannelsRequest{}
 	pendingChanResp, err := node.PendingChannels(ctxt, pendingChansRequest)
 	if err != nil {
@@ -473,7 +475,8 @@ func channelCommitType(node *lntest.HarnessNode,
 	chanPoint *lnrpc.ChannelPoint) (commitType, error) {
 
 	ctxb := context.Background()
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 
 	req := &lnrpc.ListChannelsRequest{}
 	channels, err := node.ListChannels(ctxt, req)
@@ -612,7 +615,8 @@ func getChannelPolicies(t *harnessTest, node *lntest.HarnessNode,
 	descReq := &lnrpc.ChannelGraphRequest{
 		IncludeUnannounced: true,
 	}
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	chanGraph, err := node.DescribeGraph(ctxt, descReq)
 	require.NoError(t.t, err, "unable to query for alice's graph")
 
@@ -797,7 +801,8 @@ func assertNumPendingHTLCs(numHTLCs int, nodes ...*lntest.HarnessNode) func() er
 		listReq := &lnrpc.ListChannelsRequest{}
 		pending := 0
 		for _, node := range nodes {
-			ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+			ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+			defer cancel()
 			nodeChans, err := node.ListChannels(ctxt, listReq)
 			if err != nil {
 				return fmt.Errorf("Unable to list channels"+
@@ -830,7 +835,8 @@ func assertAmountSent(amt btcutil.Amount, sndr, rcvr *lntest.HarnessNode) func()
 		sndrChannels := make(map[uint64]bool)
 
 		// List sender channels so as to tally payment amounts over them.
-		ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		sndrListChannels, err := sndr.ListChannels(ctxt, listChReq)
 		if err != nil {
 			return fmt.Errorf("unable to query %s's channel list: %v",
@@ -843,7 +849,8 @@ func assertAmountSent(amt btcutil.Amount, sndr, rcvr *lntest.HarnessNode) func()
 		var sndrSatoshisSent int64
 		listPayReq := &lnrpc.ListPaymentsRequest{}
 
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		// TODO: Assuming all payments are returned with a single request.
 		sndrListPayments, err := sndr.ListPayments(ctxt, listPayReq)
 		if err != nil {
@@ -871,7 +878,8 @@ func assertAmountSent(amt btcutil.Amount, sndr, rcvr *lntest.HarnessNode) func()
 				sndrSatoshisSent, amt.ToUnit(btcutil.AmountSatoshi))
 		}
 
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		rcvrListChannels, err := rcvr.ListChannels(ctxt, listChReq)
 		if err != nil {
 			return fmt.Errorf("unable to query %s's channel list: %v",
@@ -922,22 +930,26 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 
 	ctxb := context.Background()
 
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	net.EnsureConnected(ctxt, t.t, alice, bob)
 
 	// Make sure there are enough utxos for anchoring.
 	for i := 0; i < 2; i++ {
-		ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, alice)
 
-		ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, bob)
 	}
 
 	// We'll start the test by creating a channel between Alice and Bob,
 	// which will act as the first leg for our multi-hop HTLC.
 	const chanAmt = 1000000
-	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
 	aliceChanPoint := openChannelAndAssert(
 		ctxt, t, net, alice, bob,
 		lntest.OpenChannelParams{
@@ -945,13 +957,15 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 		},
 	)
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err := alice.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't report channel: %v", err)
 	}
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = bob.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't report channel: %v", err)
@@ -968,7 +982,8 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 	if err != nil {
 		t.Fatalf("unable to create new node: %v", err)
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	net.ConnectNodes(ctxt, t.t, bob, carol)
 
 	// Make sure Carol has enough utxos for anchoring. Because the anchor by
@@ -976,30 +991,35 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
 	for i := 0; i < 2; i++ {
-		ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, carol)
 	}
 
 	// We'll then create a channel from Bob to Carol. After this channel is
 	// open, our topology looks like:  A -> B -> C.
-	ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
 	bobChanPoint := openChannelAndAssert(
 		ctxt, t, net, bob, carol,
 		lntest.OpenChannelParams{
 			Amt: chanAmt,
 		},
 	)
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = bob.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't report channel: %v", err)
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = carol.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 	if err != nil {
 		t.Fatalf("carol didn't report channel: %v", err)
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = alice.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't report channel: %v", err)

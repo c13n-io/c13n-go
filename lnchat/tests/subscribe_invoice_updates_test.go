@@ -60,12 +60,15 @@ func testSubscribeInvoiceUpdatesCreated(net *lntest.NetworkHarness, t *harnessTe
 		},
 	}
 
+	ctxb := context.Background()
+
 	// Make sure Alice has enough utxos for anchoring. Because the anchor by
 	// itself often doesn't meet the dust limit, a utxo from the wallet
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
 	for i := 0; i < 2; i++ {
-		ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, net.Alice)
 	}
 
@@ -115,8 +118,8 @@ func testSubscribeInvoiceUpdatesCreatedSuccess(t *harnessTest, alice, _ *lntest.
 		Memo:      "invoice created update test",
 		ValueMsat: requestedAmtMsat,
 	}
-	ctxt, cancelt := context.WithTimeout(ctxc, defaultTimeout)
-	defer cancelt()
+	ctxt, cancel := context.WithTimeout(ctxc, defaultTimeout)
+	defer cancel()
 	invoiceResp, err := alice.AddInvoice(ctxt, invoice)
 
 	assert.NotNil(t.t, invoiceResp)
@@ -157,18 +160,22 @@ func testSubscribeInvoiceUpdatesSettled(net *lntest.NetworkHarness, t *harnessTe
 		},
 	}
 
+	ctxb := context.Background()
+
 	// Make sure Alice has enough utxos for anchoring. Because the anchor by
 	// itself often doesn't meet the dust limit, a utxo from the wallet
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
 	for i := 0; i < 2; i++ {
-		ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, net.Alice)
 	}
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice being
 	// the sole funder of the channel.
-	ctxt, _ := context.WithTimeout(context.Background(), channelOpenTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
 	chanAmt := btcutil.Amount(1000000)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
@@ -179,13 +186,15 @@ func testSubscribeInvoiceUpdatesSettled(net *lntest.NetworkHarness, t *harnessTe
 
 	// Wait for Alice and Bob to recognize and advertise the new channel
 	// generated above.
-	ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't advertise channel before "+
 			"timeout: %v", err)
 	}
-	ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't advertise channel before "+
@@ -214,7 +223,8 @@ func testSubscribeInvoiceUpdatesSettled(net *lntest.NetworkHarness, t *harnessTe
 	}
 
 	// Close the channel.
-	ctxt, _ = context.WithTimeout(context.Background(), channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 }
 
@@ -246,7 +256,8 @@ func testSubscribeInvoiceUpdatesSettledNoPayload(t *harnessTest, alice, bob *lnt
 		Memo:      "invoice settled no pa test",
 		ValueMsat: requestedAmtMsat,
 	}
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	invoiceResp, err := bob.AddInvoice(ctxt, invoice)
 
 	assert.NotNil(t.t, invoiceResp)
@@ -305,7 +316,8 @@ func testSubscribeInvoiceUpdatesSettledNoPayloadNoAmt(t *harnessTest, alice, bob
 	invoice := &lnrpc.Invoice{
 		Memo: "invoice created update test",
 	}
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	invoiceResp, err := bob.AddInvoice(ctxt, invoice)
 
 	assert.NotNil(t.t, invoiceResp)
@@ -368,7 +380,8 @@ func testSubscribeInvoiceUpdatesSettledWithPayload(t *harnessTest, alice, bob *l
 		Memo:      "invoice created update test",
 		ValueMsat: requestedAmtMsat,
 	}
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	invoiceResp, err := bob.AddInvoice(ctxt, invoice)
 
 	assert.NotNil(t.t, invoiceResp)

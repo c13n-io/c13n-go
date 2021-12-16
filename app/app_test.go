@@ -54,8 +54,7 @@ func createInitializedApp(t *testing.T, mockInstaller func(*lnmock.LightManager,
 	require.NoError(t, err)
 	appTestStartFunc := func() {
 		// Initialize the application
-		ctx, _ := context.WithCancel(context.Background())
-		err := app.Init(ctx, 15)
+		err := app.Init(context.Background(), 15)
 
 		require.NoError(t, err)
 		require.NotNil(t, app.PubSubBus)

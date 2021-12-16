@@ -58,19 +58,22 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	}
 
+	ctxb := context.Background()
+
 	// Make sure Alice has enough utxos for anchoring. Because the anchor by
 	// itself often doesn't meet the dust limit, a utxo from the wallet
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
-
 	for i := 0; i < 2; i++ {
-		ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, net.Alice)
 	}
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice being
 	// the sole funder of the channel.
-	ctxt, _ := context.WithTimeout(context.Background(), channelOpenTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
 	chanAmt := btcutil.Amount(1000000)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
@@ -81,13 +84,15 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Wait for Alice and Bob to recognize and advertise the new channel
 	// generated above.
-	ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't advertise channel before "+
 			"timeout: %v", err)
 	}
-	ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't advertise channel before "+
@@ -116,7 +121,8 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close the channel.
-	ctxt, _ = context.WithTimeout(context.Background(), channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 }
 
@@ -143,7 +149,8 @@ func testGetRouteSingleHopNoFees(t *harnessTest, alice, bob *lntest.HarnessNode)
 		Fees: lnchat.NewAmount(0),
 	}
 
-	ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	response, _, err := mgrAlice.GetRoute(ctxt, recipient, amount, payOpts, payload)
 
 	assert.Equal(t.t, expectedResponse.Amt, response.Amt)
@@ -199,11 +206,13 @@ func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	// Close Alice -> Bob channel.
-	ctxt, _ := context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, aliceBobChanPoint, false)
 
 	// Close Bob -> Carol channel.
-	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Bob, bobCarolChanPoint, false)
 
 	shutdownAndAssert(net, t, carol)
@@ -232,7 +241,8 @@ func testGetRouteMultiHopWithFees(t *harnessTest, alice, dest *lntest.HarnessNod
 		Fees: lnchat.NewAmount(1000),
 	}
 
-	ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	response, _, err := mgrAlice.GetRoute(ctxt, recipient, amount, payOpts, payload)
 
 	assert.Equal(t.t, expectedResponse.Amt, response.Amt)
@@ -262,7 +272,8 @@ func testGetRouteMultiHopNoRouteFound(t *harnessTest, alice, dest *lntest.Harnes
 		recordTypeKey: []byte("test"),
 	}
 
-	ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	response, _, err := mgrAlice.GetRoute(ctxt, recipient, amount, payOpts, payload)
 
 	assert.Nil(t.t, response)

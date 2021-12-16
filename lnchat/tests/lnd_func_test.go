@@ -41,7 +41,8 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Open a channel with 100k satoshis between Alice and Bob with Alice being
 		// the sole funder of the channel.
-		ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+		defer cancel()
 		chanAmt := btcutil.Amount(1000000)
 		chanPoint := openChannelAndAssert(
 			ctxt, t, net, net.Alice, net.Bob,
@@ -52,7 +53,8 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Wait for Alice and Bob to recognize and advertise the new channel
 		// generated above.
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 		if err != nil {
 			t.Fatalf("alice didn't advertise channel before "+
@@ -81,7 +83,8 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 
 		// Close the channel.
-		ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+		defer cancel()
 		closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 	}
 }
@@ -108,16 +111,20 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 	// We will create a new node carol, and have bob connect to her.
 	carol := net.NewNode(t.t, "Carol", nil)
 
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	net.ConnectNodes(ctxt, t.t, net.Bob, carol)
 
 	for _, subTest := range multiHopSubTests {
 		// Needed in case of parallel testing.
 		subTest := subTest
 
+		ctxb := context.Background()
+
 		// Open a channel with 100k satoshis between Alice and Bob with Alice being
 		// the sole funder of the channel.
-		ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+		defer cancel()
 		chanAmt := btcutil.Amount(1000000)
 		chanPoint := openChannelAndAssert(
 			ctxt, t, net, net.Alice, net.Bob,
@@ -128,7 +135,8 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Wait for Alice and Bob to recognize and advertise the new channel
 		// generated above.
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 		if err != nil {
 			t.Fatalf("alice didn't advertise channel before "+
@@ -142,7 +150,8 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Open a channel from Bob to Carol.
 		// After this, the topology will be: A -> B -> C
-		ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, channelOpenTimeout)
+		defer cancel()
 		bobChanPoint := openChannelAndAssert(
 			ctxt, t, net, net.Bob, carol,
 			lntest.OpenChannelParams{
@@ -150,19 +159,22 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 			},
 		)
 
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		err = net.Bob.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 		if err != nil {
 			t.Fatalf("bob didn't advertise channel before "+
 				"timeout: %v", err)
 		}
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		err = carol.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 		if err != nil {
 			t.Fatalf("carol didn't advertise channel before "+
 				"timeout: %v", err)
 		}
-		ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		err = net.Alice.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 		if err != nil {
 			t.Fatalf("alice didn't report channel: %v", err)
@@ -185,9 +197,11 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 
 		// Close the channel.
-		ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+		defer cancel()
 		closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
-		ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+		ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+		defer cancel()
 		closeChannelAndAssert(ctxt, t, net, net.Bob, bobChanPoint, false)
 	}
 }
@@ -203,13 +217,15 @@ func testInvoicePaymentSync(t *harnessTest, alice, bob *lntest.HarnessNode) {
 		Memo:  "testing",
 		Value: paymentAmt,
 	}
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	invoiceResp, err := bob.AddInvoice(ctxt, invoice)
 	if err != nil {
 		t.Fatalf("unable to add invoice: %v", err)
 	}
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	invoiceStream, err := bob.SubscribeSingleInvoice(ctxt,
 		&invoicesrpc.SubscribeSingleInvoiceRequest{
 			RHash: invoiceResp.RHash,
@@ -233,7 +249,8 @@ func testInvoicePaymentSync(t *harnessTest, alice, bob *lntest.HarnessNode) {
 	sendReq := &lnrpc.SendRequest{
 		PaymentRequest: invoiceResp.PaymentRequest,
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	resp, err := alice.SendPaymentSync(ctxt, sendReq)
 	if err != nil {
 		t.Fatalf("unable to send payment: %v", err)
@@ -251,7 +268,8 @@ func testInvoicePaymentSync(t *harnessTest, alice, bob *lntest.HarnessNode) {
 	payHash := &lnrpc.PaymentHash{
 		RHash: invoiceResp.RHash,
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	dbInvoice, err := bob.LookupInvoice(ctxt, payHash)
 	if err != nil {
 		t.Fatalf("unable to lookup invoice: %v", err)
@@ -285,13 +303,15 @@ func testInvoicePaymentV2(t *harnessTest, alice, bob *lntest.HarnessNode) {
 		Memo:  "testing",
 		Value: paymentAmt,
 	}
-	ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	invoiceResp, err := bob.AddInvoice(ctxt, invoice)
 	if err != nil {
 		t.Fatalf("unable to add invoice: %v", err)
 	}
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	invoiceStream, err := bob.InvoicesClient.SubscribeSingleInvoice(ctxt,
 		&invoicesrpc.SubscribeSingleInvoiceRequest{
 			RHash: invoiceResp.RHash,
@@ -318,7 +338,8 @@ func testInvoicePaymentV2(t *harnessTest, alice, bob *lntest.HarnessNode) {
 		FeeLimitSat:    1000000,
 		//		NoInflightUpdates: true,
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	paymentUpdates, err := alice.RouterClient.SendPaymentV2(ctxt, sendReq)
 	if err != nil {
 		t.Fatalf("unable to send payment: %v", err)
