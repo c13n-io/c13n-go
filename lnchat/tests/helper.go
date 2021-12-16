@@ -715,10 +715,9 @@ type graphSubscription struct {
 	quit       chan struct{}
 }
 
-//revive:disable:context-as-argument
-
 // subscribeGraphNotifications subscribes to channel graph updates and launches
 // a goroutine that forwards these to the returned channel.
+//nolint:revive // context should be second argument
 func subscribeGraphNotifications(t *harnessTest, ctxb context.Context,
 	node *lntest.HarnessNode) graphSubscription {
 
@@ -776,8 +775,6 @@ func subscribeGraphNotifications(t *harnessTest, ctxb context.Context,
 		quit:       quit,
 	}
 }
-
-//revive:enable:context-as-argument
 
 // getPaymentResult reads a final result from the stream and returns it.
 func getPaymentResult(stream routerrpc.Router_SendPaymentV2Client) (*lnrpc.Payment, error) {
