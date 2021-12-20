@@ -116,7 +116,7 @@ make test
 
 #### Linting
 
-c13n uses [revive](https://github.com/mgechev/revive) and [staticcheck](https://github.com/dominikh/go-tools) for linting. Linter configuration is defined in [revive.toml](/revive.toml) and [staticcheck.conf](/staticcheck.conf). To trigger linting use the following:
+c13n uses [golangci-lint](https://golangci-lint.run/) for linting, with the configuration defined in [.golangci.yml](/.golangci.yml). Linting can be triggered by running:
 
 ```bash
 make lint
