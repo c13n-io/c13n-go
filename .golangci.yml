@@ -79,3 +79,14 @@ linters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+
+  exclude-rules:
+    - path: lnchat/lnchat\.go
+      text: "Error return value is not checked"
+      linters:
+        - errcheck
+
+    - path: rpc/.*_test\.go
+      text: "SA1019: package github.com/golang/protobuf/proto is deprecated"
+      linters:
+        - staticcheck
