@@ -1,0 +1,81 @@
+# Example configuration at https://golangci-lint.run/usage/configuration/#config-file
+
+run:
+  concurrency: 4
+  issues-exit-code: 1
+  tests: true
+
+output:
+  format: tab
+  sort-results: true
+
+linters-settings:
+  nolintlint:
+    allow-leading-space: false
+    require-specific: true
+    require-explanation: true
+
+  revive:
+    ignore-generated-header: true
+    severity: warning
+    confidence: 0.8
+    errorCode: 1
+    warningCode: 2
+    rules:
+      - name: atomic
+      - name: blank-imports
+      - name: dot-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: errorf
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: receiver-naming
+      - name: redefines-builtin-id
+      - name: unused-parameter
+      - name: time-naming
+      - name: range
+      - name: indent-error-flow
+      - name: superfluous-else
+      - name: empty-block
+      - name: unreachable-code
+      - name: unnecessary-stmt
+      - name: unexported-return
+      - name: exported
+
+  staticcheck:
+    go: "1.14"
+    checks: ["inherit"]
+
+  errcheck:
+    check-type-assertions: true
+
+  govet:
+    check-shadowing: false
+    disable-all: true
+    enable:
+      - lostcancel
+      - copylocks
+      - loopclosure
+
+  gci:
+    local-prefixes: github.com/c13n-io/c13n-go
+
+linters:
+  disable-all: true
+  enable:
+    - nolintlint
+    - revive
+    - staticcheck
+    - gci
+    - deadcode
+    - govet
+    - errcheck
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -100,10 +100,9 @@ dev-deps:
 	(cd && GO111MODULE=on go get github.com/golang/protobuf/protoc-gen-go@v1.4.3)
 	(cd && GO111MODULE=on go get github.com/mwitkow/go-proto-validators/...@v0.3.0)
 	(cd && GO111MODULE=on go get github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2)
-	(cd && GO111MODULE=on go get golang.org/x/tools/cmd/goimports)
-	(cd && GO111MODULE=on go get -u github.com/mgechev/revive@v1.0.2)
 	(cd && GO111MODULE=on go get github.com/vektra/mockery/...@v1.0.0)
-	(cd && GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck@v0.2.0)
+	(cd && GO111MODULE=on go get golang.org/x/tools/cmd/goimports)
+	(cd && GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0)
 
 # Generate protobuf source code
 # http://github.com/golang/protobuf
@@ -144,10 +143,8 @@ lib-utest:
 
 # Linting
 lint:
-	@echo "Running revive"
-	revive -config=revive.toml -formatter=stylish $(C13N_PACKAGES)
-	@echo "Running staticcheck"
-	staticcheck ./...
+	@echo "Running linters"
+	golangci-lint run ./...
 
 # Cleaning
 clean:
