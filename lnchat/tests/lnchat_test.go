@@ -3,7 +3,6 @@ package itest
 import (
 	"context"
 	"fmt"
-	"math"
 	"strings"
 	"testing"
 
@@ -20,8 +19,6 @@ var (
 )
 
 const (
-	testFeeBase         = 1e+6
-	defaultCSV          = lntest.DefaultCSV
 	defaultTimeout      = lntest.DefaultTimeout
 	minerMempoolTimeout = lntest.MinerMempoolTimeout
 	channelOpenTimeout  = lntest.ChannelOpenTimeout
@@ -29,7 +26,6 @@ const (
 	pendingHTLCTimeout  = defaultTimeout
 	itestLndBinary      = "./lnd-itest"
 	anchorSize          = 330
-	noFeeLimitMsat      = math.MaxInt64
 )
 
 // TestLnchat performs a series of integration tests amongst a

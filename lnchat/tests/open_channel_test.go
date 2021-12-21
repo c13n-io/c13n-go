@@ -80,7 +80,11 @@ func testOpenChannelSuccess(net *lntest.NetworkHarness, t *harnessTest) {
 		t.t.Run(c.name, func(subTest *testing.T) {
 			var chanPoint *lnchat.ChannelPoint
 
-			chanPoint, err = mgrAlice.OpenChannel(context.Background(), c.dest, c.private, c.amtMsat, c.pushAmtMsat, c.minInputConfirmations, c.txFeeOptions)
+			ctxb := context.Background()
+
+			chanPoint, err = mgrAlice.OpenChannel(ctxb,
+				c.dest, c.private, c.amtMsat, c.pushAmtMsat,
+				c.minInputConfirmations, c.txFeeOptions)
 			assert.NoError(t.t, err)
 			assert.NotNil(t.t, chanPoint)
 
@@ -102,13 +106,13 @@ func testOpenChannelSuccess(net *lntest.NetworkHarness, t *harnessTest) {
 				OutputIndex: chanPoint.OutputIndex,
 			}
 
-			ctxb := context.Background()
-
-			ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+			ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+			defer cancel()
 			err = net.Alice.WaitForNetworkChannelOpen(ctxt, &lnrpcChanPoint)
 			assert.NoError(t.t, err, "Alice did not report channel")
 
-			ctxt, _ = context.WithTimeout(ctxb, channelOpenTimeout)
+			ctxt, cancel = context.WithTimeout(ctxb, channelOpenTimeout)
+			defer cancel()
 			err = net.Bob.WaitForNetworkChannelOpen(ctxt, &lnrpcChanPoint)
 			assert.NoError(t.t, err, "Bob did not report channel")
 
@@ -120,15 +124,17 @@ func testOpenChannelSuccess(net *lntest.NetworkHarness, t *harnessTest) {
 
 			// Channel exists, let's check balance
 			channelBalanceReq := &lnrpc.ChannelBalanceRequest{}
-			chBalance, err := net.Alice.ChannelBalance(context.Background(), channelBalanceReq)
+			chBalance, err := net.Alice.ChannelBalance(ctxb, channelBalanceReq)
 			if err != nil {
 				t.Fatalf("unable to get channel balance: %v", err)
 			}
 
 			commitFeeMsat := commitFee * 1000
-			assert.Equal(subTest, c.amtMsat-uint64(commitFeeMsat)-c.pushAmtMsat, chBalance.LocalBalance.GetMsat())
+			assert.Equal(subTest,
+				c.amtMsat-uint64(commitFeeMsat)-c.pushAmtMsat,
+				chBalance.LocalBalance.GetMsat())
 
-			ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
+			ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
 			defer cancel()
 			closeChannelAndAssert(ctxt, t, net, net.Alice, &lnrpcChanPoint, false)
 		})

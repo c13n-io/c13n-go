@@ -19,7 +19,7 @@ import (
 	dbmock "github.com/c13n-io/c13n-go/store/mocks"
 )
 
-func mustJsonMarshalMessage(t *testing.T, participants []string, payload string) []byte {
+func mustJSONMarshalMessage(t *testing.T, participants []string, payload string) []byte {
 	type compositePayload struct {
 		Participants []string `json:"participants"`
 		Message      string   `json:"message"`
@@ -90,7 +90,7 @@ func TestSubscribeInvoices(t *testing.T) {
 					{
 						State: lnrpc.InvoiceHTLCState_SETTLED,
 						CustomRecords: map[uint64][]byte{
-							PayloadTypeKey: mustJsonMarshalMessage(t,
+							PayloadTypeKey: mustJSONMarshalMessage(t,
 								[]string{selfAddr.String()}, "test message"),
 							SenderTypeKey:    srcAddr.Bytes(),
 							SignatureTypeKey: []byte("a dummy signature"),
@@ -387,6 +387,7 @@ func TestSubscribeInvoices(t *testing.T) {
 
 						mockDB.On("AddRawMessage", rawMsg).Return(invUpdate.addRawMsgErr).Run(
 							func(args mock.Arguments) {
+								//nolint:errcheck // no need to check cast error in mock install
 								arg := args.Get(0).(*model.RawMessage)
 								arg.ID = invUpdate.addRawMsgID
 							}).Once()

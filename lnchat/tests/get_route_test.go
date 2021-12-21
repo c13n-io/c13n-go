@@ -48,8 +48,7 @@ func testGetRoute(net *lntest.NetworkHarness, t *harnessTest) {
 func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 	type testCase struct {
 		name string
-		test func(net *lntest.NetworkHarness, t *harnessTest,
-			mgrAlice lnchat.LightManager, alice, bob *lntest.HarnessNode)
+		test func(t *harnessTest, alice, bob *lntest.HarnessNode)
 	}
 
 	subTests := []testCase{
@@ -59,19 +58,22 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	}
 
+	ctxb := context.Background()
+
 	// Make sure Alice has enough utxos for anchoring. Because the anchor by
 	// itself often doesn't meet the dust limit, a utxo from the wallet
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
-
 	for i := 0; i < 2; i++ {
-		ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+		defer cancel()
 		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, net.Alice)
 	}
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice being
 	// the sole funder of the channel.
-	ctxt, _ := context.WithTimeout(context.Background(), channelOpenTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
 	chanAmt := btcutil.Amount(1000000)
 	chanPoint := openChannelAndAssert(
 		ctxt, t, net, net.Alice, net.Bob,
@@ -82,22 +84,20 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Wait for Alice and Bob to recognize and advertise the new channel
 	// generated above.
-	ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't advertise channel before "+
 			"timeout: %v", err)
 	}
-	ctxt, _ = context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't advertise channel before "+
 			"timeout: %v", err)
 	}
-
-	mgrAlice, err := createNodeManager(net.Alice)
-
-	assert.NoError(t.t, err)
 
 	for _, subTest := range subTests {
 		// Needed in case of parallel testing.
@@ -105,16 +105,13 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 
 		success := t.t.Run(subTest.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, net)
-			subTest.test(net, ht, mgrAlice, net.Alice, net.Bob)
+			subTest.test(ht, net.Alice, net.Bob)
 		})
 
 		if !success {
 			break
 		}
 	}
-
-	err = mgrAlice.Close()
-	assert.NoError(t.t, err)
 
 	if err := wait.NoError(
 		assertNumPendingHTLCs(0, net.Alice, net.Bob),
@@ -124,12 +121,14 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close the channel.
-	ctxt, _ = context.WithTimeout(context.Background(), channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 }
 
-func testGetRouteSingleHopNoFees(net *lntest.NetworkHarness, t *harnessTest,
-	mgrAlice lnchat.LightManager, alice, bob *lntest.HarnessNode) {
+func testGetRouteSingleHopNoFees(t *harnessTest, alice, bob *lntest.HarnessNode) {
+	mgrAlice, err := createNodeManager(alice)
+	assert.NoError(t.t, err)
 
 	var recordTypeKey uint64 = record.CustomTypeStart + 311
 
@@ -150,20 +149,23 @@ func testGetRouteSingleHopNoFees(net *lntest.NetworkHarness, t *harnessTest,
 		Fees: lnchat.NewAmount(0),
 	}
 
-	ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	response, _, err := mgrAlice.GetRoute(ctxt, recipient, amount, payOpts, payload)
 
 	assert.Equal(t.t, expectedResponse.Amt, response.Amt)
 	assert.Equal(t.t, expectedResponse.Fees, response.Fees)
 	assert.Len(t.t, response.Hops, 1)
 	assert.NoError(t.t, err)
+
+	err = mgrAlice.Close()
+	assert.NoError(t.t, err)
 }
 
 func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 	type testCase struct {
 		name string
-		test func(net *lntest.NetworkHarness, t *harnessTest,
-			mgrAlice lnchat.LightManager, alice, bob, carol *lntest.HarnessNode)
+		test func(t *harnessTest, source, dest *lntest.HarnessNode)
 	}
 
 	subTests := []testCase{
@@ -180,25 +182,19 @@ func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 	aliceBobChanPoint, bobCarolChanPoint, carol := createThreeHopNetwork(t,
 		net, net.Alice, net.Bob, false, commitTypeTweakless)
 
-	mgrAlice, err := createNodeManager(net.Alice)
-	assert.NoError(t.t, err)
-
 	for _, subTest := range subTests {
 		// Needed in case of parallel testing.
 		subTest := subTest
 
 		success := t.t.Run(subTest.name, func(t1 *testing.T) {
 			ht := newHarnessTest(t1, net)
-			subTest.test(net, ht, mgrAlice, net.Alice, net.Bob, carol)
+			subTest.test(ht, net.Alice, carol)
 		})
 
 		if !success {
 			break
 		}
 	}
-
-	err = mgrAlice.Close()
-	assert.NoError(t.t, err)
 
 	if err := wait.NoError(
 		assertNumPendingHTLCs(0, net.Alice, net.Bob, carol),
@@ -210,23 +206,26 @@ func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	// Close Alice -> Bob channel.
-	ctxt, _ := context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, aliceBobChanPoint, false)
 
 	// Close Bob -> Carol channel.
-	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Bob, bobCarolChanPoint, false)
 
 	shutdownAndAssert(net, t, carol)
 }
 
-func testGetRouteMultiHopWithFees(net *lntest.NetworkHarness, t *harnessTest,
-	mgrAlice lnchat.LightManager, alice, bob, carol *lntest.HarnessNode) {
+func testGetRouteMultiHopWithFees(t *harnessTest, alice, dest *lntest.HarnessNode) {
+	mgrAlice, err := createNodeManager(alice)
+	assert.NoError(t.t, err)
 
 	var recordTypeKey uint64 = record.CustomTypeStart + 311
 
 	// Alice creates the message
-	recipient := carol.PubKeyStr
+	recipient := dest.PubKeyStr
 	amount := lnchat.NewAmount(1000)
 	payOpts := lnchat.PaymentOptions{
 		FeeLimitMsat:   1000,
@@ -242,22 +241,27 @@ func testGetRouteMultiHopWithFees(net *lntest.NetworkHarness, t *harnessTest,
 		Fees: lnchat.NewAmount(1000),
 	}
 
-	ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	response, _, err := mgrAlice.GetRoute(ctxt, recipient, amount, payOpts, payload)
 
 	assert.Equal(t.t, expectedResponse.Amt, response.Amt)
 	assert.Equal(t.t, expectedResponse.Fees, response.Fees)
 	assert.Len(t.t, response.Hops, 2)
 	assert.NoError(t.t, err)
+
+	err = mgrAlice.Close()
+	assert.NoError(t.t, err)
 }
 
-func testGetRouteMultiHopNoRouteFound(net *lntest.NetworkHarness, t *harnessTest,
-	mgrAlice lnchat.LightManager, alice, bob, carol *lntest.HarnessNode) {
+func testGetRouteMultiHopNoRouteFound(t *harnessTest, alice, dest *lntest.HarnessNode) {
+	mgrAlice, err := createNodeManager(alice)
+	assert.NoError(t.t, err)
 
 	var recordTypeKey uint64 = record.CustomTypeStart + 311
 
 	// Alice creates the message
-	recipient := carol.PubKeyStr
+	recipient := dest.PubKeyStr
 	amount := lnchat.NewAmount(1000)
 	payOpts := lnchat.PaymentOptions{
 		FeeLimitMsat:   10,
@@ -268,9 +272,13 @@ func testGetRouteMultiHopNoRouteFound(net *lntest.NetworkHarness, t *harnessTest
 		recordTypeKey: []byte("test"),
 	}
 
-	ctxt, _ := context.WithTimeout(context.Background(), defaultTimeout)
+	ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 	response, _, err := mgrAlice.GetRoute(ctxt, recipient, amount, payOpts, payload)
 
 	assert.Nil(t.t, response)
 	assert.Error(t.t, err)
+
+	err = mgrAlice.Close()
+	assert.NoError(t.t, err)
 }

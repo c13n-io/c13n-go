@@ -11,13 +11,13 @@ import (
 func addressStrToBytes(addr string) ([]byte, error) {
 	addrV, err := route.NewVertexFromStr(addr)
 	if err != nil {
-		//return nil, wrapError(ErrInvalidAddress, err)
 		return nil, withCause(newErrorf(ErrInvalidAddress, "%s", addr), err)
 	}
 
 	return addrV[:], nil
 }
 
+//nolint:deadcode // Useful for rpc calls expecting pubkey bytes.
 func addressBytesToStr(addr []byte) (string, error) {
 	addrV, err := route.NewVertexFromBytes(addr)
 	if err != nil {
@@ -25,13 +25,6 @@ func addressBytesToStr(addr []byte) (string, error) {
 	}
 
 	return addrV.String(), nil
-}
-
-func validateAddressStr(addr string) error {
-	if _, err := route.NewVertexFromStr(addr); err != nil {
-		return withCause(newErrorf(ErrInvalidAddress, "%s", addr), err)
-	}
-	return nil
 }
 
 func signatureStrToBytes(sig string) ([]byte, error) {

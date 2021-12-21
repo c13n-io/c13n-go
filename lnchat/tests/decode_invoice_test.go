@@ -36,7 +36,8 @@ func testDecodePayReq(net *lntest.NetworkHarness, t *harnessTest) {
 					t.Fatalf("unable to add invoice: %v", err)
 				}
 
-				ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+				ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+				defer cancel()
 				inv, err := mgr.DecodePayReq(ctxt, invoiceResp.GetPaymentRequest())
 				assert.NoError(t.t, err)
 
@@ -66,7 +67,8 @@ func testDecodePayReq(net *lntest.NetworkHarness, t *harnessTest) {
 					t.Fatalf("unable to add invoice: %v", err)
 				}
 
-				ctxt, _ := context.WithTimeout(ctxb, defaultTimeout)
+				ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
+				defer cancel()
 				inv, err := mgr.DecodePayReq(ctxt, invoiceResp.GetPaymentRequest())
 				assert.NoError(t.t, err)
 

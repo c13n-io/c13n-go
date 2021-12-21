@@ -98,7 +98,8 @@ func testListNodesOneChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close Alice -> Bob channel.
-	ctxt, _ := context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 }
 
@@ -130,10 +131,12 @@ func testListNodesTwoChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close Alice -> Bob channel.
-	ctxt, _ := context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, aliceBobChanPoint, false)
 
 	// Close Bob -> Carol channel.
-	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Bob, bobCarolChanPoint, false)
 }

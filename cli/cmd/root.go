@@ -40,54 +40,54 @@ func initCliFlags() {
 
 	rootFlags.StringP("log-level", "L", "debug",
 		"Log level: (trace, debug, info, warn, error, fatal, panic)")
-	viper.BindPFlag("log_level", rootFlags.Lookup("log-level"))
+	_ = viper.BindPFlag("log_level", rootFlags.Lookup("log-level"))
 
 	// APP flags
 	rootFlags.Int64("default-fee-limit-msat", 3000,
 		"Default fee limit for discussions in millisatoshi")
-	viper.BindPFlag("app.default_fee_limit_msat", rootFlags.Lookup("default-fee-limit-msat"))
+	_ = viper.BindPFlag("app.default_fee_limit_msat", rootFlags.Lookup("default-fee-limit-msat"))
 
 	// RPC flags
 	rootFlags.String("server-address", "localhost:9999",
 		"Address to listen for incoming connections on")
-	viper.BindPFlag("server.address", rootFlags.Lookup("server-address"))
+	_ = viper.BindPFlag("server.address", rootFlags.Lookup("server-address"))
 	rootFlags.String("cert-path", "",
 		"Path of the TLS certificate used for server connections")
-	viper.BindPFlag("server.tls.cert_path", rootFlags.Lookup("cert-path"))
+	_ = viper.BindPFlag("server.tls.cert_path", rootFlags.Lookup("cert-path"))
 	rootFlags.String("key-path", "",
 		"Path of the TLS private key used for server connections")
-	viper.BindPFlag("server.tls.key_path", rootFlags.Lookup("key-path"))
+	_ = viper.BindPFlag("server.tls.key_path", rootFlags.Lookup("key-path"))
 	rootFlags.StringSlice("tls-extra-ip", []string{},
 		"Extra IPs to be added to the TLS certificate")
-	viper.BindPFlag("server.tls.extra_ips", rootFlags.Lookup("tls-extra-ip"))
+	_ = viper.BindPFlag("server.tls.extra_ips", rootFlags.Lookup("tls-extra-ip"))
 	rootFlags.StringSlice("tls-extra-domain", []string{},
 		"Extra domains to be added to the TLS certificate")
-	viper.BindPFlag("server.tls.extra_domains", rootFlags.Lookup("tls-extra-domain"))
+	_ = viper.BindPFlag("server.tls.extra_domains", rootFlags.Lookup("tls-extra-domain"))
 	rootFlags.String("server-user", "", "Username for server connections")
-	viper.BindPFlag("server.user", rootFlags.Lookup("server-user"))
+	_ = viper.BindPFlag("server.user", rootFlags.Lookup("server-user"))
 	rootFlags.String("server-pass", "", "Password for server connections")
-	viper.BindPFlag("server.rpcpass", rootFlags.Lookup("server-pass"))
+	_ = viper.BindPFlag("server.rpcpass", rootFlags.Lookup("server-pass"))
 	rootFlags.Int("graceful-shutdown-timeout", 10,
 		"Graceful shutdown timeout in seconds")
-	viper.BindPFlag("server.graceful_shutdown_timeout", rootFlags.Lookup("graceful-shutdown-timeout"))
+	_ = viper.BindPFlag("server.graceful_shutdown_timeout", rootFlags.Lookup("graceful-shutdown-timeout"))
 
 	// LND flags
 	rootFlags.String("lnd-address", "localhost:10009",
 		"Address of the Lightning daemon")
-	viper.BindPFlag("lnd.address", rootFlags.Lookup("lnd-address"))
+	_ = viper.BindPFlag("lnd.address", rootFlags.Lookup("lnd-address"))
 	rootFlags.String("lnd-tls-path", "",
 		"Path of the Lightning daemon TLS certificate to use")
-	viper.BindPFlag("lnd.tls_path", rootFlags.Lookup("lnd-tls-path"))
+	_ = viper.BindPFlag("lnd.tls_path", rootFlags.Lookup("lnd-tls-path"))
 	rootFlags.String("lnd-macaroon-path", "",
 		"Path of the Lightning daemon macaroon file to use")
-	viper.BindPFlag("lnd.macaroon_path", rootFlags.Lookup("lnd-macaroon-path"))
+	_ = viper.BindPFlag("lnd.macaroon_path", rootFlags.Lookup("lnd-macaroon-path"))
 	rootFlags.StringVarP(&lndConnectURL, "lndconnect", "l", "",
 		"lndconnect URL to use for connection to the Lightning daemon")
 
 	// DB flags
 	rootFlags.String("db-path", "c13n.db",
 		"Path of the database directory")
-	viper.BindPFlag("database.db_path", rootFlags.Lookup("db-path"))
+	_ = viper.BindPFlag("database.db_path", rootFlags.Lookup("db-path"))
 }
 
 // initConfig reads in config file and env variables if set.

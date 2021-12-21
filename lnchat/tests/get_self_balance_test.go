@@ -142,7 +142,9 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 
 	var amt, pushAmt int64 = 100000, 1000
 
-	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
+
 	chanPoint := openChannelAndAssert(ctxt, t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
 			Amt:     amountSats(amt),
@@ -150,14 +152,18 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
+
 	err = net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't advertise channel before "+
 			"timeout: %v", err)
 	}
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
+
 	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't advertise channel before "+
@@ -180,7 +186,8 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	commitFee := int64(cType.calcStaticFee(0))
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	tx := findChanFundingTx(ctxt, t, chanPoint, net.Alice)
 	txFees := tx.TotalFees
 
@@ -191,7 +198,8 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	expectedBalance.ChannelBalance.RemoteMsat += satToMsat(pushAmt)
 	assert.EqualValues(t.t, expectedBalance, updatedBalance)
 
-	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 
 	err = mgrAlice.Close()
@@ -211,7 +219,8 @@ func testGetSelfBalancePendingCh(net *lntest.NetworkHarness, t *harnessTest) {
 	// Open a channel in pending state.
 	var amt, pushAmt int64 = 100000, 1000
 
-	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
 	pendingUpdate, err := net.OpenPendingChannel(ctxt,
 		net.Alice, net.Bob, amountSats(amt), amountSats(pushAmt))
 	if err != nil {
@@ -219,7 +228,8 @@ func testGetSelfBalancePendingCh(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Retrieve the channel and transaction information.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	pendingChs, err := net.Alice.PendingChannels(ctxt,
 		&lnrpc.PendingChannelsRequest{},
 	)
@@ -232,7 +242,8 @@ func testGetSelfBalancePendingCh(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 		OutputIndex: pendingUpdate.OutputIndex,
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	tx := findChanFundingTx(ctxt, t, chanPoint, net.Alice)
 
 	// Retrieve balance information following channel open.
@@ -262,7 +273,8 @@ func testGetSelfBalancePendingCh(net *lntest.NetworkHarness, t *harnessTest) {
 	mineBlocks(t, net, 6, 1)
 
 	// Ensure that the channel is open.
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("channel not seen on network before timeout:"+
@@ -270,7 +282,7 @@ func testGetSelfBalancePendingCh(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close channel.
-	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
 	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 
@@ -288,7 +300,8 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 
 	var amt, pushAmt int64 = 100000, 1000
 
-	ctxt, _ := context.WithTimeout(ctxb, channelOpenTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
+	defer cancel()
 	chanPoint := openChannelAndAssert(ctxt, t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
 			Amt:     amountSats(amt),
@@ -296,14 +309,16 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't advertise channel before "+
 			"timeout: %v", err)
 	}
 
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't advertise channel before "+
@@ -326,7 +341,8 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 		Hash:      preimageHash[:],
 		ValueMsat: int64(billedAmtMsat),
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	holdInvResp, err := net.Bob.AddHoldInvoice(ctxt, holdInvoiceReq)
 	if err != nil {
 		t.Fatalf("unable to add hold invoice: %v", err)
@@ -335,7 +351,8 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 	invSubscribeReq := &invoicesrpc.SubscribeSingleInvoiceRequest{
 		RHash: preimageHash[:],
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	invoiceStream, err := net.Bob.SubscribeSingleInvoice(ctxt, invSubscribeReq)
 	if err != nil {
 		t.Fatalf("unable to subscribe to invoice: %v", err)
@@ -358,7 +375,7 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 		PaymentRequest: holdInvResp.PaymentRequest,
 		TimeoutSeconds: 60,
 	}
-	ctxt, cancel := context.WithCancel(ctxb)
+	ctxt, cancel = context.WithCancel(ctxb)
 	defer cancel()
 	paymentStream, err := net.Alice.RouterClient.SendPaymentV2(
 		ctxt, sendPayReq)
@@ -405,7 +422,8 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 	settleInvReq := &invoicesrpc.SettleInvoiceMsg{
 		Preimage: preimage[:],
 	}
-	ctxt, _ = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	defer cancel()
 	if _, err := net.Bob.SettleInvoice(ctxt, settleInvReq); err != nil {
 		t.Fatalf("unable to settle hold invoice: %v", err)
 	}
@@ -442,7 +460,8 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	assert.EqualValues(t.t, payResult.Status, lnrpc.Payment_SUCCEEDED)
 
-	ctxt, _ = context.WithTimeout(ctxb, channelCloseTimeout)
+	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
 
 	err = mgrAlice.Close()

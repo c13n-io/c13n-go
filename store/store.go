@@ -25,6 +25,7 @@ func WithLogger(logger *slog.Logger) func(Database) {
 }
 
 // withBadgerOption sets a badger option.
+//nolint:deadcode // Useful for passing badger options to badgerhold.
 func withBadgerOption(f func(badger.Options) badger.Options) func(Database) {
 	return func(db Database) {
 		if bhdb, ok := db.(*bhDatabase); ok {
