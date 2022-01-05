@@ -12,6 +12,7 @@ import (
 
 	"github.com/c13n-io/c13n-go/app"
 	"github.com/c13n-io/c13n-go/lnchat"
+	"github.com/c13n-io/c13n-go/lnchat/lnconnect"
 	"github.com/c13n-io/c13n-go/rpc"
 	"github.com/c13n-io/c13n-go/slog"
 	"github.com/c13n-io/c13n-go/store"
@@ -47,14 +48,24 @@ func Run(_ *cobra.Command, _ []string) error {
 	}
 
 	// Initialize chat service
-	var lnchatMgr lnchat.LightManager
+	var creds lnconnect.Credentials
 	if viper.GetString("lndconnect") != "" {
-		lnchatMgr, err = lnchat.NewFromURL(viper.GetString("lndconnect"))
+		creds, err = lnchat.NewCredentialsFromURL(
+			viper.GetString("lndconnect"),
+		)
 	} else {
-		lnchatMgr, err = lnchat.New(viper.GetString("lnd.address"),
-			lnchat.WithTLSPath(viper.GetString("lnd.tls_path")),
-			lnchat.WithMacaroonPath(viper.GetString("lnd.macaroon_path")))
+		creds, err = lnchat.NewCredentials(
+			viper.GetString("lnd.address"),
+			viper.GetString("lnd.tls_path"),
+			viper.GetString("lnd.macaroon_path"),
+		)
 	}
+	if err != nil {
+		logger.WithError(err).Error("Could not create credentials")
+		return err
+	}
+
+	lnchatMgr, err := lnchat.New(creds)
 	if err != nil {
 		logger.WithError(err).Error("Could not initialize lnchat service")
 		return err

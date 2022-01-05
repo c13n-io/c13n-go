@@ -40,10 +40,6 @@ var testsCases = []*testCase{
 		test: testNewLnchat,
 	},
 	{
-		name: "Test new lnchat from lndconnecturl",
-		test: testNewLnchatFromLNDConnectURL,
-	},
-	{
 		name: "GetSelfInfo",
 		test: testGetSelfInfo,
 	},
