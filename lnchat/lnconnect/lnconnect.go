@@ -37,17 +37,17 @@ func InitializeConnection(cfg Credentials) (*grpc.ClientConn, error) {
 		Bytes: cfg.TLSBytes,
 	})
 	if certBytes == nil {
-		return nil, fmt.Errorf("%w: Could not encode TLS certificate", ErrCredentials)
+		return nil, fmt.Errorf("%w: could not encode TLS certificate", ErrCredentials)
 	}
 
 	tlsCerts := x509.NewCertPool()
 	if !tlsCerts.AppendCertsFromPEM(certBytes) {
-		return nil, fmt.Errorf("%w: Could not append TLS certificate to pool", ErrCredentials)
+		return nil, fmt.Errorf("%w: could not append TLS certificate to pool", ErrCredentials)
 	}
 
 	mac := &macaroon.Macaroon{}
 	if err := mac.UnmarshalBinary(cfg.MacaroonBytes); err != nil {
-		return nil, fmt.Errorf("%w: Could not unmarshal macaroon: %v", ErrCredentials, err)
+		return nil, fmt.Errorf("%w: could not unmarshal macaroon: %v", ErrCredentials, err)
 	}
 
 	// Use a constrained macaroon for RPC calls
@@ -59,7 +59,7 @@ func InitializeConnection(cfg Credentials) (*grpc.ClientConn, error) {
 	}
 	constrMac, err := macaroons.AddConstraints(mac, macConstraints...)
 	if err != nil {
-		return nil, fmt.Errorf("%w: Could not add macaroon constraints: %v", ErrCredentials, err)
+		return nil, fmt.Errorf("%w: could not add macaroon constraints: %v", ErrCredentials, err)
 	}
 
 	opts := []grpc.DialOption{

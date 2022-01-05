@@ -2,9 +2,7 @@ package lnchat
 
 import (
 	"context"
-	"encoding/pem"
 	"io"
-	"io/ioutil"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/lightningnetwork/lnd/lnrpc"
@@ -30,12 +28,10 @@ type manager struct {
 
 var _ LightManager = (*manager)(nil)
 
-// New returns an interface to the lnchat API based on the passed configuration.
-func New(address string, options ...func(LightManager) error) (LightManager, error) {
+// New creates a manager connected to the node daemon with the provided credentials.
+func New(creds lnconnect.Credentials, options ...func(LightManager) error) (LightManager, error) {
 	mgr := &manager{
-		creds: lnconnect.Credentials{
-			RPCAddress: address,
-		},
+		creds: creds,
 	}
 
 	for _, option := range options {
@@ -44,7 +40,7 @@ func New(address string, options ...func(LightManager) error) (LightManager, err
 		}
 	}
 
-	conn, err := lnconnect.InitializeConnection(mgr.creds)
+	conn, err := lnconnect.InitializeConnection(creds)
 	if err != nil {
 		switch {
 		case errors.Is(err, lnconnect.ErrCredentials):
@@ -58,84 +54,6 @@ func New(address string, options ...func(LightManager) error) (LightManager, err
 	mgr.conn = conn
 	mgr.lnClient = lnrpc.NewLightningClient(conn)
 	mgr.routeClient = routerrpc.NewRouterClient(conn)
-
-	// Get self info during initialization
-	ctx := context.Background()
-	mgr.self, err = mgr.GetSelfInfo(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return mgr, err
-}
-
-// WithTLSPath sets the TLS path for a LightManager.
-func WithTLSPath(tlsPath string) func(LightManager) error {
-	return func(mgr LightManager) error {
-		if tlsPath != "" {
-			tlsBytes, err := ioutil.ReadFile(tlsPath)
-			if err != nil {
-				return errors.Wrap(err, "could not read TLS file")
-			}
-
-			block, _ := pem.Decode(tlsBytes)
-			if block == nil || block.Type != "CERTIFICATE" {
-				return errors.New("could not decode PEM block containing certificate")
-			}
-
-			mgrNew := mgr.(*manager)
-			mgrNew.creds.TLSBytes = block.Bytes
-			return nil
-		}
-		return errors.New("TLS path empty")
-	}
-}
-
-// WithMacaroonPath sets the Macaroon path for a LightManager.
-func WithMacaroonPath(macaroonPath string) func(LightManager) error {
-	return func(mgr LightManager) error {
-		if macaroonPath != "" {
-			macaroonBytes, err := ioutil.ReadFile(macaroonPath)
-			if err != nil {
-				return errors.Wrap(err, "could not read macaroon file")
-			}
-
-			mgrNew := mgr.(*manager)
-			mgrNew.creds.MacaroonBytes = macaroonBytes
-			return nil
-		}
-		return errors.New("Macaroon path empty")
-	}
-}
-
-// NewFromURL returns an interface to the lnchat API based on the passed lndconnecturl.
-func NewFromURL(lndConnectURL string, options ...func(LightManager)) (LightManager, error) {
-	// Parse Config
-	creds, err := parseLNDConnectURL(lndConnectURL)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := lnconnect.InitializeConnection(*creds)
-	if err != nil {
-		switch {
-		case errors.Is(err, lnconnect.ErrCredentials):
-			return nil, withCause(newError(ErrCredentials), err)
-		default:
-			return nil, withCause(newErrorf(ErrUnknown,
-				"could not establish connection to grpc server"), err)
-		}
-	}
-
-	mgr := &manager{
-		conn:        conn,
-		lnClient:    lnrpc.NewLightningClient(conn),
-		routeClient: routerrpc.NewRouterClient(conn),
-	}
-
-	for _, option := range options {
-		option(mgr)
-	}
 
 	// Get self info during initialization
 	ctx := context.Background()

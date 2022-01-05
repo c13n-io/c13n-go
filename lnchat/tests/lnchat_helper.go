@@ -7,7 +7,14 @@ import (
 )
 
 func createNodeManager(node *lntest.HarnessNode) (lnchat.LightManager, error) {
-	return lnchat.New(node.Cfg.RPCAddr(),
-		lnchat.WithMacaroonPath(node.AdminMacPath()),
-		lnchat.WithTLSPath(node.TLSCertStr()))
+	creds, err := lnchat.NewCredentials(
+		node.Cfg.RPCAddr(),
+		node.TLSCertStr(),
+		node.AdminMacPath(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return lnchat.New(creds)
 }
