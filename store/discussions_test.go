@@ -94,7 +94,7 @@ func TestAddDiscussionIDs(t *testing.T) {
 		inserted, err := db.AddDiscussion(&discussion)
 		assert.NoError(t, err)
 		assert.EqualValues(t, &discussion, inserted)
-		assert.EqualValues(t, inserted.ID, i)
+		assert.EqualValues(t, i, inserted.ID)
 		assert.EqualValues(t, discussion.ID, inserted.ID)
 	}
 }

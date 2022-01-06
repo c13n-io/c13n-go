@@ -5,12 +5,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/timshannon/badgerhold"
+	"github.com/timshannon/badgerhold/v4"
 )
 
 // Discussion is the discussion model for c13n.
 type Discussion struct {
-	ID            uint64         `json:"id" badgerholdKey:"key"`
+	ID            uint64         `json:"id" badgerhold:"key"`
 	Participants  []string       `json:"participants"`
 	LastReadID    uint64         `json:"last_read_message_id"`
 	LastMessageID uint64         `json:"last_message_id"`

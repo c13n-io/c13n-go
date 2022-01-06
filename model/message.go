@@ -31,7 +31,7 @@ type Route struct {
 // Message represents a message.
 type Message struct {
 	// The id of the message.
-	ID uint64 `json:"id" badgerholdKey:"key"`
+	ID uint64 `json:"id" badgerhold:"key"`
 	// The id of the discussion the message is part of.
 	DiscussionID uint64 `json:"discussion_id"`
 	// The message payload.
