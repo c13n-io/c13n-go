@@ -2,10 +2,12 @@ package rpc
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/c13n-io/c13n-go/lnchat"
 	"github.com/c13n-io/c13n-go/model"
@@ -13,6 +15,13 @@ import (
 )
 
 var emptyPreimage = lnchat.PreImage{}
+
+func mustNewProtoTimestamp(t *testing.T, ts time.Time) *timestamp.Timestamp {
+	protoTs, err := newProtoTimestamp(ts)
+	require.NoError(t, err)
+
+	return protoTs
+}
 
 func TestMessageModelToEstimateMessageResponse(t *testing.T) {
 	cases := []struct {
@@ -43,8 +52,8 @@ func TestMessageModelToEstimateMessageResponse(t *testing.T) {
 					Receiver:          "receiver address",
 					Sender:            "sender address",
 					TotalFeesMsat:     100,
-					SentTimestamp:     &timestamp.Timestamp{Nanos: 123456789},
-					ReceivedTimestamp: &timestamp.Timestamp{Nanos: 987654321},
+					SentTimestamp:     mustNewProtoTimestamp(t, time.Unix(0, 123456789)),
+					ReceivedTimestamp: mustNewProtoTimestamp(t, time.Unix(0, 987654321)),
 					Preimage:          emptyPreimage.String(),
 				},
 				SuccessProb: 0.98,
@@ -96,8 +105,8 @@ func TestMessageModelToSubscribeMessageResponse(t *testing.T) {
 					AmtMsat:           1000,
 					Sender:            "sender address",
 					Receiver:          "receiver address",
-					SentTimestamp:     &timestamp.Timestamp{Nanos: 123456789},
-					ReceivedTimestamp: &timestamp.Timestamp{Nanos: 987654321},
+					SentTimestamp:     mustNewProtoTimestamp(t, time.Unix(0, 123456789)),
+					ReceivedTimestamp: mustNewProtoTimestamp(t, time.Unix(0, 987654321)),
 					Preimage:          emptyPreimage.String(),
 				},
 			},
@@ -149,8 +158,8 @@ func TestMessageModelToHistoryMessageResponse(t *testing.T) {
 					AmtMsat:           1000,
 					Sender:            "sender address",
 					Receiver:          "receiver address",
-					SentTimestamp:     &timestamp.Timestamp{Nanos: 123456789},
-					ReceivedTimestamp: &timestamp.Timestamp{Nanos: 987654321},
+					SentTimestamp:     mustNewProtoTimestamp(t, time.Unix(0, 123456789)),
+					ReceivedTimestamp: mustNewProtoTimestamp(t, time.Unix(0, 987654321)),
 					TotalFeesMsat:     100,
 					Preimage:          emptyPreimage.String(),
 				},
