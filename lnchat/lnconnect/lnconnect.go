@@ -59,12 +59,18 @@ func InitializeConnection(cfg Credentials) (*grpc.ClientConn, error) {
 	}
 	constrMac, err := macaroons.AddConstraints(mac, macConstraints...)
 	if err != nil {
-		return nil, fmt.Errorf("%w: could not add macaroon constraints: %v", ErrCredentials, err)
+		return nil, fmt.Errorf("%w: could not add macaroon constraints: %v",
+			ErrCredentials, err)
+	}
+	perRPCCreds, err := macaroons.NewMacaroonCredential(constrMac)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not create per-RPC credentials: %v",
+			ErrCredentials, err)
 	}
 
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(tlsCerts, "")),
-		grpc.WithPerRPCCredentials(macaroons.NewMacaroonCredential(constrMac)),
+		grpc.WithPerRPCCredentials(perRPCCreds),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(maxMsgRecvSize),
 	}
