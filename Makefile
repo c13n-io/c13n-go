@@ -10,6 +10,8 @@ PROTO_IMPORT_PATHS := --proto_path=. --proto_path=vendor
 
 GO = go
 
+GOBUILD := go build -v
+
 ############
 # Packages #
 ############
@@ -79,7 +81,7 @@ LDFLAGS := -ldflags "-X $(MODULE_NAME)/app.commit=$(COMMIT) \
 	-X $(MODULE_NAME)/app.commitHash=$(COMMIT_HASH)"
 
 $(TARGET):
-	$(GO) build -i -v -o $(TARGET) $(LDFLAGS) $(MODULE_NAME)/cli
+	$(GOBUILD) -o $(TARGET) $(LDFLAGS) $(MODULE_NAME)/cli
 
 certgen:
 	openssl req -nodes -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -config $(CERT_DIR)/cert.conf -extensions v3_exts -days 365 -keyout $(CERT_DIR)/c13n.key -out $(CERT_DIR)/c13n.pem
@@ -123,14 +125,14 @@ testbackend:
 	@echo "Executing backend tests"
 	$(GO) test -count=1 $(BACKEND_PACKAGES)
 
-testlib: btcd build-itest lib-utest lib-itest
+testlib: build-itest lib-utest lib-itest
 
 build-itest:
 	@echo "Installing lnd and btcd."
 	$(GO) get $(LND_PKG)@$(LND_PKG_VERSION) $(BTCD_PKG)@$(BTCD_PKG_VERSION)
 	@echo "Building itest lnd and lncli."
-	$(GO) build -mod mod -tags="$(ITEST_TAGS)" -o ./lnchat/tests/lnd-itest $(LND_PKG)/cmd/lnd
-	$(GO) build -mod mod -tags="$(ITEST_TAGS)" -o ./lnchat/tests/lncli-itest $(LND_PKG)/cmd/lncli
+	$(GOBUILD) -mod=mod -tags="$(ITEST_TAGS)" -o ./lnchat/tests/lnd-itest $(LND_PKG)/cmd/lnd
+	$(GOBUILD) -mod=mod -tags="$(ITEST_TAGS)" -o ./lnchat/tests/lncli-itest $(LND_PKG)/cmd/lncli
 
 lib-itest:
 	@echo "Running integration tests with btcd backend."

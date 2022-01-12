@@ -14,7 +14,7 @@ These instructions will help you build the project and start the gRPC server.
 
 ### Prerequisites
 
-#### Go 1.14
+#### Go 1.17
 
 Go is an open source programming language. You can find Go for all operating systems [here](https://golang.org/dl/).
 
