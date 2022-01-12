@@ -82,17 +82,3 @@ issues:
   max-same-issues: 0
 
   exclude-rules:
-    - path: rpc/.*_test\.go
-      text: "SA1019: package github.com/golang/protobuf/proto is deprecated"
-      linters:
-        - staticcheck
-
-    - path: rpc/transform.go
-      text: "SA1019: package github.com/golang/protobuf/ptypes is deprecated"
-      linters:
-        - staticcheck
-
-    - path: rpc/transform.go
-      text: "SA1019: ptypes.TimestampProto is deprecated"
-      linters:
-        - staticcheck
