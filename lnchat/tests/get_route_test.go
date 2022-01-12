@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcutil"
+	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lntest"
 	"github.com/lightningnetwork/lnd/lntest/wait"
 	"github.com/lightningnetwork/lnd/record"
@@ -65,18 +66,14 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
 	for i := 0; i < 2; i++ {
-		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, net.Alice)
+		net.SendCoins(t.t, btcutil.SatoshiPerBitcoin, net.Alice)
 	}
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice being
 	// the sole funder of the channel.
-	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
-	defer cancel()
 	chanAmt := btcutil.Amount(1000000)
 	chanPoint := openChannelAndAssert(
-		ctxt, t, net, net.Alice, net.Bob,
+		t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
 			Amt: chanAmt,
 		},
@@ -84,7 +81,7 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Wait for Alice and Bob to recognize and advertise the new channel
 	// generated above.
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
@@ -121,9 +118,7 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close the channel.
-	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
+	closeChannelAndAssert(t, net, net.Alice, chanPoint, false)
 }
 
 func testGetRouteSingleHopNoFees(t *harnessTest, alice, bob *lntest.HarnessNode) {
@@ -180,7 +175,9 @@ func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	aliceBobChanPoint, bobCarolChanPoint, carol := createThreeHopNetwork(t,
-		net, net.Alice, net.Bob, false, commitTypeTweakless)
+		net, net.Alice, net.Bob, false,
+		lnrpc.CommitmentType_STATIC_REMOTE_KEY,
+	)
 
 	for _, subTest := range subTests {
 		// Needed in case of parallel testing.
@@ -203,17 +200,10 @@ func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 		t.Fatalf("Unable to assert no pending htlcs: %v", err)
 	}
 
-	ctxb := context.Background()
-
 	// Close Alice -> Bob channel.
-	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Alice, aliceBobChanPoint, false)
-
+	closeChannelAndAssert(t, net, net.Alice, aliceBobChanPoint, false)
 	// Close Bob -> Carol channel.
-	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Bob, bobCarolChanPoint, false)
+	closeChannelAndAssert(t, net, net.Bob, bobCarolChanPoint, false)
 
 	shutdownAndAssert(net, t, carol)
 }

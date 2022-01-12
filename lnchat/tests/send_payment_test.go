@@ -133,18 +133,14 @@ func testSendPayment(net *lntest.NetworkHarness, t *harnessTest) {
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
 	for i := 0; i < 2; i++ {
-		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, net.Alice)
+		net.SendCoins(t.t, btcutil.SatoshiPerBitcoin, net.Alice)
 	}
 
 	// Open a channel with 1M satoshis between Alice and Bob with Alice being
 	// the sole funder of the channel.
-	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
-	defer cancel()
 	chanAmt := btcutil.Amount(1000000)
 	chanPoint := openChannelAndAssert(
-		ctxt, t, net, net.Alice, net.Bob,
+		t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
 			Amt: chanAmt,
 		},
@@ -152,7 +148,7 @@ func testSendPayment(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Wait for Alice and Bob to recognize and advertise the new channel
 	// generated above.
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
@@ -235,7 +231,5 @@ func testSendPayment(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close the channel.
-	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
+	closeChannelAndAssert(t, net, net.Alice, chanPoint, false)
 }
