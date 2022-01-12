@@ -1,7 +1,6 @@
 package itest
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -14,7 +13,6 @@ import (
 )
 
 var (
-	useEtcd          = false
 	harnessNetParams = &chaincfg.RegressionNetParams
 )
 
@@ -25,6 +23,7 @@ const (
 	channelCloseTimeout = lntest.ChannelCloseTimeout
 	pendingHTLCTimeout  = defaultTimeout
 	itestLndBinary      = "./lnd-itest"
+	dbBackend           = lntest.BackendBbolt
 	anchorSize          = 330
 )
 
@@ -76,7 +75,7 @@ func TestLnchat(t *testing.T) {
 	// backend we just created.
 	ht := newHarnessTest(t, nil)
 	lndHarness, err := lntest.NewNetworkHarness(
-		miner, chainBackend, itestLndBinary, useEtcd,
+		miner, chainBackend, itestLndBinary, dbBackend,
 	)
 	if err != nil {
 		ht.Fatalf("unable to create lightning network harness: %v", err)
@@ -132,7 +131,7 @@ func TestLnchat(t *testing.T) {
 				require.NoError(t1, lndHarness.TearDown())
 			}()
 
-			lndHarness.EnsureConnected(context.Background(),
+			lndHarness.EnsureConnected(
 				t1, lndHarness.Alice, lndHarness.Bob,
 			)
 
@@ -141,11 +140,8 @@ func TestLnchat(t *testing.T) {
 				testCase.name,
 			)
 
-			err = lndHarness.Alice.AddToLog(logLine)
-			require.NoError(t1, err, "unable to add to log")
-
-			err = lndHarness.Bob.AddToLog(logLine)
-			require.NoError(t1, err, "unable to add to log")
+			lndHarness.Alice.AddToLog(logLine)
+			lndHarness.Bob.AddToLog(logLine)
 
 			// Start every test with the default static fee estimate.
 			lndHarness.SetFeeEstimate(12500)

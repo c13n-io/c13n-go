@@ -66,7 +66,7 @@ func findTargetInPeerList(src, target *lntest.HarnessNode) bool {
 
 func testConnectNodeNotConnected(net *lntest.NetworkHarness, t *harnessTest) {
 
-	err := t.lndHarness.DisconnectNodes(context.Background(), net.Alice, net.Bob)
+	err := t.lndHarness.DisconnectNodes(net.Alice, net.Bob)
 	assert.NoError(t.t, err)
 
 	mgrAlice, err := createNodeManager(net.Alice)
@@ -76,7 +76,8 @@ func testConnectNodeNotConnected(net *lntest.NetworkHarness, t *harnessTest) {
 	assert.NoError(t.t, err)
 
 	err = wait.Predicate(func() bool {
-		return findTargetInPeerList(net.Alice, net.Bob) && findTargetInPeerList(net.Bob, net.Alice)
+		return findTargetInPeerList(net.Alice, net.Bob) &&
+			findTargetInPeerList(net.Bob, net.Alice)
 	}, DefaultTimeout)
 	assert.NoError(t.t, err)
 
@@ -93,7 +94,8 @@ func testConnectNodeAlreadyConnected(net *lntest.NetworkHarness, t *harnessTest)
 	assert.NoError(t.t, err)
 
 	err = wait.Predicate(func() bool {
-		return findTargetInPeerList(net.Alice, net.Bob) && findTargetInPeerList(net.Bob, net.Alice)
+		return findTargetInPeerList(net.Alice, net.Bob) &&
+			findTargetInPeerList(net.Bob, net.Alice)
 	}, DefaultTimeout)
 	assert.NoError(t.t, err)
 
