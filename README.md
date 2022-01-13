@@ -98,8 +98,9 @@ Go can automatically install any required dependencies of the target build, howe
 
 You can install these dependencies using the `go install` command as outlined [below](https://maelvls.dev/go111module-everywhere/), or run `make dev-deps`.
 ```bash
-go install github.com/golang/protobuf/protoc-gen-go@v1.4.3
-go install github.com/mwitkow/go-proto-validators/...@v0.3.0
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26.0
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
+go install github.com/mwitkow/go-proto-validators/...@v0.3.2
 go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2
 go install github.com/vektra/mockery/...@v1.0.0
 go install golang.org/x/tools/cmd/goimports@latest

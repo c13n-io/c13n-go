@@ -98,8 +98,9 @@ vendor:
 	go mod vendor
 
 dev-deps:
-	$(GOINSTALL) github.com/golang/protobuf/protoc-gen-go@v1.4.3
-	$(GOINSTALL) github.com/mwitkow/go-proto-validators/...@v0.3.0
+	$(GOINSTALL) google.golang.org/protobuf/cmd/protoc-gen-go@v1.26.0
+	$(GOINSTALL) google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
+	$(GOINSTALL) github.com/mwitkow/go-proto-validators/...@v0.3.2
 	$(GOINSTALL) github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2
 	$(GOINSTALL) github.com/vektra/mockery/...@v1.0.0
 	$(GOINSTALL) golang.org/x/tools/cmd/goimports@latest
@@ -108,7 +109,11 @@ dev-deps:
 # Generate protobuf source code
 # http://github.com/golang/protobuf
 proto: vendor
-	protoc $(PROTO_IMPORT_PATHS) --go_out=plugins=grpc,paths=source_relative:. --govalidators_out=paths=source_relative:. $(SERVICE_DIR)/*.proto
+	protoc $(PROTO_IMPORT_PATHS) \
+		--go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		--govalidators_out=. --govalidators_opt=paths=source_relative \
+		$(SERVICE_DIR)/*.proto
 
 # Generating
 mock:

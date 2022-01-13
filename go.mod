@@ -16,7 +16,7 @@ require (
 	github.com/lightningnetwork/lnd v0.14.1-beta
 	github.com/lightningnetwork/lnd/cert v1.1.0
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mwitkow/go-proto-validators v0.3.0
+	github.com/mwitkow/go-proto-validators v0.3.2
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.1.3
@@ -25,6 +25,7 @@ require (
 	github.com/timshannon/badgerhold v1.0.0
 	github.com/tv42/zbase32 v0.0.0-20160707012821-501572607d02
 	google.golang.org/grpc v1.38.0
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/macaroon.v2 v2.1.0
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 	syreclabs.com/go/faker v1.2.2
@@ -162,7 +163,6 @@ require (
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/genproto v0.0.0-20210617175327-b9e0b3197ced // indirect
-	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/errgo.v1 v1.0.1 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/macaroon-bakery.v2 v2.0.1 // indirect

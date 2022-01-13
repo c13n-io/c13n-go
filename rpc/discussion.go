@@ -16,6 +16,8 @@ type discussionServiceServer struct {
 	Log *slog.Logger
 
 	App *app.App
+
+	pb.UnimplementedDiscussionServiceServer
 }
 
 func (s *discussionServiceServer) logError(err error) error {

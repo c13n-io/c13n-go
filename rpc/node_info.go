@@ -13,6 +13,8 @@ type nodeInfoServiceServer struct {
 	Log *slog.Logger
 
 	App *app.App
+
+	pb.UnimplementedNodeInfoServiceServer
 }
 
 func (s *nodeInfoServiceServer) logError(err error) error {

@@ -15,6 +15,8 @@ type messageServiceServer struct {
 	Log *slog.Logger
 
 	App *app.App
+
+	pb.UnimplementedMessageServiceServer
 }
 
 func (s *messageServiceServer) logError(err error) error {

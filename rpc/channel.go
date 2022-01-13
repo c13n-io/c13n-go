@@ -13,6 +13,8 @@ type channelServiceServer struct {
 	Log *slog.Logger
 
 	App *app.App
+
+	pb.UnimplementedChannelServiceServer
 }
 
 func (s *channelServiceServer) logError(err error) error {
