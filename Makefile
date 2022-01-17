@@ -11,15 +11,14 @@ PROTO_IMPORT_PATHS := --proto_path=. --proto_path=vendor
 GO = go
 
 GOBUILD := go build -v
+GOINSTALL := go install
 
 ############
 # Packages #
 ############
 
 BTCD_PKG := github.com/btcsuite/btcd
-BTCD_PKG_VERSION := v0.21.0-beta.0.20210513141527-ee5896bad5be
 LND_PKG := github.com/lightningnetwork/lnd
-LND_PKG_VERSION := v0.13.1-beta
 
 # Backend Packages
 BACKEND_PACKAGES := $(shell go list ./... | grep -vE "lnchat")
@@ -99,12 +98,12 @@ vendor:
 	go mod vendor
 
 dev-deps:
-	(cd && GO111MODULE=on go get github.com/golang/protobuf/protoc-gen-go@v1.4.3)
-	(cd && GO111MODULE=on go get github.com/mwitkow/go-proto-validators/...@v0.3.0)
-	(cd && GO111MODULE=on go get github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2)
-	(cd && GO111MODULE=on go get github.com/vektra/mockery/...@v1.0.0)
-	(cd && GO111MODULE=on go get golang.org/x/tools/cmd/goimports)
-	(cd && GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0)
+	$(GOINSTALL) github.com/golang/protobuf/protoc-gen-go@v1.4.3
+	$(GOINSTALL) github.com/mwitkow/go-proto-validators/...@v0.3.0
+	$(GOINSTALL) github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2
+	$(GOINSTALL) github.com/vektra/mockery/...@v1.0.0
+	$(GOINSTALL) golang.org/x/tools/cmd/goimports@latest
+	$(GOINSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0
 
 # Generate protobuf source code
 # http://github.com/golang/protobuf
@@ -128,8 +127,6 @@ testbackend:
 testlib: build-itest lib-utest lib-itest
 
 build-itest:
-	@echo "Installing lnd and btcd."
-	$(GO) get $(LND_PKG)@$(LND_PKG_VERSION) $(BTCD_PKG)@$(BTCD_PKG_VERSION)
 	@echo "Building itest lnd and lncli."
 	$(GOBUILD) -mod=mod -tags="$(ITEST_TAGS)" -o ./lnchat/tests/lnd-itest $(LND_PKG)/cmd/lnd
 	$(GOBUILD) -mod=mod -tags="$(ITEST_TAGS)" -o ./lnchat/tests/lncli-itest $(LND_PKG)/cmd/lncli
