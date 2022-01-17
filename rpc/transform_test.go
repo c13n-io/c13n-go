@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/c13n-io/c13n-go/lnchat"
 	"github.com/c13n-io/c13n-go/model"
@@ -16,7 +16,7 @@ import (
 
 var emptyPreimage = lnchat.PreImage{}
 
-func mustNewProtoTimestamp(t *testing.T, ts time.Time) *timestamp.Timestamp {
+func mustNewProtoTimestamp(t *testing.T, ts time.Time) *timestamppb.Timestamp {
 	protoTs, err := newProtoTimestamp(ts)
 	require.NoError(t, err)
 
