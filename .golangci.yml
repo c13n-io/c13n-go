@@ -4,6 +4,7 @@ run:
   concurrency: 4
   issues-exit-code: 1
   tests: true
+  timeout: 2m
 
 output:
   format: tab
