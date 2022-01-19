@@ -30,6 +30,11 @@ const (
 // TestLnchat performs a series of integration tests amongst a
 // programmatically driven network of lnd nodes.
 func TestLnchat(t *testing.T) {
+	// Before we start any node, we need to make sure that any btcd node
+	// that is started through the RPC harness uses a unique port as well to
+	// avoid any port collisions.
+	rpctest.ListenAddressGenerator = lntest.GenerateBtcdListenerAddresses
+
 	// Create an instance of the btcd's rpctest.Harness that will act as
 	// the miner for all tests. This will be used to fund the wallets of
 	// the nodes within the test network and to drive blockchain related
@@ -108,7 +113,6 @@ func TestLnchat(t *testing.T) {
 	// With the btcd harness created, we can now complete the
 	// initialization of the network. args - list of lnd arguments,
 	// example: "--debuglevel=debug"
-	// TODO(roasbeef): create master balanced channel with all the monies?
 	lndArgs := []string{
 		"--default-remote-max-htlcs=483",
 		"--dust-threshold=5000000",
