@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/integration/rpctest"
@@ -14,6 +15,7 @@ import (
 
 var (
 	harnessNetParams = &chaincfg.RegressionNetParams
+	slowMineDelay    = 20 * time.Millisecond
 )
 
 const (
