@@ -110,6 +110,8 @@ func TestLnchat(t *testing.T) {
 	// example: "--debuglevel=debug"
 	// TODO(roasbeef): create master balanced channel with all the monies?
 	lndArgs := []string{
+		"--default-remote-max-htlcs=483",
+		"--dust-threshold=5000000",
 		"--debuglevel=debug",
 	}
 
