@@ -176,7 +176,8 @@ func testGetRouteMultiHop(net *lntest.NetworkHarness, t *harnessTest) {
 
 	aliceBobChanPoint, bobCarolChanPoint, carol := createThreeHopNetwork(t,
 		net, net.Alice, net.Bob, false,
-		lnrpc.CommitmentType_STATIC_REMOTE_KEY)
+		lnrpc.CommitmentType_STATIC_REMOTE_KEY,
+	)
 
 	for _, subTest := range subTests {
 		// Needed in case of parallel testing.

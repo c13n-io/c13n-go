@@ -17,7 +17,7 @@ var (
 )
 
 const (
-	defaultTimeout      = lntest.DefaultTimeout
+	defaultTimeout      = 2 * lntest.DefaultTimeout
 	minerMempoolTimeout = lntest.MinerMempoolTimeout
 	channelOpenTimeout  = lntest.ChannelOpenTimeout
 	channelCloseTimeout = lntest.ChannelCloseTimeout
