@@ -1,6 +1,7 @@
 # Example configuration at https://golangci-lint.run/usage/configuration/#config-file
 
 run:
+  timeout: 3m
   concurrency: 4
   issues-exit-code: 1
   tests: true
