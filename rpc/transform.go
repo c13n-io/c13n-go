@@ -4,25 +4,29 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/c13n-io/c13n-go/model"
 	pb "github.com/c13n-io/c13n-go/rpc/services"
 )
 
+func newProtoTimestamp(t time.Time) (*timestamppb.Timestamp, error) {
+	ts := timestamppb.New(t)
+	return ts, ts.CheckValid()
+}
+
 // Message transformations
 
 func messageModelToRPCMessage(message *model.Message) (*pb.Message, error) {
 	var err error
-	var sent, rcvd *timestamp.Timestamp
+	var sent, rcvd *timestamppb.Timestamp
 	if message.SentTimeNs > 0 {
-		if sent, err = ptypes.TimestampProto(time.Unix(0, message.SentTimeNs)); err != nil {
+		if sent, err = newProtoTimestamp(time.Unix(0, message.SentTimeNs)); err != nil {
 			return nil, fmt.Errorf("Marshal error: invalid timestamp: %v", err)
 		}
 	}
 	if message.ReceivedTimeNs > 0 {
-		if rcvd, err = ptypes.TimestampProto(time.Unix(0, message.ReceivedTimeNs)); err != nil {
+		if rcvd, err = newProtoTimestamp(time.Unix(0, message.ReceivedTimeNs)); err != nil {
 			return nil, fmt.Errorf("Marshal error: invalid timestamp: %v", err)
 		}
 	}

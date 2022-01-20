@@ -13,6 +13,8 @@ type contactServiceServer struct {
 	Log *slog.Logger
 
 	App *app.App
+
+	pb.UnimplementedContactServiceServer
 }
 
 func (s *contactServiceServer) logError(err error) error {
