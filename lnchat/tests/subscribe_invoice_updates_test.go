@@ -100,8 +100,9 @@ func testSubscribeInvoiceUpdatesCreatedSuccess(t *harnessTest, alice, _ *lntest.
 		return inv.State == lnchat.InvoiceOPEN
 	}
 
-	ctxc, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctxb := context.Background()
+
+	ctxc, cancelSubscription := context.WithCancel(ctxb)
 	invSubscription, err := mgrAlice.SubscribeInvoiceUpdates(ctxc,
 		0, invoiceFilter)
 
@@ -126,6 +127,13 @@ func testSubscribeInvoiceUpdatesCreatedSuccess(t *harnessTest, alice, _ *lntest.
 	inv, err := invUpdate.Inv, invUpdate.Err
 	assert.NoError(t.t, err, "Invoice update failed")
 	assert.NotNil(t.t, inv)
+
+	// Cancel the invoice subscription and
+	// clear any remaining updates from the update channel.
+	cancelSubscription()
+	for upd := range invSubscription {
+		_ = upd
+	}
 
 	assert.Equal(t.t, lnchat.InvoiceOPEN, inv.State)
 	assert.Equal(t.t, int64(requestedAmtMsat), inv.Value.Msat())
