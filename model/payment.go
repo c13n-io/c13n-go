@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/timshannon/badgerhold"
+	"github.com/timshannon/badgerhold/v4"
 
 	"github.com/c13n-io/c13n-go/lnchat"
 )

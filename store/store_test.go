@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dgraph-io/badger/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,24 +33,18 @@ func TestMain(m *testing.M) {
 	os.Exit(res)
 }
 
-func tempdir(t *testing.T) string {
-	tempDir, err := ioutil.TempDir(os.TempDir(), "store-*")
-	require.NoError(t, err)
-
-	return tempDir
-}
-
 func createInMemoryDB(t *testing.T) (Database, func()) {
-	tempDir := tempdir(t)
+	db, err := New("", WithBadgerOption(
+		func(o badger.Options) badger.Options {
+			return o.WithInMemory(true)
+		}),
+	)
 
-	db, err := New(tempDir)
 	require.NoError(t, err)
 	require.NotNil(t, db)
 
 	return db, func() {
 		err := db.Close()
-		require.NoError(t, err)
-		err = os.RemoveAll(tempDir)
 		require.NoError(t, err)
 	}
 }
@@ -69,13 +64,12 @@ func overrideTimestampGetter(step time.Duration) (resetTimestampGetter func()) {
 }
 
 func TestNew(t *testing.T) {
-	tempDir := tempdir(t)
-	defer func() {
-		err := os.RemoveAll(tempDir)
-		require.NoError(t, err)
-	}()
+	db, err := New("", WithBadgerOption(
+		func(o badger.Options) badger.Options {
+			return o.WithInMemory(true)
+		}),
+	)
 
-	db, err := New(tempDir)
 	assert.NoError(t, err)
 	assert.NotNil(t, db)
 

@@ -1,9 +1,9 @@
 package store
 
 import (
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v3"
 	"github.com/pkg/errors"
-	"github.com/timshannon/badgerhold"
+	"github.com/timshannon/badgerhold/v4"
 
 	"github.com/c13n-io/c13n-go/slog"
 )
@@ -24,9 +24,9 @@ func WithLogger(logger *slog.Logger) func(Database) {
 	}
 }
 
-// withBadgerOption sets a badger option.
-//nolint:deadcode // Useful for passing badger options to badgerhold.
-func withBadgerOption(f func(badger.Options) badger.Options) func(Database) {
+// WithBadgerOption sets a badger option.
+// Useful for passing badger options to badgerhold.
+func WithBadgerOption(f func(badger.Options) badger.Options) func(Database) {
 	return func(db Database) {
 		if bhdb, ok := db.(*bhDatabase); ok {
 			bhdb.bhOptions.Options = f(bhdb.bhOptions.Options)
