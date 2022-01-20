@@ -120,7 +120,7 @@ func testOpenChannelSuccess(net *lntest.NetworkHarness, t *harnessTest) {
 			if err != nil {
 				t.Fatalf("unable to get channel type: %v", err)
 			}
-			commitFee := int64(cType.calcStaticFee(0))
+			commitFee := int64(calcStaticFee(cType, 0))
 
 			// Channel exists, let's check balance
 			channelBalanceReq := &lnrpc.ChannelBalanceRequest{}
@@ -134,9 +134,7 @@ func testOpenChannelSuccess(net *lntest.NetworkHarness, t *harnessTest) {
 				c.amtMsat-uint64(commitFeeMsat)-c.pushAmtMsat,
 				chBalance.LocalBalance.GetMsat())
 
-			ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-			defer cancel()
-			closeChannelAndAssert(ctxt, t, net, net.Alice, &lnrpcChanPoint, false)
+			closeChannelAndAssert(t, net, net.Alice, &lnrpcChanPoint, false)
 		})
 	}
 

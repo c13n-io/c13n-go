@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lntest"
 	"github.com/lightningnetwork/lnd/lntest/wait"
 	"github.com/stretchr/testify/assert"
@@ -74,7 +75,7 @@ func testListNodesOneChannel(net *lntest.NetworkHarness, t *harnessTest) {
 		Amt:     1000000,
 		Private: false,
 	}
-	chanPoint := openChannelAndAssert(ctxb, t, net, net.Alice, net.Bob, chanParams)
+	chanPoint := openChannelAndAssert(t, net, net.Alice, net.Bob, chanParams)
 
 	err = net.Alice.WaitForNetworkChannelOpen(ctxb, chanPoint)
 	assert.NoErrorf(t.t, err, "alice didn't report channel")
@@ -98,9 +99,7 @@ func testListNodesOneChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close Alice -> Bob channel.
-	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
+	closeChannelAndAssert(t, net, net.Alice, chanPoint, false)
 }
 
 // Test ListNodes on a network with nodes Alice and Bob,
@@ -110,7 +109,10 @@ func testListNodesTwoChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	ctxb := context.Background()
 
 	// The network topology should be A -> B -> C after this call.
-	aliceBobChanPoint, bobCarolChanPoint, carol := createThreeHopNetwork(t, net, net.Alice, net.Bob, false, commitTypeTweakless)
+	aliceBobChanPoint, bobCarolChanPoint, carol := createThreeHopNetwork(
+		t, net, net.Alice, net.Bob, false,
+		lnrpc.CommitmentType_STATIC_REMOTE_KEY,
+	)
 
 	mgrCarol, err := createNodeManager(carol)
 	assert.NoError(t.t, err)
@@ -131,12 +133,8 @@ func testListNodesTwoChannels(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close Alice -> Bob channel.
-	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Alice, aliceBobChanPoint, false)
+	closeChannelAndAssert(t, net, net.Alice, aliceBobChanPoint, false)
 
 	// Close Bob -> Carol channel.
-	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Bob, bobCarolChanPoint, false)
+	closeChannelAndAssert(t, net, net.Bob, bobCarolChanPoint, false)
 }

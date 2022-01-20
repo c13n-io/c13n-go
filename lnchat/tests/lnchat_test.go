@@ -1,10 +1,10 @@
 package itest
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/integration/rpctest"
@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	useEtcd          = false
 	harnessNetParams = &chaincfg.RegressionNetParams
+	slowMineDelay    = 20 * time.Millisecond
 )
 
 const (
@@ -25,12 +25,18 @@ const (
 	channelCloseTimeout = lntest.ChannelCloseTimeout
 	pendingHTLCTimeout  = defaultTimeout
 	itestLndBinary      = "./lnd-itest"
+	dbBackend           = lntest.BackendBbolt
 	anchorSize          = 330
 )
 
 // TestLnchat performs a series of integration tests amongst a
 // programmatically driven network of lnd nodes.
 func TestLnchat(t *testing.T) {
+	// Before we start any node, we need to make sure that any btcd node
+	// that is started through the RPC harness uses a unique port as well to
+	// avoid any port collisions.
+	rpctest.ListenAddressGenerator = lntest.GenerateBtcdListenerAddresses
+
 	// Create an instance of the btcd's rpctest.Harness that will act as
 	// the miner for all tests. This will be used to fund the wallets of
 	// the nodes within the test network and to drive blockchain related
@@ -76,7 +82,7 @@ func TestLnchat(t *testing.T) {
 	// backend we just created.
 	ht := newHarnessTest(t, nil)
 	lndHarness, err := lntest.NewNetworkHarness(
-		miner, chainBackend, itestLndBinary, useEtcd,
+		miner, chainBackend, itestLndBinary, dbBackend,
 	)
 	if err != nil {
 		ht.Fatalf("unable to create lightning network harness: %v", err)
@@ -109,8 +115,9 @@ func TestLnchat(t *testing.T) {
 	// With the btcd harness created, we can now complete the
 	// initialization of the network. args - list of lnd arguments,
 	// example: "--debuglevel=debug"
-	// TODO(roasbeef): create master balanced channel with all the monies?
 	lndArgs := []string{
+		"--default-remote-max-htlcs=483",
+		"--dust-threshold=5000000",
 		"--debuglevel=debug",
 	}
 
@@ -132,7 +139,7 @@ func TestLnchat(t *testing.T) {
 				require.NoError(t1, lndHarness.TearDown())
 			}()
 
-			lndHarness.EnsureConnected(context.Background(),
+			lndHarness.EnsureConnected(
 				t1, lndHarness.Alice, lndHarness.Bob,
 			)
 
@@ -141,11 +148,8 @@ func TestLnchat(t *testing.T) {
 				testCase.name,
 			)
 
-			err = lndHarness.Alice.AddToLog(logLine)
-			require.NoError(t1, err, "unable to add to log")
-
-			err = lndHarness.Bob.AddToLog(logLine)
-			require.NoError(t1, err, "unable to add to log")
+			lndHarness.Alice.AddToLog(logLine)
+			lndHarness.Bob.AddToLog(logLine)
 
 			// Start every test with the default static fee estimate.
 			lndHarness.SetFeeEstimate(12500)

@@ -15,6 +15,7 @@ import (
 	"github.com/lightningnetwork/lnd/lntest/wait"
 	"github.com/lightningnetwork/lnd/lntypes"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const stateWaitTimeout = 30 * time.Second
@@ -79,11 +80,8 @@ func testGetSelfBalanceConfirmed(net *lntest.NetworkHarness, t *harnessTest) {
 	balance, err := mgrAlice.GetSelfBalance(ctxb)
 	assert.NoError(t.t, err)
 
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-
 	var amt int64 = btcutil.SatoshiPerBitcoin
-	net.SendCoins(ctxt, t.t, amountSats(amt), net.Alice)
+	net.SendCoins(t.t, amountSats(amt), net.Alice)
 
 	updatedBalance, err := mgrAlice.GetSelfBalance(ctxb)
 	assert.NoError(t.t, err)
@@ -106,11 +104,8 @@ func testGetSelfBalanceUnconfirmed(net *lntest.NetworkHarness, t *harnessTest) {
 	balance, err := mgrAlice.GetSelfBalance(ctxb)
 	assert.NoError(t.t, err)
 
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-
 	var amt int64 = btcutil.SatoshiPerBitcoin
-	net.SendCoinsUnconfirmed(ctxt, t.t, amountSats(amt), net.Alice)
+	net.SendCoinsUnconfirmed(t.t, amountSats(amt), net.Alice)
 
 	updatedBalance, err := mgrAlice.GetSelfBalance(ctxb)
 	assert.NoError(t.t, err)
@@ -142,17 +137,14 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 
 	var amt, pushAmt int64 = 100000, 1000
 
-	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
-	defer cancel()
-
-	chanPoint := openChannelAndAssert(ctxt, t, net, net.Alice, net.Bob,
+	chanPoint := openChannelAndAssert(t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
 			Amt:     amountSats(amt),
 			PushAmt: amountSats(pushAmt),
 		},
 	)
 
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 
 	err = net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
@@ -181,10 +173,9 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	// the amount used to open the channel (including push amount)
 	// as well as the fees used for the transaction.
 	cType, err := channelCommitType(net.Alice, chanPoint)
-	if err != nil {
-		t.Fatalf("unable to get channel type: %v", err)
-	}
-	commitFee := int64(cType.calcStaticFee(0))
+	require.NoError(t.t, err, "unable to get channel type")
+
+	commitFee := int64(calcStaticFee(cType, 0))
 
 	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
@@ -198,9 +189,7 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	expectedBalance.ChannelBalance.RemoteMsat += satToMsat(pushAmt)
 	assert.EqualValues(t.t, expectedBalance, updatedBalance)
 
-	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
+	closeChannelAndAssert(t, net, net.Alice, chanPoint, false)
 
 	err = mgrAlice.Close()
 	assert.NoError(t.t, err)
@@ -219,16 +208,14 @@ func testGetSelfBalancePendingCh(net *lntest.NetworkHarness, t *harnessTest) {
 	// Open a channel in pending state.
 	var amt, pushAmt int64 = 100000, 1000
 
-	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
-	defer cancel()
-	pendingUpdate, err := net.OpenPendingChannel(ctxt,
+	pendingUpdate, err := net.OpenPendingChannel(
 		net.Alice, net.Bob, amountSats(amt), amountSats(pushAmt))
 	if err != nil {
 		t.Fatalf("unable to open channel: %v", err)
 	}
 
 	// Retrieve the channel and transaction information.
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	pendingChs, err := net.Alice.PendingChannels(ctxt,
 		&lnrpc.PendingChannelsRequest{},
@@ -282,9 +269,7 @@ func testGetSelfBalancePendingCh(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 
 	// Close channel.
-	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
+	closeChannelAndAssert(t, net, net.Alice, chanPoint, false)
 
 	err = mgrAlice.Close()
 	assert.NoError(t.t, err)
@@ -300,16 +285,14 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 
 	var amt, pushAmt int64 = 100000, 1000
 
-	ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
-	defer cancel()
-	chanPoint := openChannelAndAssert(ctxt, t, net, net.Alice, net.Bob,
+	chanPoint := openChannelAndAssert(t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
 			Amt:     amountSats(amt),
 			PushAmt: amountSats(pushAmt),
 		},
 	)
 
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	err = net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 	if err != nil {
@@ -460,9 +443,7 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	assert.EqualValues(t.t, payResult.Status, lnrpc.Payment_SUCCEEDED)
 
-	ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-	defer cancel()
-	closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
+	closeChannelAndAssert(t, net, net.Alice, chanPoint, false)
 
 	err = mgrAlice.Close()
 	assert.NoError(t.t, err)

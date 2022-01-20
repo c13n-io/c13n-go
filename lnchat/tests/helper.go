@@ -3,9 +3,8 @@ package itest
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"fmt"
-	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/lightningnetwork/lnd/input"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/lightningnetwork/lnd/lnrpc/walletrpc"
 	"github.com/lightningnetwork/lnd/lntest"
 	"github.com/lightningnetwork/lnd/lntest/wait"
 	"github.com/lightningnetwork/lnd/lnwallet"
@@ -63,7 +63,7 @@ func (h *harnessTest) Skipf(format string, args ...interface{}) {
 // the error stack traces it produces.
 func (h *harnessTest) Fatalf(format string, a ...interface{}) {
 	if h.lndHarness != nil {
-		h.lndHarness.SaveProfilesPages()
+		h.lndHarness.SaveProfilesPages(h.t)
 	}
 
 	stacktrace := errors.Wrap(fmt.Sprintf(format, a...), 1).ErrorStack()
@@ -114,11 +114,15 @@ func assertTxInBlock(t *harnessTest, block *wire.MsgBlock, txid *chainhash.Hash)
 	t.Fatalf("tx was not included in block")
 }
 
-// mineBlocks mine 'num' of blocks and check that blocks are present in
-// node blockchain. numTxs should be set to the number of transactions
-// (excluding the coinbase) we expect to be included in the first mined block.
+// mineBlocks mines 'num' of blocks and checks that blocks are present in
+// the mining node's blockchain. numTxs should be set to the number of
+// transactions (excluding the coinbase) we expect to be included in the first
+// mined block. Between each mined block an artificial delay is introduced to
+// give all network participants time to catch up.
 func mineBlocks(t *harnessTest, net *lntest.NetworkHarness,
 	num uint32, numTxs int) []*wire.MsgBlock {
+
+	t.t.Helper()
 
 	// If we expect transactions to be included in the blocks we'll mine,
 	// we wait here until they are seen in the miner's mempool.
@@ -128,23 +132,23 @@ func mineBlocks(t *harnessTest, net *lntest.NetworkHarness,
 		txids, err = waitForNTxsInMempool(
 			net.Miner.Client, numTxs, minerMempoolTimeout,
 		)
-		if err != nil {
-			t.Fatalf("unable to find txns in mempool: %v", err)
-		}
+		require.NoError(t.t, err, "unable to find txns in mempool")
 	}
 
 	blocks := make([]*wire.MsgBlock, num)
+	blockHashes := make([]*chainhash.Hash, 0, num)
 
-	blockHashes, err := net.Miner.Client.Generate(num)
-	if err != nil {
-		t.Fatalf("unable to generate blocks: %v", err)
+	for i := uint32(0); i < num; i++ {
+		generatedHashes, err := net.Miner.Client.Generate(1)
+		require.NoError(t.t, err, "generate blocks")
+		blockHashes = append(blockHashes, generatedHashes...)
+
+		time.Sleep(slowMineDelay)
 	}
 
 	for i, blockHash := range blockHashes {
 		block, err := net.Miner.Client.GetBlock(blockHash)
-		if err != nil {
-			t.Fatalf("unable to get block: %v", err)
-		}
+		require.NoError(t.t, err, "get blocks")
 
 		blocks[i] = block
 	}
@@ -161,8 +165,8 @@ func mineBlocks(t *harnessTest, net *lntest.NetworkHarness,
 // openChannelStream blocks until an OpenChannel request for a channel funding
 // by alice succeeds. If it does, a stream client is returned to receive events
 // about the opening channel.
-func openChannelStream(ctx context.Context, t *harnessTest,
-	net *lntest.NetworkHarness, alice, bob *lntest.HarnessNode,
+func openChannelStream(t *harnessTest, net *lntest.NetworkHarness,
+	alice, bob *lntest.HarnessNode,
 	p lntest.OpenChannelParams) lnrpc.Lightning_OpenChannelClient {
 
 	t.t.Helper()
@@ -173,12 +177,10 @@ func openChannelStream(ctx context.Context, t *harnessTest,
 	var chanOpenUpdate lnrpc.Lightning_OpenChannelClient
 	err := wait.NoError(func() error {
 		var err error
-		chanOpenUpdate, err = net.OpenChannel(ctx, alice, bob, p)
+		chanOpenUpdate, err = net.OpenChannel(alice, bob, p)
 		return err
 	}, defaultTimeout)
-	if err != nil {
-		t.Fatalf("unable to open channel: %v", err)
-	}
+	require.NoError(t.t, err, "unable to open channel")
 
 	return chanOpenUpdate
 }
@@ -188,13 +190,13 @@ func openChannelStream(ctx context.Context, t *harnessTest,
 // after the channel is considered open: the funding transaction should be
 // found within a block, and that Alice can report the status of the new
 // channel.
-func openChannelAndAssert(ctx context.Context, t *harnessTest,
-	net *lntest.NetworkHarness, alice, bob *lntest.HarnessNode,
+func openChannelAndAssert(t *harnessTest, net *lntest.NetworkHarness,
+	alice, bob *lntest.HarnessNode,
 	p lntest.OpenChannelParams) *lnrpc.ChannelPoint {
 
 	t.t.Helper()
 
-	chanOpenUpdate := openChannelStream(ctx, t, net, alice, bob, p)
+	chanOpenUpdate := openChannelStream(t, net, alice, bob, p)
 
 	// Mine 6 blocks, then wait for Alice's node to notify us that the
 	// channel has been opened. The funding transaction should be found
@@ -202,14 +204,12 @@ func openChannelAndAssert(ctx context.Context, t *harnessTest,
 	// case that the channel is public, it is announced to the network.
 	block := mineBlocks(t, net, 6, 1)[0]
 
-	fundingChanPoint, err := net.WaitForChannelOpen(ctx, chanOpenUpdate)
-	if err != nil {
-		t.Fatalf("error while waiting for channel open: %v", err)
-	}
+	fundingChanPoint, err := net.WaitForChannelOpen(chanOpenUpdate)
+	require.NoError(t.t, err, "error while waiting for channel open")
+
 	fundingTxID, err := lnrpc.GetChanPointFundingTxid(fundingChanPoint)
-	if err != nil {
-		t.Fatalf("unable to get txid: %v", err)
-	}
+	require.NoError(t.t, err, "unable to get txid")
+
 	assertTxInBlock(t, block, fundingTxID)
 
 	// The channel should be listed in the peer information returned by
@@ -218,12 +218,14 @@ func openChannelAndAssert(ctx context.Context, t *harnessTest,
 		Hash:  *fundingTxID,
 		Index: fundingChanPoint.OutputIndex,
 	}
-	if err := net.AssertChannelExists(ctx, alice, &chanPoint); err != nil {
-		t.Fatalf("unable to assert channel existence: %v", err)
-	}
-	if err := net.AssertChannelExists(ctx, bob, &chanPoint); err != nil {
-		t.Fatalf("unable to assert channel existence: %v", err)
-	}
+	require.NoError(
+		t.t, net.AssertChannelExists(alice, &chanPoint),
+		"unable to assert channel existence",
+	)
+	require.NoError(
+		t.t, net.AssertChannelExists(bob, &chanPoint),
+		"unable to assert channel existence",
+	)
 
 	return fundingChanPoint
 }
@@ -239,52 +241,65 @@ func openChannelAndAssert(ctx context.Context, t *harnessTest,
 // NOTE: This method assumes that the provided funding point is confirmed
 // on-chain AND that the edge exists in the node's channel graph. If the funding
 // transactions was reorged out at some point, use closeReorgedChannelAndAssert.
-func closeChannelAndAssert(ctx context.Context, t *harnessTest,
-	net *lntest.NetworkHarness, node *lntest.HarnessNode,
-	fundingChanPoint *lnrpc.ChannelPoint, force bool) *chainhash.Hash {
+func closeChannelAndAssert(t *harnessTest, net *lntest.NetworkHarness,
+	node *lntest.HarnessNode, fundingChanPoint *lnrpc.ChannelPoint,
+	force bool) *chainhash.Hash {
 
-	return closeChannelAndAssertType(ctx, t, net, node, fundingChanPoint, false, force)
+	return closeChannelAndAssertType(
+		t, net, node, fundingChanPoint, false, force,
+	)
 }
 
-func closeChannelAndAssertType(ctx context.Context, t *harnessTest,
-	net *lntest.NetworkHarness, node *lntest.HarnessNode,
-	fundingChanPoint *lnrpc.ChannelPoint, anchors, force bool) *chainhash.Hash {
+func closeChannelAndAssertType(t *harnessTest, net *lntest.NetworkHarness,
+	node *lntest.HarnessNode, fundingChanPoint *lnrpc.ChannelPoint,
+	anchors, force bool) *chainhash.Hash {
+
+	ctxb := context.Background()
+	ctxt, cancel := context.WithTimeout(ctxb, channelCloseTimeout)
+	defer cancel()
 
 	// Fetch the current channel policy. If the channel is currently
 	// enabled, we will register for graph notifications before closing to
 	// assert that the node sends out a disabling update as a result of the
 	// channel being closed.
-	curPolicy := getChannelPolicies(t, node, node.PubKeyStr, fundingChanPoint)[0]
+	curPolicy := getChannelPolicies(
+		t, node, node.PubKeyStr, fundingChanPoint,
+	)[0]
 	expectDisable := !curPolicy.Disabled
 
-	// If the current channel policy is enabled, begin subscribing the graph
-	// updates before initiating the channel closure.
-	var graphSub *graphSubscription
-	if expectDisable {
-		sub := subscribeGraphNotifications(t, ctx, node)
-		graphSub = &sub
-		defer close(graphSub.quit)
-	}
-
-	closeUpdates, _, err := net.CloseChannel(ctx, node, fundingChanPoint, force)
-	if err != nil {
-		t.Fatalf("unable to close channel: %v", err)
-	}
+	closeUpdates, _, err := net.CloseChannel(node, fundingChanPoint, force)
+	require.NoError(t.t, err, "unable to close channel")
 
 	// If the channel policy was enabled prior to the closure, wait until we
 	// received the disabled update.
 	if expectDisable {
 		curPolicy.Disabled = true
-		waitForChannelUpdate(
-			t, *graphSub,
-			[]expectedChanUpdate{
-				{node.PubKeyStr, curPolicy, fundingChanPoint},
-			},
+		assertChannelPolicyUpdate(
+			t.t, node, node.PubKeyStr,
+			curPolicy, fundingChanPoint, false,
 		)
 	}
 
 	return assertChannelClosed(
-		ctx, t, net, node, fundingChanPoint, anchors, closeUpdates,
+		ctxt, t, net, node, fundingChanPoint, anchors, closeUpdates,
+	)
+}
+
+// assertChannelPolicyUpdate checks that the required policy update has
+// happened on the given node.
+func assertChannelPolicyUpdate(t *testing.T, node *lntest.HarnessNode,
+	advertisingNode string, policy *lnrpc.RoutingPolicy,
+	chanPoint *lnrpc.ChannelPoint, includeUnannounced bool) {
+
+	ctxb := context.Background()
+	ctxt, cancel := context.WithTimeout(ctxb, lntest.DefaultTimeout)
+	defer cancel()
+
+	require.NoError(
+		t, node.WaitForChannelPolicyUpdate(
+			ctxt, advertisingNode, policy,
+			chanPoint, includeUnannounced,
+		), "error while waiting for channel update",
 	)
 }
 
@@ -296,20 +311,15 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 	closeUpdates lnrpc.Lightning_CloseChannelClient) *chainhash.Hash {
 
 	txid, err := lnrpc.GetChanPointFundingTxid(fundingChanPoint)
-	if err != nil {
-		t.Fatalf("unable to get txid: %v", err)
-	}
+	require.NoError(t.t, err, "unable to get txid")
 	chanPointStr := fmt.Sprintf("%v:%v", txid, fundingChanPoint.OutputIndex)
 
 	// If the channel appears in list channels, ensure that its state
 	// contains ChanStatusCoopBroadcasted.
-	ctxt, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
 	listChansRequest := &lnrpc.ListChannelsRequest{}
-	listChansResp, err := node.ListChannels(ctxt, listChansRequest)
-	if err != nil {
-		t.Fatalf("unable to query for list channels: %v", err)
-	}
+	listChansResp, err := node.ListChannels(ctx, listChansRequest)
+	require.NoError(t.t, err, "unable to query for list channels")
+
 	for _, channel := range listChansResp.Channels {
 		// Skip other channels.
 		if channel.ChannelPoint != chanPointStr {
@@ -317,22 +327,19 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 		}
 
 		// Assert that the channel is in coop broadcasted.
-		if !strings.Contains(channel.ChanStatusFlags,
-			channeldb.ChanStatusCoopBroadcasted.String()) {
-			t.Fatalf("channel not coop broadcasted, "+
-				"got: %v", channel.ChanStatusFlags)
-		}
+		require.Contains(
+			t.t, channel.ChanStatusFlags,
+			channeldb.ChanStatusCoopBroadcasted.String(),
+			"channel not coop broadcasted",
+		)
 	}
 
 	// At this point, the channel should now be marked as being in the
 	// state of "waiting close".
-	ctxt, cancel = context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
 	pendingChansRequest := &lnrpc.PendingChannelsRequest{}
-	pendingChanResp, err := node.PendingChannels(ctxt, pendingChansRequest)
-	if err != nil {
-		t.Fatalf("unable to query for pending channels: %v", err)
-	}
+	pendingChanResp, err := node.PendingChannels(ctx, pendingChansRequest)
+	require.NoError(t.t, err, "unable to query for pending channels")
+
 	var found bool
 	for _, pendingClose := range pendingChanResp.WaitingCloseChannels {
 		if pendingClose.Channel.ChannelPoint == chanPointStr {
@@ -340,9 +347,7 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 			break
 		}
 	}
-	if !found {
-		t.Fatalf("channel not marked as waiting close")
-	}
+	require.True(t.t, found, "channel not marked as waiting close")
 
 	// We'll now, generate a single block, wait for the final close status
 	// update, then ensure that the closing transaction was included in the
@@ -354,10 +359,8 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 
 	block := mineBlocks(t, net, 1, expectedTxes)[0]
 
-	closingTxid, err := net.WaitForChannelClose(ctx, closeUpdates)
-	if err != nil {
-		t.Fatalf("error while waiting for channel close: %v", err)
-	}
+	closingTxid, err := net.WaitForChannelClose(closeUpdates)
+	require.NoError(t.t, err, "error while waiting for channel close")
 
 	assertTxInBlock(t, block, closingTxid)
 
@@ -380,10 +383,10 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 		}
 
 		return true
-	}, time.Second*15)
-	if err != nil {
-		t.Fatalf("closing transaction not marked as fully closed")
-	}
+	}, defaultTimeout)
+	require.NoError(
+		t.t, err, "closing transaction not marked as fully closed",
+	)
 
 	return closingTxid
 }
@@ -392,51 +395,30 @@ func assertChannelClosed(ctx context.Context, t *harnessTest,
 // occur.
 func shutdownAndAssert(net *lntest.NetworkHarness, t *harnessTest,
 	node *lntest.HarnessNode) {
-	if err := net.ShutdownNode(node); err != nil {
-		t.Fatalf("unable to shutdown %v: %v", node.Name(), err)
-	}
+
+	// The process may not be in a state to always shutdown immediately, so
+	// we'll retry up to a hard limit to ensure we eventually shutdown.
+	err := wait.NoError(func() error {
+		return net.ShutdownNode(node)
+	}, defaultTimeout)
+	require.NoErrorf(t.t, err, "unable to shutdown %v", node.Name())
 }
 
-// commitType is a simple enum used to run though the basic funding flow with
-// different commitment formats.
-type commitType byte
-
-const (
-	// commitTypeLegacy is the old school commitment type.
-	commitTypeLegacy commitType = iota
-
-	// commiTypeTweakless is the commitment type where the remote key is
-	// static (non-tweaked).
-	commitTypeTweakless
-
-	// commitTypeAnchors is the kind of commitment that has extra outputs
-	// used for anchoring down to commitment using CPFP.
-	commitTypeAnchors
-)
-
-// String returns that name of the commitment type.
-func (c commitType) String() string {
-	switch c {
-	case commitTypeLegacy:
-		return "legacy"
-	case commitTypeTweakless:
-		return "tweakless"
-	case commitTypeAnchors:
-		return "anchors"
-	default:
-		return "invalid"
-	}
-}
-
-// Args returns the command line flag to supply to enable this commitment type.
-func (c commitType) Args() []string {
-	switch c {
-	case commitTypeLegacy:
-		return []string{"--protocol.committweak"}
-	case commitTypeTweakless:
+// nodeArgsForCommitType returns the command line flag to supply to enable this
+// commitment type.
+func nodeArgsForCommitType(commitType lnrpc.CommitmentType) []string {
+	switch commitType {
+	case lnrpc.CommitmentType_LEGACY:
+		return []string{"--protocol.legacy.committweak"}
+	case lnrpc.CommitmentType_STATIC_REMOTE_KEY:
 		return []string{}
-	case commitTypeAnchors:
+	case lnrpc.CommitmentType_ANCHORS:
 		return []string{"--protocol.anchors"}
+	case lnrpc.CommitmentType_SCRIPT_ENFORCED_LEASE:
+		return []string{
+			"--protocol.anchors",
+			"--protocol.script-enforced-lease",
+		}
 	}
 
 	return nil
@@ -445,7 +427,7 @@ func (c commitType) Args() []string {
 // calcStaticFee calculates appropriate fees for commitment transactions.  This
 // function provides a simple way to allow test balance assertions to take fee
 // calculations into account.
-func (c commitType) calcStaticFee(numHTLCs int) btcutil.Amount {
+func calcStaticFee(c lnrpc.CommitmentType, numHTLCs int) btcutil.Amount {
 	const htlcWeight = input.HTLCWeight
 	var (
 		feePerKw     = chainfee.SatPerKVByte(50000).FeePerKWeight()
@@ -457,7 +439,7 @@ func (c commitType) calcStaticFee(numHTLCs int) btcutil.Amount {
 	// the value of the two anchors to the resulting fee the initiator
 	// pays. In addition the fee rate is capped at 10 sat/vbyte for anchor
 	// channels.
-	if c == commitTypeAnchors {
+	if commitTypeHasAnchors(c) {
 		feePerKw = chainfee.SatPerKVByte(
 			lnwallet.DefaultAnchorsCommitMaxFeeRateSatPerVByte * 1000,
 		).FeePerKWeight()
@@ -469,10 +451,21 @@ func (c commitType) calcStaticFee(numHTLCs int) btcutil.Amount {
 		anchors
 }
 
+// commitTypeHasAnchors returns whether commitType uses anchor outputs.
+func commitTypeHasAnchors(commitType lnrpc.CommitmentType) bool {
+	switch commitType {
+	case lnrpc.CommitmentType_ANCHORS,
+		lnrpc.CommitmentType_SCRIPT_ENFORCED_LEASE:
+		return true
+	default:
+		return false
+	}
+}
+
 // channelCommitType retrieves the active channel commitment type for the given
 // chan point.
 func channelCommitType(node *lntest.HarnessNode,
-	chanPoint *lnrpc.ChannelPoint) (commitType, error) {
+	chanPoint *lnrpc.ChannelPoint) (lnrpc.CommitmentType, error) {
 
 	ctxb := context.Background()
 	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
@@ -486,21 +479,7 @@ func channelCommitType(node *lntest.HarnessNode,
 
 	for _, c := range channels.Channels {
 		if c.ChannelPoint == txStr(chanPoint) {
-			switch c.CommitmentType {
-
-			// If the anchor output size is non-zero, we are
-			// dealing with the anchor type.
-			case lnrpc.CommitmentType_ANCHORS:
-				return commitTypeAnchors, nil
-
-			// StaticRemoteKey means it is tweakless,
-			case lnrpc.CommitmentType_STATIC_REMOTE_KEY:
-				return commitTypeTweakless, nil
-
-			// Otherwise legacy.
-			default:
-				return commitTypeLegacy, nil
-			}
+			return c.CommitmentType, nil
 		}
 	}
 
@@ -518,90 +497,6 @@ func txStr(chanPoint *lnrpc.ChannelPoint) string {
 		Index: chanPoint.OutputIndex,
 	}
 	return cp.String()
-}
-
-// expectedChanUpdate houses params we expect a ChannelUpdate to advertise.
-type expectedChanUpdate struct {
-	advertisingNode string
-	expectedPolicy  *lnrpc.RoutingPolicy
-	chanPoint       *lnrpc.ChannelPoint
-}
-
-// waitForChannelUpdate waits for a node to receive the expected channel
-// updates.
-func waitForChannelUpdate(t *harnessTest, subscription graphSubscription,
-	expUpdates []expectedChanUpdate) {
-
-	// Create an array indicating which expected channel updates we have
-	// received.
-	found := make([]bool, len(expUpdates))
-out:
-	for {
-		select {
-		case graphUpdate := <-subscription.updateChan:
-			for _, update := range graphUpdate.ChannelUpdates {
-				if len(expUpdates) == 0 {
-					t.Fatalf("received unexpected channel "+
-						"update from %v for channel %v",
-						update.AdvertisingNode,
-						update.ChanId)
-				}
-
-				// For each expected update, check if it matches
-				// the update we just received.
-				for i, exp := range expUpdates {
-					fundingTxStr := txStr(update.ChanPoint)
-					if fundingTxStr != txStr(exp.chanPoint) {
-						continue
-					}
-
-					if update.AdvertisingNode !=
-						exp.advertisingNode {
-						continue
-					}
-
-					err := checkChannelPolicy(
-						update.RoutingPolicy,
-						exp.expectedPolicy,
-					)
-					if err != nil {
-						continue
-					}
-
-					// We got a policy update that matched
-					// the values and channel point of what
-					// we expected, mark it as found.
-					found[i] = true
-
-					// If we have no more channel updates
-					// we are waiting for, break out of the
-					// loop.
-					rem := 0
-					for _, f := range found {
-						if !f {
-							rem++
-						}
-					}
-
-					if rem == 0 {
-						break out
-					}
-
-					// Since we found a match among the
-					// expected updates, break out of the
-					// inner loop.
-					break
-				}
-			}
-		case err := <-subscription.errChan:
-			t.Fatalf("unable to recv graph update: %v", err)
-		case <-time.After(defaultTimeout):
-			if len(expUpdates) == 0 {
-				return
-			}
-			t.Fatalf("did not receive channel update")
-		}
-	}
 }
 
 // getChannelPolicies queries the channel graph and retrieves the current edge
@@ -650,37 +545,6 @@ func getChannelPolicies(t *harnessTest, node *lntest.HarnessNode,
 	return policies
 }
 
-// checkChannelPolicy checks that the policy matches the expected one.
-func checkChannelPolicy(policy, expectedPolicy *lnrpc.RoutingPolicy) error {
-	if policy.FeeBaseMsat != expectedPolicy.FeeBaseMsat {
-		return fmt.Errorf("expected base fee %v, got %v",
-			expectedPolicy.FeeBaseMsat, policy.FeeBaseMsat)
-	}
-	if policy.FeeRateMilliMsat != expectedPolicy.FeeRateMilliMsat {
-		return fmt.Errorf("expected fee rate %v, got %v",
-			expectedPolicy.FeeRateMilliMsat,
-			policy.FeeRateMilliMsat)
-	}
-	if policy.TimeLockDelta != expectedPolicy.TimeLockDelta {
-		return fmt.Errorf("expected time lock delta %v, got %v",
-			expectedPolicy.TimeLockDelta,
-			policy.TimeLockDelta)
-	}
-	if policy.MinHtlc != expectedPolicy.MinHtlc {
-		return fmt.Errorf("expected min htlc %v, got %v",
-			expectedPolicy.MinHtlc, policy.MinHtlc)
-	}
-	if policy.MaxHtlcMsat != expectedPolicy.MaxHtlcMsat {
-		return fmt.Errorf("expected max htlc %v, got %v",
-			expectedPolicy.MaxHtlcMsat, policy.MaxHtlcMsat)
-	}
-	if policy.Disabled != expectedPolicy.Disabled {
-		return errors.New("edge should be disabled but isn't")
-	}
-
-	return nil
-}
-
 // waitForNTxsInMempool polls until finding the desired number of transactions
 // in the provided miner's mempool. An error is returned if this number is not
 // met after the given timeout.
@@ -708,75 +572,6 @@ func waitForNTxsInMempool(miner *rpcclient.Client, n int,
 				return mempool, nil
 			}
 		}
-	}
-}
-
-// graphSubscription houses the proxied update and error chans for a node's
-// graph subscriptions.
-type graphSubscription struct {
-	updateChan chan *lnrpc.GraphTopologyUpdate
-	errChan    chan error
-	quit       chan struct{}
-}
-
-// subscribeGraphNotifications subscribes to channel graph updates and launches
-// a goroutine that forwards these to the returned channel.
-//nolint:revive // context should be second argument
-func subscribeGraphNotifications(t *harnessTest, ctxb context.Context,
-	node *lntest.HarnessNode) graphSubscription {
-
-	// We'll first start by establishing a notification client which will
-	// send us notifications upon detected changes in the channel graph.
-	req := &lnrpc.GraphTopologySubscription{}
-	ctx, cancelFunc := context.WithCancel(ctxb)
-	topologyClient, err := node.SubscribeChannelGraph(ctx, req)
-	if err != nil {
-		t.Fatalf("unable to create topology client: %v", err)
-	}
-
-	// We'll launch a goroutine that will be responsible for proxying all
-	// notifications recv'd from the client into the channel below.
-	errChan := make(chan error, 1)
-	quit := make(chan struct{})
-	graphUpdates := make(chan *lnrpc.GraphTopologyUpdate, 20)
-	go func() {
-		for {
-			defer cancelFunc()
-
-			select {
-			case <-quit:
-				return
-			default:
-				graphUpdate, err := topologyClient.Recv()
-				select {
-				case <-quit:
-					return
-				default:
-				}
-
-				if err == io.EOF {
-					return
-				} else if err != nil {
-					select {
-					case errChan <- err:
-					case <-quit:
-					}
-					return
-				}
-
-				select {
-				case graphUpdates <- graphUpdate:
-				case <-quit:
-					return
-				}
-			}
-		}
-	}()
-
-	return graphSubscription{
-		updateChan: graphUpdates,
-		errChan:    errChan,
-		quit:       quit,
 	}
 }
 
@@ -925,39 +720,42 @@ func findChanFundingTx(ctx context.Context, t *harnessTest,
 }
 
 func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
-	alice, bob *lntest.HarnessNode, carolHodl bool, c commitType) (
+	alice, bob *lntest.HarnessNode, carolHodl bool, c lnrpc.CommitmentType) (
 	*lnrpc.ChannelPoint, *lnrpc.ChannelPoint, *lntest.HarnessNode) {
 
 	ctxb := context.Background()
 
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	net.EnsureConnected(ctxt, t.t, alice, bob)
+	net.EnsureConnected(t.t, alice, bob)
 
 	// Make sure there are enough utxos for anchoring.
 	for i := 0; i < 2; i++ {
-		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, alice)
-
-		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, bob)
+		net.SendCoins(t.t, btcutil.SatoshiPerBitcoin, alice)
+		net.SendCoins(t.t, btcutil.SatoshiPerBitcoin, bob)
 	}
 
 	// We'll start the test by creating a channel between Alice and Bob,
-	// which will act as the first leg for our multi-hop HTLC.
+	// which will act as the first leg for out multi-hop HTLC.
 	const chanAmt = 1000000
-	ctxt, cancel = context.WithTimeout(ctxb, channelOpenTimeout)
-	defer cancel()
+	var aliceFundingShim *lnrpc.FundingShim
+	var thawHeight uint32
+	if c == lnrpc.CommitmentType_SCRIPT_ENFORCED_LEASE {
+		_, minerHeight, err := net.Miner.Client.GetBestBlock()
+		require.NoError(t.t, err)
+		thawHeight = uint32(minerHeight + 144)
+		aliceFundingShim, _, _ = deriveFundingShim(
+			net, t, alice, bob, chanAmt, thawHeight, true,
+		)
+	}
 	aliceChanPoint := openChannelAndAssert(
-		ctxt, t, net, alice, bob,
+		t, net, alice, bob,
 		lntest.OpenChannelParams{
-			Amt: chanAmt,
+			Amt:            chanAmt,
+			CommitmentType: c,
+			FundingShim:    aliceFundingShim,
 		},
 	)
 
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	err := alice.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
 	if err != nil {
@@ -974,56 +772,164 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 	// Next, we'll create a new node "carol" and have Bob connect to her. If
 	// the carolHodl flag is set, we'll make carol always hold onto the
 	// HTLC, this way it'll force Bob to go to chain to resolve the HTLC.
-	carolFlags := c.Args()
+	carolFlags := nodeArgsForCommitType(c)
 	if carolHodl {
 		carolFlags = append(carolFlags, "--hodl.exit-settle")
 	}
 	carol := net.NewNode(t.t, "Carol", carolFlags)
-	if err != nil {
-		t.Fatalf("unable to create new node: %v", err)
-	}
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	net.ConnectNodes(ctxt, t.t, bob, carol)
+
+	net.ConnectNodes(t.t, bob, carol)
 
 	// Make sure Carol has enough utxos for anchoring. Because the anchor by
 	// itself often doesn't meet the dust limit, a utxo from the wallet
 	// needs to be attached as an additional input. This can still lead to a
 	// positively-yielding transaction.
 	for i := 0; i < 2; i++ {
-		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		net.SendCoins(ctxt, t.t, btcutil.SatoshiPerBitcoin, carol)
+		net.SendCoins(t.t, btcutil.SatoshiPerBitcoin, carol)
 	}
 
 	// We'll then create a channel from Bob to Carol. After this channel is
 	// open, our topology looks like:  A -> B -> C.
-	ctxt, cancel = context.WithTimeout(ctxb, channelOpenTimeout)
-	defer cancel()
+	var bobFundingShim *lnrpc.FundingShim
+	if c == lnrpc.CommitmentType_SCRIPT_ENFORCED_LEASE {
+		bobFundingShim, _, _ = deriveFundingShim(
+			net, t, bob, carol, chanAmt, thawHeight, true,
+		)
+	}
 	bobChanPoint := openChannelAndAssert(
-		ctxt, t, net, bob, carol,
+		t, net, bob, carol,
 		lntest.OpenChannelParams{
-			Amt: chanAmt,
+			Amt:            chanAmt,
+			CommitmentType: c,
+			FundingShim:    bobFundingShim,
 		},
 	)
 	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	err = bob.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 	if err != nil {
-		t.Fatalf("bob didn't report channel: %v", err)
+		t.Fatalf("alice didn't report channel: %v", err)
 	}
 	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	err = carol.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 	if err != nil {
-		t.Fatalf("carol didn't report channel: %v", err)
+		t.Fatalf("bob didn't report channel: %v", err)
 	}
 	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	err = alice.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
 	if err != nil {
-		t.Fatalf("alice didn't report channel: %v", err)
+		t.Fatalf("bob didn't report channel: %v", err)
 	}
 
 	return aliceChanPoint, bobChanPoint, carol
+}
+
+// deriveFundingShim creates a channel funding shim by deriving the necessary
+// keys on both sides.
+func deriveFundingShim(net *lntest.NetworkHarness, t *harnessTest,
+	carol, dave *lntest.HarnessNode, chanSize btcutil.Amount,
+	thawHeight uint32, publish bool) (*lnrpc.FundingShim,
+	*lnrpc.ChannelPoint, *chainhash.Hash) {
+
+	ctxb := context.Background()
+	keyLoc := &walletrpc.KeyReq{KeyFamily: 9999}
+	carolFundingKey, err := carol.WalletKitClient.DeriveNextKey(ctxb, keyLoc)
+	require.NoError(t.t, err)
+	daveFundingKey, err := dave.WalletKitClient.DeriveNextKey(ctxb, keyLoc)
+	require.NoError(t.t, err)
+
+	// Now that we have the multi-sig keys for each party, we can manually
+	// construct the funding transaction. We'll instruct the backend to
+	// immediately create and broadcast a transaction paying out an exact
+	// amount. Normally this would reside in the mempool, but we just
+	// confirm it now for simplicity.
+	_, fundingOutput, err := input.GenFundingPkScript(
+		carolFundingKey.RawKeyBytes, daveFundingKey.RawKeyBytes,
+		int64(chanSize),
+	)
+	require.NoError(t.t, err)
+
+	var txid *chainhash.Hash
+	targetOutputs := []*wire.TxOut{fundingOutput}
+	if publish {
+		txid, err = net.Miner.SendOutputsWithoutChange(
+			targetOutputs, 5,
+		)
+		require.NoError(t.t, err)
+	} else {
+		tx, err := net.Miner.CreateTransaction(targetOutputs, 5, false)
+		require.NoError(t.t, err)
+
+		txHash := tx.TxHash()
+		txid = &txHash
+	}
+
+	// At this point, we can being our external channel funding workflow.
+	// We'll start by generating a pending channel ID externally that will
+	// be used to track this new funding type.
+	var pendingChanID [32]byte
+	_, err = rand.Read(pendingChanID[:])
+	require.NoError(t.t, err)
+
+	// Now that we have the pending channel ID, Dave (our responder) will
+	// register the intent to receive a new channel funding workflow using
+	// the pending channel ID.
+	chanPoint := &lnrpc.ChannelPoint{
+		FundingTxid: &lnrpc.ChannelPoint_FundingTxidBytes{
+			FundingTxidBytes: txid[:],
+		},
+	}
+	chanPointShim := &lnrpc.ChanPointShim{
+		Amt:       int64(chanSize),
+		ChanPoint: chanPoint,
+		LocalKey: &lnrpc.KeyDescriptor{
+			RawKeyBytes: daveFundingKey.RawKeyBytes,
+			KeyLoc: &lnrpc.KeyLocator{
+				KeyFamily: daveFundingKey.KeyLoc.KeyFamily,
+				KeyIndex:  daveFundingKey.KeyLoc.KeyIndex,
+			},
+		},
+		RemoteKey:     carolFundingKey.RawKeyBytes,
+		PendingChanId: pendingChanID[:],
+		ThawHeight:    thawHeight,
+	}
+	fundingShim := &lnrpc.FundingShim{
+		Shim: &lnrpc.FundingShim_ChanPointShim{
+			ChanPointShim: chanPointShim,
+		},
+	}
+	_, err = dave.FundingStateStep(ctxb, &lnrpc.FundingTransitionMsg{
+		Trigger: &lnrpc.FundingTransitionMsg_ShimRegister{
+			ShimRegister: fundingShim,
+		},
+	})
+	require.NoError(t.t, err)
+
+	// If we attempt to register the same shim (has the same pending chan
+	// ID), then we should get an error.
+	_, err = dave.FundingStateStep(ctxb, &lnrpc.FundingTransitionMsg{
+		Trigger: &lnrpc.FundingTransitionMsg_ShimRegister{
+			ShimRegister: fundingShim,
+		},
+	})
+	if err == nil {
+		t.Fatalf("duplicate pending channel ID funding shim " +
+			"registration should trigger an error")
+	}
+
+	// We'll take the chan point shim we just registered for Dave (the
+	// responder), and swap the local/remote keys before we feed it in as
+	// Carol's funding shim as the initiator.
+	fundingShim.GetChanPointShim().LocalKey = &lnrpc.KeyDescriptor{
+		RawKeyBytes: carolFundingKey.RawKeyBytes,
+		KeyLoc: &lnrpc.KeyLocator{
+			KeyFamily: carolFundingKey.KeyLoc.KeyFamily,
+			KeyIndex:  carolFundingKey.KeyLoc.KeyIndex,
+		},
+	}
+	fundingShim.GetChanPointShim().RemoteKey = daveFundingKey.RawKeyBytes
+
+	return fundingShim, chanPoint, txid
 }

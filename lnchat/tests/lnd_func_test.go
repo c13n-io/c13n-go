@@ -41,11 +41,9 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Open a channel with 100k satoshis between Alice and Bob with Alice being
 		// the sole funder of the channel.
-		ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
-		defer cancel()
 		chanAmt := btcutil.Amount(1000000)
 		chanPoint := openChannelAndAssert(
-			ctxt, t, net, net.Alice, net.Bob,
+			t, net, net.Alice, net.Bob,
 			lntest.OpenChannelParams{
 				Amt: chanAmt,
 			},
@@ -53,7 +51,7 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Wait for Alice and Bob to recognize and advertise the new channel
 		// generated above.
-		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 		defer cancel()
 		err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 		if err != nil {
@@ -83,9 +81,7 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 
 		// Close the channel.
-		ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-		defer cancel()
-		closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
+		closeChannelAndAssert(t, net, net.Alice, chanPoint, false)
 	}
 }
 
@@ -106,14 +102,10 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	}
 
-	ctxb := context.Background()
-
 	// We will create a new node carol, and have bob connect to her.
 	carol := net.NewNode(t.t, "Carol", nil)
 
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	net.ConnectNodes(ctxt, t.t, net.Bob, carol)
+	net.ConnectNodes(t.t, net.Bob, carol)
 
 	for _, subTest := range multiHopSubTests {
 		// Needed in case of parallel testing.
@@ -123,11 +115,9 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Open a channel with 100k satoshis between Alice and Bob with Alice being
 		// the sole funder of the channel.
-		ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
-		defer cancel()
 		chanAmt := btcutil.Amount(1000000)
 		chanPoint := openChannelAndAssert(
-			ctxt, t, net, net.Alice, net.Bob,
+			t, net, net.Alice, net.Bob,
 			lntest.OpenChannelParams{
 				Amt: chanAmt,
 			},
@@ -135,7 +125,7 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Wait for Alice and Bob to recognize and advertise the new channel
 		// generated above.
-		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 		defer cancel()
 		err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
 		if err != nil {
@@ -150,10 +140,8 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Open a channel from Bob to Carol.
 		// After this, the topology will be: A -> B -> C
-		ctxt, cancel = context.WithTimeout(ctxb, channelOpenTimeout)
-		defer cancel()
 		bobChanPoint := openChannelAndAssert(
-			ctxt, t, net, net.Bob, carol,
+			t, net, net.Bob, carol,
 			lntest.OpenChannelParams{
 				Amt: chanAmt,
 			},
@@ -197,12 +185,8 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 		}
 
 		// Close the channel.
-		ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-		defer cancel()
-		closeChannelAndAssert(ctxt, t, net, net.Alice, chanPoint, false)
-		ctxt, cancel = context.WithTimeout(ctxb, channelCloseTimeout)
-		defer cancel()
-		closeChannelAndAssert(ctxt, t, net, net.Bob, bobChanPoint, false)
+		closeChannelAndAssert(t, net, net.Alice, chanPoint, false)
+		closeChannelAndAssert(t, net, net.Bob, bobChanPoint, false)
 	}
 }
 
