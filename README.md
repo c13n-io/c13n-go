@@ -14,7 +14,7 @@ These instructions will help you build the project and start the gRPC server.
 
 ### Prerequisites
 
-#### Go 1.14
+#### Go 1.17
 
 Go is an open source programming language. You can find Go for all operating systems [here](https://golang.org/dl/).
 
@@ -96,14 +96,14 @@ Alternatively, you can find installation instructions [here](https://grpc.io/doc
 
 Go can automatically install any required dependencies of the target build, however development dependencies have to be installed in a more manual manner.
 
-You can install these dependencies using the `go get` command as outlined [below](https://dev.to/maelvls/why-is-go111module-everywhere-and-everything-about-go-modules-24k), or run `make dev-deps`.
+You can install these dependencies using the `go install` command as outlined [below](https://maelvls.dev/go111module-everywhere/), or run `make dev-deps`.
 ```bash
-(cd && GO111MODULE=on go get github.com/golang/protobuf/protoc-gen-go@v1.4.3)
-(cd && GO111MODULE=on go get github.com/mwitkow/go-proto-validators/...@v0.3.0)
-(cd && GO111MODULE=on go get github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2)
-(cd && GO111MODULE=on go get github.com/vektra/mockery/...@v1.0.0)
-(cd && GO111MODULE=on go get golang.org/x/tools/cmd/goimports)
-(cd && GO111MODULE=on go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0)
+go install github.com/golang/protobuf/protoc-gen-go@v1.4.3
+go install github.com/mwitkow/go-proto-validators/...@v0.3.0
+go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2
+go install github.com/vektra/mockery/...@v1.0.0
+go install golang.org/x/tools/cmd/goimports@latest
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0
 ```
 Please track any development dependencies in the above list.
 
