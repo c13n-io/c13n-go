@@ -19,7 +19,7 @@ import (
 // Exactly one of InvoiceSettleIndex or PaymentIndex must be populated.
 type RawMessage struct {
 	// The message id (store index).
-	ID uint64 `badgerholdKey:"key"`
+	ID uint64 `badgerhold:"key"`
 	// The id of the discussion the message belongs to.
 	DiscussionID uint64 `badgerholdIndex:"DiscIdx"`
 	// The raw message payload.

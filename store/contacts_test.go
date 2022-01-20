@@ -73,7 +73,7 @@ func TestAddContactIDs(t *testing.T) {
 		inserted, err := db.AddContact(&contact)
 		assert.NoError(t, err)
 		assert.EqualValues(t, &contact, inserted)
-		assert.EqualValues(t, inserted.ID, i)
+		assert.EqualValues(t, i, inserted.ID)
 		assert.EqualValues(t, contact.ID, inserted.ID)
 	}
 }

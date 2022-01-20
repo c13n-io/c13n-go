@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v3"
 
 	"github.com/c13n-io/c13n-go/model"
 )

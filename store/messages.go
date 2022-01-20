@@ -3,8 +3,8 @@ package store
 import (
 	"fmt"
 
-	"github.com/dgraph-io/badger"
-	"github.com/timshannon/badgerhold"
+	"github.com/dgraph-io/badger/v3"
+	"github.com/timshannon/badgerhold/v4"
 
 	"github.com/c13n-io/c13n-go/model"
 )
@@ -62,7 +62,7 @@ func (db *bhDatabase) GetMessages(discussionUID uint64,
 		case pageOpts.Reverse && pageOpts.LastID > 0:
 			query = query.And(badgerhold.Key).Le(pageOpts.LastID).
 				SortBy("Timestamp").Reverse()
-		case pageOpts.LastID > 0:
+		default:
 			query = query.And(badgerhold.Key).Ge(pageOpts.LastID)
 		}
 		query = query.Limit(int(pageOpts.PageSize))

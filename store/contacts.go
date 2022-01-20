@@ -3,8 +3,8 @@ package store
 import (
 	"fmt"
 
-	"github.com/dgraph-io/badger"
-	"github.com/timshannon/badgerhold"
+	"github.com/dgraph-io/badger/v3"
+	"github.com/timshannon/badgerhold/v4"
 
 	"github.com/c13n-io/c13n-go/model"
 )
