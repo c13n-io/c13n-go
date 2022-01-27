@@ -9,7 +9,7 @@ import (
 // the semantic versioning 2.0.0 specification (http://semver.org).
 const (
 	appMajor = 0
-	appMinor = 1
+	appMinor = 2
 	appPatch = 0
 
 	// appPreRelease must contain only characters from the
