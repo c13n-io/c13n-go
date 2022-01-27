@@ -1,4 +1,4 @@
-name: Generate RTD documentation
+name: Release RTD documentation
 
 on:
   push:

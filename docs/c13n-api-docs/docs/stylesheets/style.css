@@ -1,0 +1,28 @@
+.wy-side-nav-search {
+    background-color: #757277;
+}
+
+.wy-nav-top {
+    background-color: #757277;
+}
+
+.wy-nav-top img {
+    margin-right: 0px;
+    background-color: #757277;
+}
+
+.logo {
+    width: 25% !important;
+}
+
+.wy-nav-content {
+    max-width: 100%
+}
+
+.wy-table-responsive {
+    overflow: visible !important;
+}
+
+.wy-table-responsive table td {
+    white-space: normal !important;
+}
