@@ -37,7 +37,7 @@ C13N_PACKAGES := $(BACKEND_PACKAGES) $(LNCHAT_PKG) $(LNCONNECT_PKG)
 CERT_DIR = cert
 
 # Documentation
-RPC_DOCS_FILE = rpc.md
+RPC_DOCS_FILE = index.md
 
 ############
 # Testing #
