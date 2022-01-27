@@ -1,12 +1,15 @@
 site_name: c13n API Documentation
+site_favicon: 'https://c13n.io/c13n-avatar.png'
 
-
-#theme: null
-#theme_dir: './mkdocs-material-master'
-
-theme: 
+theme:
   name: readthedocs
   navigation-depth: 3
+  custom_dir: theme_overrides
+  logo: 'https://c13n.io/c13n-avatar.png'
 
 extra_css:
 - stylesheets/style.css
+
+nav:
+  - RPC: index.md
+  - Project documentation: /
