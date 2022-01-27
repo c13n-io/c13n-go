@@ -27,7 +27,6 @@ jobs:
           options: -v ${{ github.workspace }}:/c13n
           run: |
             echo "Running Script"
-            mkdir /c13n/docs/c13n-api-docs/docs
             /build_rtd.sh
           
       - name: Push to rtd repository
