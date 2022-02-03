@@ -134,6 +134,12 @@ Documentation will then be located at `docs/index.html`.
 
 ### Suggestions
 
+#### Arc
+
+Arc is a social wallet.
+A progressive web app that natively combines messages with micropayments based on Lightning Network and <a href="https://github.com/c13n-io/c13n-go/">c13n-go</a>.
+It is our reference client implementation for c13n-go. If you have a c13n node up and running, you can immediately start using Arc here: https://c13n-io.github.io/arc/
+
 #### BloomRPC
 
 BloomRPC is an application that allows you to query gRPC services. You can download it [here](https://github.com/uw-labs/bloomrpc).
