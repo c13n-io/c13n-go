@@ -4,6 +4,12 @@ TARGET := c13n
 
 MODULE_NAME = github.com/c13n-io/c13n-go
 
+
+BUILD_SYSTEM = darwin-amd64 \
+darwin-arm64 \
+dragonfly-amd64 \
+freebsd-386
+
 SERVICE_DIR = rpc/services
 
 PROTO_IMPORT_PATHS := --proto_path=. --proto_path=vendor
@@ -81,6 +87,9 @@ LDFLAGS := -ldflags "-X $(MODULE_NAME)/app.commit=$(COMMIT) \
 
 $(TARGET):
 	$(GOBUILD) -o $(TARGET) $(LDFLAGS) $(MODULE_NAME)/cli
+
+release:
+	./scripts/release.sh build-release "$(BUILD_SYSTEM)" "$(RELEASE_LDFLAGS)" $(MODULE_NAME)/cli
 
 certgen:
 	openssl req -nodes -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -config $(CERT_DIR)/cert.conf -extensions v3_exts -days 365 -keyout $(CERT_DIR)/c13n.key -out $(CERT_DIR)/c13n.pem
