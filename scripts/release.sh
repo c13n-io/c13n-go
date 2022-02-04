@@ -1,5 +1,9 @@
 PACKAGE=c13n
 
+# Needed for setting file timestamps to get reproducible archives.
+BUILD_DATE="2020-01-01 00:00:00"
+BUILD_DATE_STAMP="202001010000.00"
+
 # green prints one line of green text (if the terminal supports it).
 function green() {
   echo -e "\e[0;32m${1}\e[0m"
@@ -101,7 +105,7 @@ function build_release() {
 
     # Add the hashes for the individual binaries as well for easy verification
     # of a single installed binary.
-    shasum -a 256 "${dir}/"* >> "manifest.txt" 
+    sha256sum "${dir}/"* >> "manifest.txt" 
 
     if [[ $os == "windows" ]]; then
       reproducible_zip "${dir}"
@@ -111,7 +115,7 @@ function build_release() {
   done
 
   # Add the hash of the packages too, then sort by the second column (name).
-  shasum -a 256 c13n-* vendor* >> "manifest.txt"
+  sha256sum c13n-* vendor* >> "manifest.txt"
   LC_ALL=C sort -k2 -o "manifest.txt" "manifest.txt"
   cat "manifest.txt"
 }
