@@ -175,3 +175,4 @@ distclean: clean
 	$(RM) -r vendor/
 	$(RM) $(CERT_DIR)/c13n.pem $(CERT_DIR)/c13n.key
 	$(RM) docs/$(RPC_DOCS_FILE)
+	$(RM) -r c13n-build/
