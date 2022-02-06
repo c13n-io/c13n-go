@@ -43,7 +43,6 @@ func Run(_ *cobra.Command, _ []string) error {
 	logger = slog.NewLogger("cmd")
 
 	// Open database encryption file
-
 	dbMasterKey, err := ioutil.ReadFile(viper.GetString("database.key_path"))
 	if err != nil {
 		logger.WithError(err).Error("Could not read database encryption key file")
