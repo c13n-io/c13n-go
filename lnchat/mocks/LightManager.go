@@ -43,6 +43,29 @@ func (_m *LightManager) ConnectNode(ctx context.Context, address string, hostpor
 	return r0
 }
 
+// CreateInvoice provides a mock function with given fields: ctx, memo, amt, expiry, privateHints
+func (_m *LightManager) CreateInvoice(ctx context.Context, memo string, amt lnchat.Amount, expiry int64, privateHints bool) (*lnchat.Invoice, error) {
+	ret := _m.Called(ctx, memo, amt, expiry, privateHints)
+
+	var r0 *lnchat.Invoice
+	if rf, ok := ret.Get(0).(func(context.Context, string, lnchat.Amount, int64, bool) *lnchat.Invoice); ok {
+		r0 = rf(ctx, memo, amt, expiry, privateHints)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*lnchat.Invoice)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, lnchat.Amount, int64, bool) error); ok {
+		r1 = rf(ctx, memo, amt, expiry, privateHints)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // DecodePayReq provides a mock function with given fields: ctx, payReq
 func (_m *LightManager) DecodePayReq(ctx context.Context, payReq string) (*lnchat.PayReq, error) {
 	ret := _m.Called(ctx, payReq)

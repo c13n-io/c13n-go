@@ -620,3 +620,50 @@ func (m *manager) SubscribeInvoiceUpdates(ctx context.Context, startIdx uint64,
 
 	return updateCh, nil
 }
+
+// CreateInvoice generates an invoice for the desired amount
+// and returns it.
+// If expiry is set, it sets the invoice expiry (in seconds),
+// and privateHints controls inclusion of private channel hints.
+func (m *manager) CreateInvoice(ctx context.Context, memo string,
+	amt Amount, expiry int64, privateHints bool) (*Invoice, error) {
+
+	preimage, err := generatePreimage()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not generate preimage")
+	}
+
+	req := &lnrpc.Invoice{
+		Memo:      memo,
+		ValueMsat: amt.Msat(),
+		RPreimage: preimage[:],
+		Expiry:    expiry,
+		Private:   privateHints,
+	}
+
+	resp, err := m.lnClient.AddInvoice(ctx, req)
+	if err != nil {
+		if terr := translateCommonRPCErrors(err); terr != err {
+			return nil, terr
+		}
+		return nil, interceptRPCError(err, ErrUnknown)
+	}
+
+	return m.lookupInvoice(ctx, resp.RHash)
+}
+
+func (m *manager) lookupInvoice(ctx context.Context, hash []byte) (*Invoice, error) {
+	req := &lnrpc.PaymentHash{
+		RHash: hash,
+	}
+
+	inv, err := m.lnClient.LookupInvoice(ctx, req)
+	if err != nil {
+		if terr := translateCommonRPCErrors(err); terr != err {
+			return nil, terr
+		}
+		return nil, interceptRPCError(err, ErrUnknown)
+	}
+
+	return unmarshalInvoice(inv)
+}

@@ -63,4 +63,8 @@ var testsCases = []*testCase{
 		name: "DecodePayReq",
 		test: testDecodePayReq,
 	},
+	{
+		name: "CreateInvoice",
+		test: testCreateInvoice,
+	},
 }
