@@ -36,7 +36,10 @@ func TestMain(m *testing.M) {
 func createInMemoryDB(t *testing.T) (Database, func()) {
 	db, err := New("", WithBadgerOption(
 		func(o badger.Options) badger.Options {
-			return o.WithInMemory(true)
+			o = o.WithInMemory(true)
+			o = o.WithEncryptionKey([]byte("1234567890123456"))
+			o = o.WithIndexCacheSize(1 << 20)
+			return o
 		}),
 	)
 

@@ -54,6 +54,7 @@ func TestInitConfig(t *testing.T) {
 		[]byte("  macaroon_path: \"~/.lnd/data/chain/bitcoin/regtest/admin.macaroon1\""),
 		[]byte("database:"),
 		[]byte("  db_path:     \"./test.db\""),
+		[]byte("  key_path:     \"./db_key\""),
 	}
 
 	yamlConfigText := bytes.Join(yamlLines, []byte("\n"))
@@ -88,6 +89,7 @@ func TestInitConfig(t *testing.T) {
 		viper.GetString("lnd.macaroon_path"))
 
 	assert.Equal(t, "./test.db", viper.GetString("database.db_path"))
+	assert.Equal(t, "./db_key", viper.GetString("database.key_path"))
 }
 
 /*
@@ -113,6 +115,7 @@ func TestInitConfigPriority(t *testing.T) {
 		[]byte("  macaroon_path: \"~/.lnd/data/chain/bitcoin/regtest/admin.macaroon1\""),
 		[]byte("database:"),
 		[]byte("  db_path:     \"./test.db\""),
+		[]byte("  key_path:     \"./db_key\""),
 	}
 
 	yamlConfigText := bytes.Join(yamlLines, []byte("\n"))
@@ -138,7 +141,8 @@ func TestInitConfigPriority(t *testing.T) {
 		"--lnd-address", "random_lnd_host:3333",
 		"--lnd-tls-path", "tls-path",
 		"--lnd-macaroon-path", "macaroon-path",
-		"--db-path", "test-db-path"})
+		"--db-path", "test-db-path",
+		"--db-key-path", "db-encryption-key-path"})
 	Execute()
 
 	assert.Equal(t, "debug", viper.GetString("log_level"))
@@ -158,4 +162,5 @@ func TestInitConfigPriority(t *testing.T) {
 	assert.Equal(t, "macaroon-path", viper.GetString("lnd.macaroon_path"))
 
 	assert.Equal(t, "test-db-path", viper.GetString("database.db_path"))
+	assert.Equal(t, "db-encryption-key-path", viper.GetString("database.key_path"))
 }

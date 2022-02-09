@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/dgraph-io/badger/v3"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -40,8 +42,25 @@ func Run(_ *cobra.Command, _ []string) error {
 	// Recreate cmd logger after the log level initialization
 	logger = slog.NewLogger("cmd")
 
+	// Open database encryption file
+	dbMasterKey, err := ioutil.ReadFile(viper.GetString("database.key_path"))
+	if err != nil {
+		logger.WithError(err).Error("Could not read database encryption key file")
+		return err
+	}
+
+	dbKeyLen := len(dbMasterKey)
+	if dbKeyLen != 16 && dbKeyLen != 32 && dbKeyLen != 64 {
+		logger.WithError(err).Error("Database encryption key not of standard size (16,32,64 bytes)")
+		return err
+	}
+
 	// Initialize database
-	db, err := store.New(viper.GetString("database.db_path"))
+	db, err := store.New(viper.GetString("database.db_path"), store.WithBadgerOption(
+		func(o badger.Options) badger.Options {
+			return o.WithEncryptionKey(dbMasterKey).WithIndexCacheSize(1 << 20)
+		}),
+	)
 	if err != nil {
 		logger.WithError(err).Error("Could not create database")
 		return err

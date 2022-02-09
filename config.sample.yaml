@@ -21,3 +21,5 @@ app:
 # Database configuration
 database:
   db_path: "./test.db"
+  # Master DB encryption key of fixed length (16, 24, 32 bytes)
+  key_path: replaceme

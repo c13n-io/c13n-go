@@ -88,6 +88,9 @@ func initCliFlags() {
 	rootFlags.String("db-path", "c13n.db",
 		"Path of the database directory")
 	_ = viper.BindPFlag("database.db_path", rootFlags.Lookup("db-path"))
+	rootFlags.String("db-key-path", "",
+		"Database encryption key of fixed length(16, 24 or 32 bytes)")
+	_ = viper.BindPFlag("database.key_path", rootFlags.Lookup("db-key-path"))
 }
 
 // initConfig reads in config file and env variables if set.
