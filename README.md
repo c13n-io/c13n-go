@@ -49,6 +49,32 @@ go build -i -v -o c13n github.com/c13n-io/c13n-go/cli
 
 #### Configure
 
+##### Generating database encryption key
+To enable database encryption, we need to pass a file that stores the data encryption key either through the `--db-key-path` option or through the `database.key_path` configuration file parameter. The key size must be 16, 24, or 32 bytes long, and the key size determines the corresponding block size for AES encryption ,i.e. AES-128, AES-192, and AES-256, respectively.
+
+The following command can be used to create a valid encryption key file (set count to the desired key size):
+
+```bash
+tr -dc 'a-zA-Z0-9' < /dev/urandom | dd bs=1 count=32 of=path/of/encryption/key
+```
+
+However, storing the encryption key file in the same host as the store itself defeats the purpose and is actually not more secure than leaving the database unencrypted in the first place. For this, it is highly recommended to use a password manager or vault to store the encryption key. This approach only works for filesystems that support named pipes:
+
+```bash
+# Create a named pipe
+mkfifo /tmp/c13n-db-enc-key
+
+# Fetch the password from the password manager/vault
+# Using pass
+pass c13n/db-enc-key > /tmp/c13n-db-enc-key &
+# Using HashiCorp vault
+vault kv get -field=pass c13n/db-enc-key > /tmp/c13n-db-enc-key &
+
+# Then use the named pipe path as the database encryption key path while configuring c13n.
+c13n -db-key-path=/tmp/c13n-db-enc-key
+```
+
+##### Setup configuration file
 Use the `c13n.sample.yaml` file as a template to configure your app.
 ```bash
 cp c13n.sample.yaml c13n.yaml
