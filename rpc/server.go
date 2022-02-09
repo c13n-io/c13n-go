@@ -141,6 +141,7 @@ func (s *Server) registerAllServices() {
 	discusser := NewDiscussionServiceServer(s.App)
 	channeler := NewChannelServiceServer(s.App)
 	nodeInformant := NewNodeInfoServiceServer(s.App)
+	financier := NewPaymentServiceServer(s.App)
 
 	// Register services
 	pb.RegisterContactServiceServer(s.Server, contacter)
@@ -148,6 +149,7 @@ func (s *Server) registerAllServices() {
 	pb.RegisterDiscussionServiceServer(s.Server, discusser)
 	pb.RegisterChannelServiceServer(s.Server, channeler)
 	pb.RegisterNodeInfoServiceServer(s.Server, nodeInformant)
+	pb.RegisterPaymentServiceServer(s.Server, financier)
 }
 
 // WithBasicAuth creates an authorization interceptor with the provided basic auth credentials.
