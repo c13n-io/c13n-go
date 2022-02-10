@@ -5,26 +5,7 @@ TARGET := c13n
 MODULE_NAME = github.com/c13n-io/c13n-go
 SHELL = /bin/bash
 
-BUILD_SYSTEM = darwin-amd64 \
-darwin-arm64 \
-dragonfly-amd64 \
-freebsd-amd64 \
-freebsd-arm \
-linux-386 \
-linux-amd64 \
-linux-armv6 \
-linux-armv7 \
-linux-arm64 \
-linux-ppc64 \
-linux-ppc64le \
-linux-mips \
-linux-mipsle \
-linux-mips64 \
-netbsd-amd64 \
-netbsd-arm64 \
-openbsd-386 \
-openbsd-amd64 \
-windows-amd64
+include make/release_flags.mk
 
 SERVICE_DIR = rpc/services
 
@@ -98,8 +79,12 @@ dev: proto mock tidy
 COMMIT := $(shell git describe --abbrev=40 --dirty)
 COMMIT_HASH := $(shell git rev-parse HEAD)
 
-LDFLAGS := -ldflags "-X $(MODULE_NAME)/app.commit=$(COMMIT) \
-	-X $(MODULE_NAME)/app.commitHash=$(COMMIT_HASH)"
+LDFLAGSBASE := -X $(MODULE_NAME)/app.commit=$(COMMIT) \
+	-X $(MODULE_NAME)/app.commitHash=$(COMMIT_HASH)
+
+LDFLAGS := -ldflags="$(LDFLAGSBASE)"
+
+RELEASE_LDFLAGS := -s -w -buildid= $(LDFLAGSBASE)
 
 $(TARGET):
 	$(GOBUILD) -o $(TARGET) $(LDFLAGS) $(MODULE_NAME)/cli

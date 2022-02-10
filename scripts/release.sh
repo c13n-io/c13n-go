@@ -1,8 +1,8 @@
 PACKAGE=c13n
 
 # Needed for setting file timestamps to get reproducible archives.
-BUILD_DATE="2020-01-01 00:00:00"
-BUILD_DATE_STAMP="202001010000.00"
+BUILD_DATE="2022-01-01 00:00:00"
+BUILD_DATE_STAMP="202201010000.00"
 
 # green prints one line of green text (if the terminal supports it).
 function green() {
@@ -100,12 +100,12 @@ function build_release() {
     pushd "${dir}"
 
     green " - Building: ${os} ${arch} ${arm}"
-    env CGO_ENABLED=0 GOOS=$os GOARCH=$arch GOARM=$arm go build -v -o ${PACKAGE} ${ldflags} ${package}
+    env CGO_ENABLED=0 GOOS=$os GOARCH=$arch GOARM=$arm go build -v -o ${PACKAGE} -ldflags="${ldflags}" ${package}
     popd
 
     # Add the hashes for the individual binaries as well for easy verification
     # of a single installed binary.
-    sha256sum "${dir}/"* >> "manifest.txt" 
+    sha256sum "${dir}/"* >> "manifest.txt"
 
     if [[ $os == "windows" ]]; then
       reproducible_zip "${dir}"
