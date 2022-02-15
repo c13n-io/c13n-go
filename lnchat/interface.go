@@ -28,6 +28,9 @@ type LightManager interface {
 		payOpts PaymentOptions, payload map[uint64][]byte,
 		filter PaymentUpdateFilter) (<-chan PaymentUpdate, error)
 
+	CreateInvoice(ctx context.Context, memo string, amt Amount,
+		expiry int64, privateHints bool) (*Invoice, error)
+
 	GetRoute(ctx context.Context, recipient string, amt Amount,
 		payOpts PaymentOptions, payload map[uint64][]byte) (
 		route *Route, prob float64, err error)

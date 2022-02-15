@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lightningnetwork/lnd/lnrpc"
+	"github.com/lightningnetwork/lnd/lntypes"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/c13n-io/c13n-go/lnchat"
 	"github.com/c13n-io/c13n-go/model"
 	pb "github.com/c13n-io/c13n-go/rpc/services"
 )
@@ -13,6 +16,136 @@ import (
 func newProtoTimestamp(t time.Time) (*timestamppb.Timestamp, error) {
 	ts := timestamppb.New(t)
 	return ts, ts.CheckValid()
+}
+
+// Invoice
+
+func invoiceModelToRPCInvoice(invoice *model.Invoice) (*pb.Invoice, error) {
+	var err error
+	var created, settled *timestamppb.Timestamp
+	if invoice.CreatedTimeSec > 0 {
+		ts := time.Unix(invoice.CreatedTimeSec, 0)
+		if created, err = newProtoTimestamp(ts); err != nil {
+			return nil, fmt.Errorf("marshal error: invalid timestamp: %v", err)
+		}
+	}
+	if invoice.SettleTimeSec > 0 {
+		ts := time.Unix(invoice.SettleTimeSec, 0)
+		if settled, err = newProtoTimestamp(ts); err != nil {
+			return nil, fmt.Errorf("marshal error: invalid timestamp: %v", err)
+		}
+	}
+
+	var state pb.InvoiceState
+	switch invoice.State {
+	case lnchat.InvoiceOPEN:
+		state = pb.InvoiceState_INVOICE_OPEN
+	case lnchat.InvoiceACCEPTED:
+		state = pb.InvoiceState_INVOICE_ACCEPTED
+	case lnchat.InvoiceSETTLED:
+		state = pb.InvoiceState_INVOICE_SETTLED
+	case lnchat.InvoiceCANCELLED:
+		state = pb.InvoiceState_INVOICE_CANCELLED
+	}
+
+	preimage, err := lntypes.MakePreimage(invoice.Preimage)
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: invalid preimage: %v", err)
+	}
+
+	hints, err := invoiceRouteHintsToRPCRouteHints(invoice.RouteHints)
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: route hints error: %v", err)
+	}
+
+	htlcs, err := invoiceHTLCsToRPCInvoiceHTLCs(invoice.Htlcs)
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: htlc error: %v", err)
+	}
+
+	return &pb.Invoice{
+		Memo:             invoice.Memo,
+		Hash:             invoice.Hash,
+		Preimage:         preimage.String(),
+		PaymentRequest:   invoice.PaymentRequest,
+		ValueMsat:        uint64(invoice.Value.Msat()),
+		AmtPaidMsat:      uint64(invoice.AmtPaid.Msat()),
+		CreatedTimestamp: created,
+		SettledTimestamp: settled,
+		Expiry:           invoice.Expiry,
+		Private:          invoice.Private,
+		RouteHints:       hints,
+		State:            state,
+		AddIndex:         invoice.AddIndex,
+		SettleIndex:      invoice.SettleIndex,
+		InvoiceHtlcs:     htlcs,
+	}, nil
+}
+
+func invoiceRouteHintsToRPCRouteHints(hints []lnchat.RouteHint) ([]*pb.RouteHint, error) {
+	res := make([]*pb.RouteHint, len(hints))
+	for i, hint := range hints {
+		hintHops := make([]*pb.HopHint, len(hint.HopHints))
+
+		for j, hop := range hint.HopHints {
+			hintHops[j] = &pb.HopHint{
+				Pubkey:          hop.NodeID.String(),
+				ChanId:          hop.ChanID,
+				FeeBaseMsat:     hop.FeeBaseMsat,
+				FeeRate:         hop.FeeRate,
+				CltvExpiryDelta: hop.CltvExpiryDelta,
+			}
+		}
+
+		res[i] = &pb.RouteHint{
+			HopHints: hintHops,
+		}
+	}
+
+	return res, nil
+}
+
+func invoiceHTLCsToRPCInvoiceHTLCs(htlcs []lnchat.InvoiceHTLC) ([]*pb.InvoiceHTLC, error) {
+	res := make([]*pb.InvoiceHTLC, len(htlcs))
+	for i, htlc := range htlcs {
+		var err error
+		var accept, resolve *timestamppb.Timestamp
+		if htlc.AcceptTimeSec > 0 {
+			ts := time.Unix(htlc.AcceptTimeSec, 0)
+			if accept, err = newProtoTimestamp(ts); err != nil {
+				return nil, fmt.Errorf("marshal error: "+
+					"invalid timestamp: %v", err)
+			}
+		}
+		if htlc.ResolveTimeSec > 0 {
+			ts := time.Unix(htlc.ResolveTimeSec, 0)
+			if resolve, err = newProtoTimestamp(ts); err != nil {
+				return nil, fmt.Errorf("marshal error: "+
+					"invalid timestamp: %v", err)
+			}
+		}
+
+		var htlcState pb.InvoiceHTLCState
+		switch htlc.State {
+		case lnrpc.InvoiceHTLCState_ACCEPTED:
+			htlcState = pb.InvoiceHTLCState_INVOICE_HTLC_ACCEPTED
+		case lnrpc.InvoiceHTLCState_SETTLED:
+			htlcState = pb.InvoiceHTLCState_INVOICE_HTLC_SETTLED
+		case lnrpc.InvoiceHTLCState_CANCELED:
+			htlcState = pb.InvoiceHTLCState_INVOICE_HTLC_CANCELLED
+		}
+
+		res[i] = &pb.InvoiceHTLC{
+			ChanId:           htlc.ChanID,
+			AmtMsat:          uint64(htlc.Amount.Msat()),
+			State:            htlcState,
+			AcceptTimestamp:  accept,
+			ResolveTimestamp: resolve,
+			ExpiryHeight:     htlc.ExpiryHeight,
+		}
+	}
+
+	return res, nil
 }
 
 // Message transformations

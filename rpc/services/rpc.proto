@@ -616,3 +616,116 @@ message RemoveDiscussionRequest {
 /** A RemoveDiscussionResponse is received in response to a RemoveDiscussion rpc call. */
 message RemoveDiscussionResponse {
 }
+
+/**
+ PaymentService exposes payment and invoice functionality.
+*/
+service PaymentService {
+	/**
+	 Creates a new invoice.
+	*/
+	rpc CreateInvoice(CreateInvoiceRequest) returns (CreateInvoiceResponse) {}
+}
+
+/** Corresponds to an invoice creation request. */
+message CreateInvoiceRequest {
+	/** Memo of the invoice. */
+	string memo = 1;
+	/** The invoice amount (in millisatoshi). */
+	uint64 amt_msat = 2;
+	/** Invoice expiry time (in seconds since creation). */
+	int64 expiry = 3;
+	/** Whether to include hints for private channels. */
+	bool private = 4;
+}
+
+/** A CreateInvoiceResponse is received in response to an invoice creation request. */
+message CreateInvoiceResponse {
+	/** The created invoice. */
+	Invoice invoice = 1;
+}
+
+/** Represents an Lightning network invoice. */
+message Invoice {
+	/** The invoice memo. */
+	string memo = 1;
+	/** The preimage hash. */
+	string hash = 2;
+	/** The invoice preimage. */
+	string preimage = 3;
+	/** The payment request of the invoice. */
+	string payment_request = 4;
+	/** The value (amount requested) of the invoice (in millisatoshi). */
+	uint64 value_msat = 5;
+	/** The amount paid to the invoice (in millisatoshi). */
+	uint64 amt_paid_msat = 6;
+	/** The time the invoice was created. */
+	google.protobuf.Timestamp created_timestamp = 7;
+	/** The time the invoice was settled. */
+	google.protobuf.Timestamp settled_timestamp = 8;
+	/** The invoice expiry (in seconds since creation time). */
+	int64 expiry = 9;
+	/** Whether the invoice contains hints for private channels. */
+	bool private = 10;
+	/** Invoice route hints. */
+	repeated RouteHint route_hints = 11;
+	/** The invoice state. */
+	InvoiceState state = 12;
+	/** The add index of the invoice. */
+	uint64 add_index = 13;
+	/** The settle index of the invoice. */
+	uint64 settle_index = 14;
+	/** The set of HTLCs paying to the invoice. */
+	repeated InvoiceHTLC invoice_htlcs  = 15;
+}
+
+/** Represents the state of an invoice. */
+enum InvoiceState {
+	INVOICE_OPEN = 0;
+	INVOICE_ACCEPTED = 1;
+	INVOICE_SETTLED = 2;
+	INVOICE_CANCELLED = 3;
+}
+
+/** Represents a route hint for assistance in invoice payment. */
+message RouteHint {
+	/** A chain of hop hints that can reach the desetination. */
+	repeated HopHint hop_hints = 1;
+}
+
+/** Represents a hop hint. */
+message HopHint {
+	/** Public key of hop ingress node. */
+	string pubkey = 1;
+	/** The short channel id of the channel to be used for the hop. */
+	uint64 chan_id = 2;
+	/** The base fee of the channel (in millisatoshi). */
+	uint32 fee_base_msat = 3;
+	/** The fee rate of the channel (in microsatoshi/sat). */
+	uint32 fee_rate = 4;
+	/** The timelock delta of the channel. */
+	uint32 cltv_expiry_delta = 5;
+}
+
+/** Represents an HTLC paying to an invoice. */
+message InvoiceHTLC {
+	/** The short channel id of the channel the HTLC was arrived. */
+	uint64 chan_id = 1;
+	/** The amount of this HTLC (in millisatoshi). */
+	uint64 amt_msat = 2;
+	/** State of the HTLC. */
+	InvoiceHTLCState state = 3;
+	/** HTLC accept timestamp. */
+	google.protobuf.Timestamp accept_timestamp = 4;
+	/** HTLC resolve timestamp.*/
+	google.protobuf.Timestamp resolve_timestamp = 5;
+	/** Block height at which this HTLC expires. */
+	int32 expiry_height = 6;
+}
+
+/** Represents the state of an invoice HTLC. */
+enum InvoiceHTLCState {
+	INVOICE_HTLC_ACCEPTED = 0;
+	INVOICE_HTLC_SETTLED = 1;
+	INVOICE_HTLC_CANCELLED = 2;
+}

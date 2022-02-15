@@ -356,3 +356,67 @@ func (this *RemoveDiscussionRequest) Validate() error {
 func (this *RemoveDiscussionResponse) Validate() error {
 	return nil
 }
+func (this *CreateInvoiceRequest) Validate() error {
+	return nil
+}
+func (this *CreateInvoiceResponse) Validate() error {
+	if this.Invoice != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Invoice); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("Invoice", err)
+		}
+	}
+	return nil
+}
+func (this *Invoice) Validate() error {
+	if this.CreatedTimestamp != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.CreatedTimestamp); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("CreatedTimestamp", err)
+		}
+	}
+	if this.SettledTimestamp != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.SettledTimestamp); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("SettledTimestamp", err)
+		}
+	}
+	for _, item := range this.RouteHints {
+		if item != nil {
+			if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(item); err != nil {
+				return github_com_mwitkow_go_proto_validators.FieldError("RouteHints", err)
+			}
+		}
+	}
+	for _, item := range this.InvoiceHtlcs {
+		if item != nil {
+			if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(item); err != nil {
+				return github_com_mwitkow_go_proto_validators.FieldError("InvoiceHtlcs", err)
+			}
+		}
+	}
+	return nil
+}
+func (this *RouteHint) Validate() error {
+	for _, item := range this.HopHints {
+		if item != nil {
+			if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(item); err != nil {
+				return github_com_mwitkow_go_proto_validators.FieldError("HopHints", err)
+			}
+		}
+	}
+	return nil
+}
+func (this *HopHint) Validate() error {
+	return nil
+}
+func (this *InvoiceHTLC) Validate() error {
+	if this.AcceptTimestamp != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.AcceptTimestamp); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("AcceptTimestamp", err)
+		}
+	}
+	if this.ResolveTimestamp != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.ResolveTimestamp); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("ResolveTimestamp", err)
+		}
+	}
+	return nil
+}

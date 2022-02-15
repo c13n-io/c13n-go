@@ -4,6 +4,8 @@ import "github.com/lightningnetwork/lnd/lnrpc"
 
 // Invoice reprsents a Lightning invoice.
 type Invoice struct {
+	// Invoice memo.
+	Memo string
 	// The preimage hash.
 	Hash string
 	// The invoice preimage.
@@ -30,6 +32,8 @@ type Invoice struct {
 	AddIndex uint64
 	// The index at which the invoice was settled.
 	SettleIndex uint64
+	// Indicator of including hints for private channels.
+	Private bool
 	// The set of HTLCs settling the invoice.
 	Htlcs []InvoiceHTLC
 }

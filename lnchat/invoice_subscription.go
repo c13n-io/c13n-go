@@ -19,6 +19,7 @@ func unmarshalInvoice(i *lnrpc.Invoice) (*Invoice, error) {
 	}
 
 	inv := &Invoice{
+		Memo:           i.Memo,
 		Hash:           hash.String(),
 		Preimage:       i.RPreimage,
 		PaymentRequest: i.PaymentRequest,
@@ -29,6 +30,7 @@ func unmarshalInvoice(i *lnrpc.Invoice) (*Invoice, error) {
 		Expiry:         i.Expiry,
 		CltvExpiry:     i.CltvExpiry,
 		AddIndex:       i.AddIndex,
+		Private:        i.Private,
 		SettleIndex:    i.SettleIndex,
 	}
 
