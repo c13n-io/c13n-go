@@ -1,7 +1,7 @@
 name: c13n Main Pipeline
 
 on:
-  push:
+  pull_request:
     branches:
       - develop
 
@@ -37,5 +37,8 @@ jobs:
       - name: Install dev dependencies
         run: cd /c13n && make dev-deps
 
+      - name: Lint
+        run: cd /c13n && make lint
+      
       - name: Test
         run: cd /c13n && make test
