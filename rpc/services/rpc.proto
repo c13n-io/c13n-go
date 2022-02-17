@@ -625,6 +625,11 @@ service PaymentService {
 	 Creates a new invoice.
 	*/
 	rpc CreateInvoice(CreateInvoiceRequest) returns (CreateInvoiceResponse) {}
+
+	/**
+	 Looks up an invoice.
+	*/
+	rpc LookupInvoice(LookupInvoiceRequest) returns (LookupInvoiceResponse) {}
 }
 
 /** Corresponds to an invoice creation request. */
@@ -642,6 +647,18 @@ message CreateInvoiceRequest {
 /** A CreateInvoiceResponse is received in response to an invoice creation request. */
 message CreateInvoiceResponse {
 	/** The created invoice. */
+	Invoice invoice = 1;
+}
+
+/** Corresponds to an invoice lookup request. */
+message LookupInvoiceRequest {
+	/** Payment Request */
+	string pay_req = 1;
+}
+
+/** A LookupResponse is received in response to an invoice lookup request. */
+message LookupInvoiceResponse {
+	/** The returned invoice. */
 	Invoice invoice = 1;
 }
 
