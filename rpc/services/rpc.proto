@@ -627,7 +627,7 @@ service PaymentService {
 	rpc CreateInvoice(CreateInvoiceRequest) returns (CreateInvoiceResponse) {}
 
 	/**
-	 Looks up an invoice.
+	 Performs an invoice lookup.
 	*/
 	rpc LookupInvoice(LookupInvoiceRequest) returns (LookupInvoiceResponse) {}
 }

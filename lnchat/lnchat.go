@@ -646,14 +646,15 @@ func (m *manager) CreateInvoice(ctx context.Context, memo string,
 
 // LookupInvoice receives an invoice with up-to-date status and returns it.
 // The invoice is identified by the payment hash string.
-func (m *manager) LookupInvoice(ctx context.Context, hash_str string) (*Invoice, error) {
-	hash, err := lntypes.MakeHashFromStr(hash_str)
+func (m *manager) LookupInvoice(ctx context.Context, hashStr string) (*Invoice, error) {
+	hash, err := lntypes.MakeHashFromStr(hashStr)
 	if err != nil {
 		if terr := translateCommonRPCErrors(err); terr != err {
 			return nil, terr
 		}
 		return nil, interceptRPCError(err, ErrUnknown)
 	}
+
 	return m.lookupInvoice(ctx, hash[:])
 }
 

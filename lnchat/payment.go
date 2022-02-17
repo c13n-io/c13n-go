@@ -34,7 +34,6 @@ type PayReq struct {
 }
 
 func unmarshalPaymentRequest(payReq *lnrpc.PayReq) (*PayReq, error) {
-
 	node, err := NewNodeFromString(payReq.Destination)
 	if err != nil {
 		return nil, err

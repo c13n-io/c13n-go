@@ -45,7 +45,7 @@ func (s *paymentServiceServer) CreateInvoice(ctx context.Context, req *pb.Create
 	}, nil
 }
 
-// LookupInvoice retrieves an invoice and returns it
+// LookupInvoice retrieves an invoice and returns it.
 func (s *paymentServiceServer) LookupInvoice(ctx context.Context, req *pb.LookupInvoiceRequest) (*pb.LookupInvoiceResponse, error) {
 	inv, err := s.App.LookupInvoice(ctx, req.GetPayReq())
 	if err != nil {
