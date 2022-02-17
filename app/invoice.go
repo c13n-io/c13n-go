@@ -22,3 +22,21 @@ func (app *App) CreateInvoice(ctx context.Context, memo string,
 		Invoice:        *inv,
 	}, nil
 }
+
+// LookupInvoice retrieves an invoice and returns it.
+func (app *App) LookupInvoice(ctx context.Context, payReq string) (*model.Invoice, error) {
+	res, err := app.LNManager.DecodePayReq(ctx, payReq)
+	if err != nil {
+		return nil, err
+	}
+
+	inv, err := app.LNManager.LookupInvoice(ctx, res.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Invoice{
+		CreatorAddress: app.Self.Node.Address,
+		Invoice:        *inv,
+	}, nil
+}
