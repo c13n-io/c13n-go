@@ -4,7 +4,7 @@
 *.dll
 *.so
 *.dylib
-c13n
+./c13n
 
 # Test binary, built with `go test -c`
 *.test
