@@ -2,6 +2,7 @@ package lnchat
 
 import (
 	"context"
+	"encoding/hex"
 	"io"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -650,6 +651,19 @@ func (m *manager) CreateInvoice(ctx context.Context, memo string,
 	}
 
 	return m.lookupInvoice(ctx, resp.RHash)
+}
+
+// LookupInvoice receives an invoice with up-to-date status and returns it.
+// The invoice is identified by the payment hash string.
+func (m *manager) LookupInvoice(ctx context.Context, hash_str string) (*Invoice, error) {
+	hash, err := hex.DecodeString(hash_str)
+	if err != nil {
+		if terr := translateCommonRPCErrors(err); terr != err {
+			return nil, terr
+		}
+		return nil, interceptRPCError(err, ErrUnknown)
+	}
+	return m.lookupInvoice(ctx, hash)
 }
 
 func (m *manager) lookupInvoice(ctx context.Context, hash []byte) (*Invoice, error) {

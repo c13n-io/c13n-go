@@ -31,6 +31,8 @@ type LightManager interface {
 	CreateInvoice(ctx context.Context, memo string, amt Amount,
 		expiry int64, privateHints bool) (*Invoice, error)
 
+	LookupInvoice(ctx context.Context, pay_hash string) (*Invoice, error)
+
 	GetRoute(ctx context.Context, recipient string, amt Amount,
 		payOpts PaymentOptions, payload map[uint64][]byte) (
 		route *Route, prob float64, err error)

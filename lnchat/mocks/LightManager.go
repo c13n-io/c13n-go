@@ -186,6 +186,29 @@ func (_m *LightManager) ListNodes(ctx context.Context) ([]lnchat.LightningNode, 
 	return r0, r1
 }
 
+// LookupInvoice provides a mock function with given fields: ctx, pay_hash
+func (_m *LightManager) LookupInvoice(ctx context.Context, pay_hash string) (*lnchat.Invoice, error) {
+	ret := _m.Called(ctx, pay_hash)
+
+	var r0 *lnchat.Invoice
+	if rf, ok := ret.Get(0).(func(context.Context, string) *lnchat.Invoice); ok {
+		r0 = rf(ctx, pay_hash)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*lnchat.Invoice)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, pay_hash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // OpenChannel provides a mock function with given fields: ctx, address, private, amtMsat, pushAmtMsat, minOpenConfirmations, txOpts
 func (_m *LightManager) OpenChannel(ctx context.Context, address string, private bool, amtMsat uint64, pushAmtMsat uint64, minOpenConfirmations int32, txOpts lnchat.TxFeeOptions) (*lnchat.ChannelPoint, error) {
 	ret := _m.Called(ctx, address, private, amtMsat, pushAmtMsat, minOpenConfirmations, txOpts)
