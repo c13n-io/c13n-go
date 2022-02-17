@@ -6,7 +6,22 @@ on:
       - develop
 
 jobs:
+  release-testenv-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - uses: pmorelli92/github-container-registry-build-push@2.0.0
+        name: Build and Publish c13n-go-testenv:latest
+        with:
+          github-push-secret: ${{secrets.GITHUB_TOKEN}}
+          docker-image-name: c13n-go-testenv
+          docker-image-tag: latest
+          dockerfile-path: ./docker/testenv/Dockerfile.testenv
+          build-context: ./
   test:
+    needs: release-testenv-docker-image
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/c13n-io/c13n-go-test-env:latest
