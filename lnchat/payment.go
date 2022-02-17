@@ -33,6 +33,32 @@ type PayReq struct {
 	RouteHints []RouteHint
 }
 
+func unmarshalPaymentRequest(payReq *lnrpc.PayReq) (*PayReq, error) {
+
+	node, err := NewNodeFromString(payReq.Destination)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &PayReq{
+		Destination:    node,
+		Hash:           payReq.PaymentHash,
+		Amt:            NewAmount(payReq.NumMsat),
+		CreatedTimeSec: payReq.Timestamp,
+		Expiry:         payReq.Expiry,
+		CltvExpiry:     uint64(payReq.CltvExpiry),
+	}
+
+	if payReq.RouteHints != nil {
+		res.RouteHints, err = unmarshalRouteHints(payReq.RouteHints)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
+}
+
 // RouteHint is a hint that can assist a payment
 // in reaching a destination node.
 type RouteHint struct {
