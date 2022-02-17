@@ -45,6 +45,23 @@ func (s *paymentServiceServer) CreateInvoice(ctx context.Context, req *pb.Create
 	}, nil
 }
 
+// LookupInvoice retrieves an invoice and returns it
+func (s *paymentServiceServer) LookupInvoice(ctx context.Context, req *pb.LookupInvoiceRequest) (*pb.LookupInvoiceResponse, error) {
+	inv, err := s.App.LookupInvoice(ctx, req.GetPayReq())
+	if err != nil {
+		return nil, associateStatusCode(s.logError(err))
+	}
+
+	resp, err := invoiceModelToRPCInvoice(inv)
+	if err != nil {
+		return nil, associateStatusCode(s.logError(err))
+	}
+
+	return &pb.LookupInvoiceResponse{
+		Invoice: resp,
+	}, nil
+}
+
 // NewPaymentServiceServer initializes a new payment service.
 func NewPaymentServiceServer(app *app.App) pb.PaymentServiceServer {
 	return &paymentServiceServer{

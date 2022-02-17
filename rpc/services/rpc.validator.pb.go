@@ -9,9 +9,9 @@ import (
 	regexp "regexp"
 
 	proto "github.com/golang/protobuf/proto"
+	_ "github.com/golang/protobuf/ptypes/timestamp"
 	_ "github.com/mwitkow/go-proto-validators"
 	github_com_mwitkow_go_proto_validators "github.com/mwitkow/go-proto-validators"
-	_ "google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -360,6 +360,17 @@ func (this *CreateInvoiceRequest) Validate() error {
 	return nil
 }
 func (this *CreateInvoiceResponse) Validate() error {
+	if this.Invoice != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Invoice); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("Invoice", err)
+		}
+	}
+	return nil
+}
+func (this *LookupInvoiceRequest) Validate() error {
+	return nil
+}
+func (this *LookupInvoiceResponse) Validate() error {
 	if this.Invoice != nil {
 		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Invoice); err != nil {
 			return github_com_mwitkow_go_proto_validators.FieldError("Invoice", err)
