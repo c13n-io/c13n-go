@@ -38,3 +38,5 @@ lnchat/tests/.*/
 # Test executables
 lnchat/tests/*-itest
 
+# Release artifacts
+c13n-build

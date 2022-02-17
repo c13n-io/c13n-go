@@ -3,6 +3,9 @@
 TARGET := c13n
 
 MODULE_NAME = github.com/c13n-io/c13n-go
+SHELL = /bin/bash
+
+include make/release_flags.mk
 
 SERVICE_DIR = rpc/services
 
@@ -76,11 +79,18 @@ dev: proto mock tidy
 COMMIT := $(shell git describe --abbrev=40 --dirty)
 COMMIT_HASH := $(shell git rev-parse HEAD)
 
-LDFLAGS := -ldflags "-X $(MODULE_NAME)/app.commit=$(COMMIT) \
-	-X $(MODULE_NAME)/app.commitHash=$(COMMIT_HASH)"
+LDFLAGSBASE := -X $(MODULE_NAME)/app.commit=$(COMMIT) \
+	-X $(MODULE_NAME)/app.commitHash=$(COMMIT_HASH)
+
+LDFLAGS := -ldflags="$(LDFLAGSBASE)"
+
+RELEASE_LDFLAGS := -s -w -buildid= $(LDFLAGSBASE)
 
 $(TARGET):
 	$(GOBUILD) -o $(TARGET) $(LDFLAGS) $(MODULE_NAME)/cli
+
+release:
+	./scripts/release.sh build-release "$(BUILD_SYSTEM)" "$(RELEASE_LDFLAGS)" $(MODULE_NAME)/cli
 
 certgen:
 	openssl req -nodes -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -config $(CERT_DIR)/cert.conf -extensions v3_exts -days 365 -keyout $(CERT_DIR)/c13n.key -out $(CERT_DIR)/c13n.pem
@@ -166,3 +176,4 @@ distclean: clean
 	$(RM) -r vendor/
 	$(RM) $(CERT_DIR)/c13n.pem $(CERT_DIR)/c13n.key
 	$(RM) docs/$(RPC_DOCS_FILE)
+	$(RM) -r c13n-build/
