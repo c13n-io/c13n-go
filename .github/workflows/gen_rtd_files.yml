@@ -18,7 +18,7 @@ jobs:
           github-push-secret: ${{secrets.GITHUB_TOKEN}}
           docker-image-name: c13n-api-rtd-generator
           docker-image-tag: latest
-          dockerfile-path: ./Dockerfile.docs
+          dockerfile-path: ./docker/readthedocs/Dockerfile
           build-context: ./
 
       - uses: addnab/docker-run-action@v3

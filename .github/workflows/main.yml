@@ -4,15 +4,27 @@ on:
   push:
     branches:
       - develop
-  pull_request:
-    branches:
-      - develop
 
 jobs:
+  release-testenv-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - uses: pmorelli92/github-container-registry-build-push@2.0.0
+        name: Build and Publish c13n-go-testenv:latest
+        with:
+          github-push-secret: ${{secrets.GITHUB_TOKEN}}
+          docker-image-name: c13n-go-testenv
+          docker-image-tag: latest
+          dockerfile-path: ./docker/testenv/Dockerfile
+          build-context: ./
   test:
+    needs: release-testenv-docker-image
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/c13n-io/c13n-go-test-env:latest
+      image: ghcr.io/c13n-io/c13n-go-testenv:latest
       options: -v ${{ github.workspace }}:/c13n
     steps:
       - name: Check out Git repository
@@ -40,8 +52,21 @@ jobs:
       - name: Install dev dependencies
         run: cd /c13n && make dev-deps
 
-      - name: Lint
-        run: cd /c13n && make lint
-      
       - name: Test
         run: cd /c13n && make test
+
+  release-c13n-go-docker-image:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - uses: pmorelli92/github-container-registry-build-push@2.0.0
+        name: Build and Publish c13n-go:latest
+        with:
+          github-push-secret: ${{secrets.GITHUB_TOKEN}}
+          docker-image-name: c13n-go
+          docker-image-tag: latest
+          dockerfile-path: ./docker/c13n/Dockerfile
+          build-context: ./
