@@ -1270,7 +1270,7 @@ type PaymentServiceClient interface {
 	//Creates a new invoice.
 	CreateInvoice(ctx context.Context, in *CreateInvoiceRequest, opts ...grpc.CallOption) (*CreateInvoiceResponse, error)
 	//*
-	//Looks up an invoice.
+	//Performs an invoice lookup.
 	LookupInvoice(ctx context.Context, in *LookupInvoiceRequest, opts ...grpc.CallOption) (*LookupInvoiceResponse, error)
 }
 
@@ -1308,7 +1308,7 @@ type PaymentServiceServer interface {
 	//Creates a new invoice.
 	CreateInvoice(context.Context, *CreateInvoiceRequest) (*CreateInvoiceResponse, error)
 	//*
-	//Looks up an invoice.
+	//Performs an invoice lookup.
 	LookupInvoice(context.Context, *LookupInvoiceRequest) (*LookupInvoiceResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
