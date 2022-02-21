@@ -649,10 +649,7 @@ func (m *manager) CreateInvoice(ctx context.Context, memo string,
 func (m *manager) LookupInvoice(ctx context.Context, hashStr string) (*Invoice, error) {
 	hash, err := lntypes.MakeHashFromStr(hashStr)
 	if err != nil {
-		if terr := translateCommonRPCErrors(err); terr != err {
-			return nil, terr
-		}
-		return nil, interceptRPCError(err, ErrUnknown)
+		return nil, err
 	}
 
 	return m.lookupInvoice(ctx, hash[:])

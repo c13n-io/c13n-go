@@ -39,23 +39,23 @@ func unmarshalPaymentRequest(payReq *lnrpc.PayReq) (*PayReq, error) {
 		return nil, err
 	}
 
-	res := &PayReq{
+	var hints []RouteHint
+	if hints != nil {
+		hints, err = unmarshalRouteHints(payReq.RouteHints)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &PayReq{
 		Destination:    node,
 		Hash:           payReq.PaymentHash,
 		Amt:            NewAmount(payReq.NumMsat),
 		CreatedTimeSec: payReq.Timestamp,
 		Expiry:         payReq.Expiry,
 		CltvExpiry:     uint64(payReq.CltvExpiry),
-	}
-
-	if payReq.RouteHints != nil {
-		res.RouteHints, err = unmarshalRouteHints(payReq.RouteHints)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return res, nil
+		RouteHints:     hints,
+	}, nil
 }
 
 // RouteHint is a hint that can assist a payment

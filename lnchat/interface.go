@@ -27,10 +27,8 @@ type LightManager interface {
 		filter PaymentUpdateFilter) (<-chan PaymentUpdate, error)
 
 	DecodePayReq(ctx context.Context, payReq string) (*PayReq, error)
-
 	CreateInvoice(ctx context.Context, memo string, amt Amount,
 		expiry int64, privateHints bool) (*Invoice, error)
-
 	LookupInvoice(ctx context.Context, payHash string) (*Invoice, error)
 
 	GetRoute(ctx context.Context, recipient string, amt Amount,
