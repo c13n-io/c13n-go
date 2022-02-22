@@ -186,13 +186,13 @@ func (_m *LightManager) ListNodes(ctx context.Context) ([]lnchat.LightningNode, 
 	return r0, r1
 }
 
-// LookupInvoice provides a mock function with given fields: ctx, pay_hash
-func (_m *LightManager) LookupInvoice(ctx context.Context, pay_hash string) (*lnchat.Invoice, error) {
-	ret := _m.Called(ctx, pay_hash)
+// LookupInvoice provides a mock function with given fields: ctx, payHash
+func (_m *LightManager) LookupInvoice(ctx context.Context, payHash string) (*lnchat.Invoice, error) {
+	ret := _m.Called(ctx, payHash)
 
 	var r0 *lnchat.Invoice
 	if rf, ok := ret.Get(0).(func(context.Context, string) *lnchat.Invoice); ok {
-		r0 = rf(ctx, pay_hash)
+		r0 = rf(ctx, payHash)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*lnchat.Invoice)
@@ -201,7 +201,7 @@ func (_m *LightManager) LookupInvoice(ctx context.Context, pay_hash string) (*ln
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, pay_hash)
+		r1 = rf(ctx, payHash)
 	} else {
 		r1 = ret.Error(1)
 	}
