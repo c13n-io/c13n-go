@@ -48,7 +48,8 @@ func testDecodePayReq(net *lntest.NetworkHarness, t *harnessTest) {
 					Destination: nodeID,
 					Amt:         lnchat.NewAmount(invoice.ValueMsat),
 				}
-				assert.EqualValues(t.t, expected, inv)
+				assert.EqualValues(t.t, expected.Destination, inv.Destination)
+				assert.EqualValues(t.t, expected.Amt, inv.Amt)
 			},
 		},
 		{
@@ -79,7 +80,8 @@ func testDecodePayReq(net *lntest.NetworkHarness, t *harnessTest) {
 					Destination: nodeID,
 					Amt:         lnchat.NewAmount(0),
 				}
-				assert.EqualValues(t.t, expected, inv)
+				assert.EqualValues(t.t, expected.Destination, inv.Destination)
+				assert.EqualValues(t.t, expected.Amt, inv.Amt)
 			},
 		},
 	}

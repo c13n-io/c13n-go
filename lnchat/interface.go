@@ -17,8 +17,6 @@ type LightManager interface {
 		private bool, amtMsat, pushAmtMsat uint64,
 		minOpenConfirmations int32, txOpts TxFeeOptions) (*ChannelPoint, error)
 
-	DecodePayReq(ctx context.Context, payReq string) (*PayReq, error)
-
 	VerifySignatureExtractPubkey(ctx context.Context, message, signature []byte) (string, error)
 	SignMessage(ctx context.Context, message []byte) ([]byte, error)
 
@@ -28,8 +26,10 @@ type LightManager interface {
 		payOpts PaymentOptions, payload map[uint64][]byte,
 		filter PaymentUpdateFilter) (<-chan PaymentUpdate, error)
 
+	DecodePayReq(ctx context.Context, payReq string) (*PayReq, error)
 	CreateInvoice(ctx context.Context, memo string, amt Amount,
 		expiry int64, privateHints bool) (*Invoice, error)
+	LookupInvoice(ctx context.Context, payHash string) (*Invoice, error)
 
 	GetRoute(ctx context.Context, recipient string, amt Amount,
 		payOpts PaymentOptions, payload map[uint64][]byte) (

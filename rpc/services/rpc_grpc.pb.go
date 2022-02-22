@@ -1269,6 +1269,9 @@ type PaymentServiceClient interface {
 	//*
 	//Creates a new invoice.
 	CreateInvoice(ctx context.Context, in *CreateInvoiceRequest, opts ...grpc.CallOption) (*CreateInvoiceResponse, error)
+	//*
+	//Performs an invoice lookup.
+	LookupInvoice(ctx context.Context, in *LookupInvoiceRequest, opts ...grpc.CallOption) (*LookupInvoiceResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -1288,6 +1291,15 @@ func (c *paymentServiceClient) CreateInvoice(ctx context.Context, in *CreateInvo
 	return out, nil
 }
 
+func (c *paymentServiceClient) LookupInvoice(ctx context.Context, in *LookupInvoiceRequest, opts ...grpc.CallOption) (*LookupInvoiceResponse, error) {
+	out := new(LookupInvoiceResponse)
+	err := c.cc.Invoke(ctx, "/services.PaymentService/LookupInvoice", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility
@@ -1295,6 +1307,9 @@ type PaymentServiceServer interface {
 	//*
 	//Creates a new invoice.
 	CreateInvoice(context.Context, *CreateInvoiceRequest) (*CreateInvoiceResponse, error)
+	//*
+	//Performs an invoice lookup.
+	LookupInvoice(context.Context, *LookupInvoiceRequest) (*LookupInvoiceResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -1304,6 +1319,9 @@ type UnimplementedPaymentServiceServer struct {
 
 func (UnimplementedPaymentServiceServer) CreateInvoice(context.Context, *CreateInvoiceRequest) (*CreateInvoiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateInvoice not implemented")
+}
+func (UnimplementedPaymentServiceServer) LookupInvoice(context.Context, *LookupInvoiceRequest) (*LookupInvoiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LookupInvoice not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 
@@ -1336,6 +1354,24 @@ func _PaymentService_CreateInvoice_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PaymentService_LookupInvoice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LookupInvoiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).LookupInvoice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/services.PaymentService/LookupInvoice",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).LookupInvoice(ctx, req.(*LookupInvoiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1346,6 +1382,10 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateInvoice",
 			Handler:    _PaymentService_CreateInvoice_Handler,
+		},
+		{
+			MethodName: "LookupInvoice",
+			Handler:    _PaymentService_LookupInvoice_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

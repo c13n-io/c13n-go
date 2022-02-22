@@ -7,6 +7,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/lightningnetwork/lnd/lnrpc"
 	"github.com/lightningnetwork/lnd/lnrpc/routerrpc"
+	"github.com/lightningnetwork/lnd/lntypes"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 
@@ -414,7 +415,7 @@ func (m *manager) GetRoute(ctx context.Context,
 
 // DecodePayReq decodes a payment request string.
 func (m *manager) DecodePayReq(ctx context.Context, payReq string) (*PayReq, error) {
-	inv, err := m.lnClient.DecodePayReq(ctx, &lnrpc.PayReqString{
+	req, err := m.lnClient.DecodePayReq(ctx, &lnrpc.PayReqString{
 		PayReq: payReq,
 	})
 	if err != nil {
@@ -423,16 +424,7 @@ func (m *manager) DecodePayReq(ctx context.Context, payReq string) (*PayReq, err
 		}
 		return nil, err
 	}
-
-	node, err := NewNodeFromString(inv.Destination)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PayReq{
-		Destination: node,
-		Amt:         NewAmount(inv.NumMsat),
-	}, nil
+	return unmarshalPaymentRequest(req)
 }
 
 // PaymentUpdateFilter allows filtering of payment updates of interest
@@ -650,6 +642,17 @@ func (m *manager) CreateInvoice(ctx context.Context, memo string,
 	}
 
 	return m.lookupInvoice(ctx, resp.RHash)
+}
+
+// LookupInvoice receives an invoice with up-to-date status and returns it.
+// The invoice is identified by the payment hash string.
+func (m *manager) LookupInvoice(ctx context.Context, hashStr string) (*Invoice, error) {
+	hash, err := lntypes.MakeHashFromStr(hashStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return m.lookupInvoice(ctx, hash[:])
 }
 
 func (m *manager) lookupInvoice(ctx context.Context, hash []byte) (*Invoice, error) {

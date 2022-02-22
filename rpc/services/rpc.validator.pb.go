@@ -367,6 +367,17 @@ func (this *CreateInvoiceResponse) Validate() error {
 	}
 	return nil
 }
+func (this *LookupInvoiceRequest) Validate() error {
+	return nil
+}
+func (this *LookupInvoiceResponse) Validate() error {
+	if this.Invoice != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Invoice); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("Invoice", err)
+		}
+	}
+	return nil
+}
 func (this *Invoice) Validate() error {
 	if this.CreatedTimestamp != nil {
 		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.CreatedTimestamp); err != nil {
