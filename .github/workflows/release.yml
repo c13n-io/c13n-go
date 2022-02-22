@@ -28,6 +28,9 @@ jobs:
       - name: Create release assets
         run: cd /c13n && make release
 
+      - uses: olegtarasov/get-tag@v2.1
+        id: tagName
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -35,4 +38,24 @@ jobs:
           tag_name: ${{ steps.tagName.outputs.tag }}
           files: |
             /c13n/c13n-build/*
+
+  release-c13n-go-docker-image-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - uses: olegtarasov/get-tag@v2.1
+        id: tagName
+        with:
+          tagRegex: "v(?<version>.*)"
+
+      - uses: pmorelli92/github-container-registry-build-push@2.0.0
+        name: Build and Publish c13n-go:${{ steps.tagName.outputs.version }}
+        with:
+          github-push-secret: ${{secrets.GITHUB_TOKEN}}
+          docker-image-name: c13n-go
+          docker-image-tag: ${{ steps.tagName.outputs.version }}
+          dockerfile-path: ./docker/c13n/Dockerfile
+          build-context: ./
 
