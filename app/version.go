@@ -10,7 +10,7 @@ import (
 const (
 	appMajor = 0
 	appMinor = 2
-	appPatch = 0
+	appPatch = 1
 
 	// appPreRelease must contain only characters from the
 	// semantic alphabet, as per https://semver.org/#spec-item-9.
