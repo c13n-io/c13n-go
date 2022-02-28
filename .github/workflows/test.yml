@@ -6,12 +6,21 @@ on:
       - develop
 
 jobs:
-  test:
+  pull_request:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/c13n-io/c13n-go-testenv:latest
       options: -v ${{ github.workspace }}:/c13n
     steps:
+      - name: Check branch naming
+        uses: deepakputhraya/action-branch-name@master
+        with:
+          regex: '([a-z])+\/([a-z][a-z-0-9]*[a-z0-9])'
+          allowed_prefixes: 'feat,fix,devops,bump'
+          ignore: develop
+          min_length: 5
+          max_length: 30
+
       - name: Check out Git repository
         uses: actions/checkout@v2
 
@@ -39,6 +48,6 @@ jobs:
 
       - name: Lint
         run: cd /c13n && make lint
-      
+
       - name: Test
         run: cd /c13n && make test
