@@ -2,6 +2,7 @@ package lnchat
 
 import (
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,24 +11,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/c13n-io/c13n-go/lnchat/lnconnect"
 )
 
 var (
-	certContents = `-----BEGIN CERTIFICATE-----
-MIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw
-DgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow
-EjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d
-7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B
-5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr
-BgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1
-NDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l
-Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
-6MF9+Yw1Yy0t
------END CERTIFICATE-----`
+	lndHost = "127.0.0.1:10009"
 
-	certBody = "" +
+	// TLS certificate body encoded as base64URL
+	certBodyEnc = "" +
 		"MIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn-dNuaTAKBggqhkjOPQQDAjASMRAw" +
 		"DgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow" +
 		"EjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d" +
@@ -38,7 +31,8 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 		"Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h_iI-i341gBmLiAFQOyTDT-_wQc" +
 		"6MF9-Yw1Yy0t"
 
-	macEncBase64 = "" +
+	// Macaroon bytes encoded as base64URL
+	macBytesEnc = "" +
 		"AgEDbG5kAvgBAwoQ0SfUsCGDIr9Q7AtZyDs3YhIBMBoWCgdhZGRyZXNzEgRyZWFkEgV3cml0ZRoT" +
 		"CgRpbmZvEgRyZWFkEgV3cml0ZRoXCghpbnZvaWNlcxIEcmVhZBIFd3JpdGUaIQoIbWFjYXJvb24S" +
 		"CGdlbmVyYXRlEgRyZWFkEgV3cml0ZRoWCgdtZXNzYWdlEgRyZWFkEgV3cml0ZRoXCghvZmZjaGFp" +
@@ -63,7 +57,7 @@ func TestNewCredentials(t *testing.T) {
 		return url
 	}
 
-	mustDecodeBase64 := func(t *testing.T, enc string) []byte {
+	mustDecodeBase64URL := func(t *testing.T, enc string) []byte {
 		decoder := base64.RawURLEncoding
 
 		bytes, err := decoder.DecodeString(enc)
@@ -72,18 +66,25 @@ func TestNewCredentials(t *testing.T) {
 		return bytes
 	}
 
-	lndHost := "127.0.0.1:10009"
-
-	tlsBytes := mustDecodeBase64(t, certBody)
-	macBytes := mustDecodeBase64(t, macEncBase64)
+	// Recreate certificate and write to file.
+	certBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: mustDecodeBase64URL(t, certBodyEnc),
+	})
 
 	tempCertPath := filepath.Join(os.TempDir(), "test_tls.cert")
-	_ = ioutil.WriteFile(tempCertPath, []byte(certContents), 0644)
+	_ = ioutil.WriteFile(tempCertPath, certBytes, 0644)
 	defer os.Remove(tempCertPath)
+
+	// Write decoded macaroon to file.
+	macBytes := mustDecodeBase64URL(t, macBytesEnc)
 
 	tempMacPath := filepath.Join(os.TempDir(), "test_mac.macaroon")
 	_ = ioutil.WriteFile(tempMacPath, macBytes, 0644)
 	defer os.Remove(tempMacPath)
+
+	expectedTLSCreds, err := credentials.NewClientTLSFromFile(tempCertPath, "")
+	require.NoError(t, err)
 
 	cases := []struct {
 		name                      string
@@ -94,22 +95,22 @@ func TestNewCredentials(t *testing.T) {
 	}{
 		{
 			name:          "lndconnect credentials without macaroon parameter",
-			lndConnectURL: createURL(lndHost, certBody, ""),
+			lndConnectURL: createURL(lndHost, certBodyEnc, ""),
 			expectedCreds: lnconnect.Credentials{},
 			expectedErr:   fmt.Errorf("macaroon must be present in lndconnect URL"),
 		},
 		{
-			name:          "lndconnect credentials without cert parameter",
-			lndConnectURL: createURL(lndHost, "", macEncBase64),
+			name:          "lndconnect credentials without certificate",
+			lndConnectURL: createURL(lndHost, "", macBytesEnc),
 			expectedCreds: lnconnect.Credentials{},
 			expectedErr:   fmt.Errorf("TLS certificate must be present in lndconnect URL"),
 		},
 		{
 			name:          "lndconnect credentials",
-			lndConnectURL: createURL(lndHost, certBody, macEncBase64),
+			lndConnectURL: createURL(lndHost, certBodyEnc, macBytesEnc),
 			expectedCreds: lnconnect.Credentials{
 				RPCAddress:    lndHost,
-				TLSBytes:      tlsBytes,
+				TLSCreds:      expectedTLSCreds,
 				MacaroonBytes: macBytes,
 			},
 		},
@@ -119,7 +120,7 @@ func TestNewCredentials(t *testing.T) {
 			tlsPath: tempCertPath,
 			expectedCreds: lnconnect.Credentials{
 				RPCAddress: lndHost,
-				TLSBytes:   tlsBytes,
+				TLSCreds:   expectedTLSCreds,
 			},
 		},
 		{
@@ -138,7 +139,7 @@ func TestNewCredentials(t *testing.T) {
 			macPath: tempMacPath,
 			expectedCreds: lnconnect.Credentials{
 				RPCAddress:    lndHost,
-				TLSBytes:      tlsBytes,
+				TLSCreds:      expectedTLSCreds,
 				MacaroonBytes: macBytes,
 			},
 		},
@@ -156,14 +157,20 @@ func TestNewCredentials(t *testing.T) {
 				creds, err = NewCredentialsFromURL(c.lndConnectURL)
 			}
 
-			switch c.expectedErr {
-			case nil:
-				assert.NoError(t, err)
-				assert.NotEmpty(t, creds)
-				assert.EqualValues(t, c.expectedCreds, creds)
-			default:
+			if c.expectedErr != nil {
 				assert.EqualError(t, err, c.expectedErr.Error())
+				return
 			}
+
+			assert.NoError(t, err)
+
+			assert.EqualValues(t,
+				c.expectedCreds.RPCAddress, creds.RPCAddress)
+			if c.expectedCreds.TLSCreds != nil {
+				assert.NotEmpty(t, creds.TLSCreds)
+			}
+			assert.EqualValues(t,
+				c.expectedCreds.MacaroonBytes, creds.MacaroonBytes)
 		})
 	}
 }

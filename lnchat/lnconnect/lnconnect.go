@@ -2,8 +2,6 @@ package lnconnect
 
 import (
 	"context"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"time"
 
@@ -14,14 +12,14 @@ import (
 )
 
 // ErrCredentials represents a credentials error.
-var ErrCredentials = fmt.Errorf("Credentials error")
+var ErrCredentials = fmt.Errorf("credentials error")
 
 // Credentials is used to pass identification and connection
 // parameters to InitializeConnection.
 type Credentials struct {
-	TLSBytes      []byte
-	MacaroonBytes []byte
 	RPCAddress    string
+	TLSCreds      credentials.TransportCredentials
+	MacaroonBytes []byte
 }
 
 var (
@@ -32,17 +30,8 @@ var (
 
 // InitializeConnection establishes a connection with a Lightning daemon.
 func InitializeConnection(cfg Credentials) (*grpc.ClientConn, error) {
-	certBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: cfg.TLSBytes,
-	})
-	if certBytes == nil {
-		return nil, fmt.Errorf("%w: could not encode TLS certificate", ErrCredentials)
-	}
-
-	tlsCerts := x509.NewCertPool()
-	if !tlsCerts.AppendCertsFromPEM(certBytes) {
-		return nil, fmt.Errorf("%w: could not append TLS certificate to pool", ErrCredentials)
+	if cfg.TLSCreds == nil {
+		return nil, fmt.Errorf("%w: TLS certificate not provided", ErrCredentials)
 	}
 
 	mac := &macaroon.Macaroon{}
@@ -69,7 +58,7 @@ func InitializeConnection(cfg Credentials) (*grpc.ClientConn, error) {
 	}
 
 	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(tlsCerts, "")),
+		grpc.WithTransportCredentials(cfg.TLSCreds),
 		grpc.WithPerRPCCredentials(perRPCCreds),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(maxMsgRecvSize),
