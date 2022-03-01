@@ -101,6 +101,7 @@ func TestNewCredentials(t *testing.T) {
 		name                      string
 		rpcAddr, tlsPath, macPath string
 		lndConnectURL             string
+		macConstraints            MacaroonConstraints
 		expectedCreds             lnconnect.Credentials
 		expectedErr               error
 	}{
@@ -163,9 +164,11 @@ func TestNewCredentials(t *testing.T) {
 
 			switch c.lndConnectURL {
 			case "":
-				creds, err = NewCredentials(c.rpcAddr, c.tlsPath, c.macPath)
+				creds, err = NewCredentials(c.rpcAddr, c.tlsPath,
+					c.macPath, c.macConstraints)
 			default:
-				creds, err = NewCredentialsFromURL(c.lndConnectURL)
+				creds, err = NewCredentialsFromURL(c.lndConnectURL,
+					c.macConstraints)
 			}
 
 			if c.expectedErr != nil {

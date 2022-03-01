@@ -67,16 +67,19 @@ func Run(_ *cobra.Command, _ []string) error {
 	}
 
 	// Initialize chat service
+	macConstraints := lnchat.MacaroonConstraints{}
 	var creds lnconnect.Credentials
 	if viper.GetString("lndconnect") != "" {
 		creds, err = lnchat.NewCredentialsFromURL(
 			viper.GetString("lndconnect"),
+			macConstraints,
 		)
 	} else {
 		creds, err = lnchat.NewCredentials(
 			viper.GetString("lnd.address"),
 			viper.GetString("lnd.tls_path"),
 			viper.GetString("lnd.macaroon_path"),
+			macConstraints,
 		)
 	}
 	if err != nil {

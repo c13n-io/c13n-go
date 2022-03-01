@@ -15,7 +15,9 @@ import (
 
 // NewCredentials constructs a set of credentials
 // from the address and the TLS and macaroon file paths.
-func NewCredentials(rpcAddr, tlsPath, macPath string) (lnconnect.Credentials, error) {
+func NewCredentials(rpcAddr, tlsPath, macPath string,
+	macConstraints MacaroonConstraints) (lnconnect.Credentials, error) {
+
 	creds := lnconnect.Credentials{
 		RPCAddress: rpcAddr,
 	}
@@ -36,7 +38,8 @@ func NewCredentials(rpcAddr, tlsPath, macPath string) (lnconnect.Credentials, er
 		}
 
 		creds.RPCCreds = macaroonCredentials{
-			Macaroon: mac,
+			Macaroon:    mac,
+			constraints: macConstraints,
 		}
 	}
 
@@ -45,7 +48,8 @@ func NewCredentials(rpcAddr, tlsPath, macPath string) (lnconnect.Credentials, er
 
 // NewCredentialsFromURL constructs a set of credentials
 // from an lndconnect URL.
-func NewCredentialsFromURL(lndConnectURL string) (lnconnect.Credentials, error) {
+func NewCredentialsFromURL(lndConnectURL string,
+	macConstraints MacaroonConstraints) (lnconnect.Credentials, error) {
 	creds := lnconnect.Credentials{}
 
 	addr, tlsBytes, macBytes, err := parseLNDConnectURL(lndConnectURL)
@@ -70,7 +74,8 @@ func NewCredentialsFromURL(lndConnectURL string) (lnconnect.Credentials, error) 
 		return creds, errors.Wrap(err, "could not load macaroon")
 	}
 	creds.RPCCreds = macaroonCredentials{
-		Macaroon: mac,
+		Macaroon:    mac,
+		constraints: macConstraints,
 	}
 
 	return creds, nil
