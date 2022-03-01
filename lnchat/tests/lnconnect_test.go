@@ -2,6 +2,7 @@ package itest
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	netutils "net"
@@ -11,6 +12,7 @@ import (
 	"github.com/lightningnetwork/lnd/lntest"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/credentials"
+	macaroon "gopkg.in/macaroon.v2"
 
 	"github.com/c13n-io/c13n-go/lnchat/lnconnect"
 )
@@ -51,13 +53,12 @@ func testInitializeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 				"TLS certificate not provided"),
 		},
 		{
-			name:       "invalid macaroon credentials",
+			name:       "no macaroon credentials provided",
 			testType:   "short",
 			tlsPath:    net.Alice.TLSCertStr(),
 			macPath:    "",
 			rpcAddress: net.Alice.Cfg.RPCAddr(),
-			err: fmt.Errorf("credentials error: " +
-				"could not unmarshal macaroon: empty macaroon data"),
+			err:        nil,
 		},
 	}
 
@@ -68,7 +69,7 @@ func testInitializeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 			}
 
 			var tls credentials.TransportCredentials
-			var mac []byte
+			var mac credentials.PerRPCCredentials
 			var err error
 
 			if c.tlsPath != "" {
@@ -76,16 +77,14 @@ func testInitializeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 				assert.NoError(t, err)
 			}
 			if c.macPath != "" {
-				mac, err = readMacaroonBytes(c.macPath)
+				mac, err = loadMacaroonCreds(c.macPath)
 				assert.NoError(t, err)
-			} else {
-				mac = []byte{}
 			}
 
 			cfg := lnconnect.Credentials{
-				MacaroonBytes: mac,
-				TLSCreds:      tls,
-				RPCAddress:    c.rpcAddress,
+				RPCAddress: c.rpcAddress,
+				TLSCreds:   tls,
+				RPCCreds:   mac,
 			}
 
 			_, err = lnconnect.InitializeConnection(cfg)
@@ -104,11 +103,40 @@ func loadTLSCert(tlsPath string) (credentials.TransportCredentials, error) {
 	return credentials.NewClientTLSFromFile(tlsPath, "")
 }
 
-func readMacaroonBytes(macPath string) ([]byte, error) {
+func loadMacaroonCreds(macPath string) (credentials.PerRPCCredentials, error) {
 	macBytes, err := ioutil.ReadFile(macPath)
 	if err != nil {
 		return nil, err
 	}
 
-	return macBytes, nil
+	mac := &macaroon.Macaroon{}
+	if err = mac.UnmarshalBinary(macBytes); err != nil {
+		return nil, err
+	}
+
+	return testMacaroonCredentials{
+		Macaroon: mac,
+	}, nil
+}
+
+type testMacaroonCredentials struct {
+	*macaroon.Macaroon
+}
+
+func (c testMacaroonCredentials) RequireTransportSecurity() bool {
+	return true
+}
+
+func (c testMacaroonCredentials) GetRequestMetadata(_ context.Context,
+	_ ...string) (map[string]string, error) {
+
+	macBytes, err := c.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	md := make(map[string]string)
+	md["macaroon"] = hex.EncodeToString(macBytes)
+
+	return md, nil
 }

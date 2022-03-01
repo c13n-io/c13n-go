@@ -1,7 +1,9 @@
 package lnchat
 
 import (
+	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
@@ -86,6 +88,15 @@ func TestNewCredentials(t *testing.T) {
 	expectedTLSCreds, err := credentials.NewClientTLSFromFile(tempCertPath, "")
 	require.NoError(t, err)
 
+	macaroon, err := loadMacaroonFromBytes(macBytes)
+	require.NoError(t, err)
+
+	expectedMacCreds := macaroonCredentials{
+		Macaroon: macaroon,
+	}
+
+	expectedMacaroonVal := hex.EncodeToString(macBytes)
+
 	cases := []struct {
 		name                      string
 		rpcAddr, tlsPath, macPath string
@@ -97,21 +108,21 @@ func TestNewCredentials(t *testing.T) {
 			name:          "lndconnect credentials without macaroon parameter",
 			lndConnectURL: createURL(lndHost, certBodyEnc, ""),
 			expectedCreds: lnconnect.Credentials{},
-			expectedErr:   fmt.Errorf("macaroon must be present in lndconnect URL"),
+			expectedErr:   fmt.Errorf("lndconnect URL missing macaroon value"),
 		},
 		{
 			name:          "lndconnect credentials without certificate",
 			lndConnectURL: createURL(lndHost, "", macBytesEnc),
 			expectedCreds: lnconnect.Credentials{},
-			expectedErr:   fmt.Errorf("TLS certificate must be present in lndconnect URL"),
+			expectedErr:   fmt.Errorf("lndconnect URL missing cert value"),
 		},
 		{
 			name:          "lndconnect credentials",
 			lndConnectURL: createURL(lndHost, certBodyEnc, macBytesEnc),
 			expectedCreds: lnconnect.Credentials{
-				RPCAddress:    lndHost,
-				TLSCreds:      expectedTLSCreds,
-				MacaroonBytes: macBytes,
+				RPCAddress: lndHost,
+				TLSCreds:   expectedTLSCreds,
+				RPCCreds:   expectedMacCreds,
 			},
 		},
 		{
@@ -128,8 +139,8 @@ func TestNewCredentials(t *testing.T) {
 			rpcAddr: lndHost,
 			macPath: tempMacPath,
 			expectedCreds: lnconnect.Credentials{
-				RPCAddress:    lndHost,
-				MacaroonBytes: macBytes,
+				RPCAddress: lndHost,
+				RPCCreds:   expectedMacCreds,
 			},
 		},
 		{
@@ -138,9 +149,9 @@ func TestNewCredentials(t *testing.T) {
 			tlsPath: tempCertPath,
 			macPath: tempMacPath,
 			expectedCreds: lnconnect.Credentials{
-				RPCAddress:    lndHost,
-				TLSCreds:      expectedTLSCreds,
-				MacaroonBytes: macBytes,
+				RPCAddress: lndHost,
+				TLSCreds:   expectedTLSCreds,
+				RPCCreds:   expectedMacCreds,
 			},
 		},
 	}
@@ -169,8 +180,15 @@ func TestNewCredentials(t *testing.T) {
 			if c.expectedCreds.TLSCreds != nil {
 				assert.NotEmpty(t, creds.TLSCreds)
 			}
-			assert.EqualValues(t,
-				c.expectedCreds.MacaroonBytes, creds.MacaroonBytes)
+			if c.expectedCreds.RPCCreds != nil {
+				assert.NotEmpty(t, creds.RPCCreds)
+
+				reqMetadata, err := creds.RPCCreds.GetRequestMetadata(
+					context.TODO(), "",
+				)
+				assert.NoError(t, err)
+				assert.Equal(t, reqMetadata["macaroon"], expectedMacaroonVal)
+			}
 		})
 	}
 }
