@@ -57,7 +57,7 @@ func createInitializedApp(t *testing.T, mockInstaller func(*lnmock.LightManager,
 		err := app.Init(context.Background(), 15)
 
 		require.NoError(t, err)
-		require.NotNil(t, app.PubSubBus)
+		require.NotNil(t, app.bus)
 	}
 	appTestStopFunc := func() {
 		mockStopFunc()
@@ -103,7 +103,7 @@ func TestAppInitSuccess(t *testing.T) {
 	defer appTestStopFunc()
 
 	assert.EqualValues(t, selfInfo, app.Self)
-	assert.NotNil(t, app.PubSubBus)
+	assert.NotNil(t, app.bus)
 }
 
 func TestAppInitErrorSelfInfo(t *testing.T) {
@@ -130,7 +130,7 @@ func TestAppInitErrorSelfInfo(t *testing.T) {
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, expectedErr.Error())
 	}
-	assert.Nil(t, app.PubSubBus)
+	assert.Nil(t, app.bus)
 }
 
 func TestBackoffFn(t *testing.T) {

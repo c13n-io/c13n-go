@@ -162,7 +162,7 @@ func TestSubscribeInvoices(t *testing.T) {
 		addDiscussionErr         error
 		addRawMsgErr             error
 		addRawMsgID              uint64
-		message                  *model.Message
+		message                  *MaybeMessage
 	}
 
 	cases := []struct {
@@ -196,21 +196,23 @@ func TestSubscribeInvoices(t *testing.T) {
 					addDiscussionErr:         nil,
 					addRawMsgErr:             nil,
 					addRawMsgID:              42,
-					message: &model.Message{
-						ID:             42,
-						DiscussionID:   13,
-						Payload:        "test message",
-						AmtMsat:        124,
-						Sender:         srcAddr.String(),
-						Receiver:       selfAddr.String(),
-						SenderVerified: true,
-						SentTimeNs:     time.Unix(invoiceUpdateList[0].Inv.CreatedTimeSec, 0).UnixNano(),
-						ReceivedTimeNs: time.Unix(invoiceUpdateList[0].Inv.SettleTimeSec, 0).UnixNano(),
-						Index:          invoiceUpdateList[0].Inv.SettleIndex,
-						PayReq:         "dummy payment request",
-						SuccessProb:    1.,
-						PreimageHash:   mustMakePreimageHash(t, invoiceUpdateList[0].Inv.Hash),
-						Preimage:       mustMakePreimage(t, invoiceUpdateList[0].Inv.Preimage),
+					message: &MaybeMessage{
+						Message: &model.Message{
+							ID:             42,
+							DiscussionID:   13,
+							Payload:        "test message",
+							AmtMsat:        124,
+							Sender:         srcAddr.String(),
+							Receiver:       selfAddr.String(),
+							SenderVerified: true,
+							SentTimeNs:     time.Unix(invoiceUpdateList[0].Inv.CreatedTimeSec, 0).UnixNano(),
+							ReceivedTimeNs: time.Unix(invoiceUpdateList[0].Inv.SettleTimeSec, 0).UnixNano(),
+							Index:          invoiceUpdateList[0].Inv.SettleIndex,
+							PayReq:         "dummy payment request",
+							SuccessProb:    1.,
+							PreimageHash:   mustMakePreimageHash(t, invoiceUpdateList[0].Inv.Hash),
+							Preimage:       mustMakePreimage(t, invoiceUpdateList[0].Inv.Preimage),
+						},
 					},
 				},
 			},
@@ -423,13 +425,10 @@ func TestSubscribeInvoices(t *testing.T) {
 					continue
 				}
 
-				pubMsg, ok := <-msgCh
+				maybeMsg, ok := <-msgCh
 				assert.Truef(t, ok, "Expected message %d not received prior to channel close", i)
-				var msg model.Message
-				err := json.Unmarshal(pubMsg.Payload, &msg)
-				assert.NoError(t, err)
 
-				assert.EqualValues(t, c.invoiceUpdateOps[i].message, &msg)
+				assert.EqualValues(t, c.invoiceUpdateOps[i].message, &maybeMsg)
 			}
 		})
 	}

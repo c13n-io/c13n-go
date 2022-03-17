@@ -23,7 +23,7 @@ type App struct {
 	LNManager lnchat.LightManager
 	Database  store.Database
 
-	PubSubBus *gochannel.GoChannel
+	bus *gochannel.GoChannel
 
 	Tomb *tomb.Tomb
 }
@@ -85,14 +85,14 @@ func (app *App) Init(ctx context.Context, infoTimeoutSecs uint) error {
 
 	// Initialize GoChannel for publishing received messages
 	app.Log.Info("Creating pubsub bus")
-	app.PubSubBus = gochannel.NewGoChannel(
+	app.bus = gochannel.NewGoChannel(
 		gochannel.Config{},
 		slog.NewWLogger("watermill"),
 	)
 
 	// Run the message subscription publisher as a separate goroutine,
 	// listening for incoming messages and publishing them
-	// under the ReceiveTopic on App.PubSubBus
+	// under ReceiveTopic on App.bus
 	var subscriptionCtx context.Context
 	app.Tomb, subscriptionCtx = tomb.WithContext(ctx)
 	app.Tomb.Go(func() error {
@@ -145,8 +145,8 @@ func (app *App) Cleanup() (err error) {
 	}
 
 	app.Log.Info("Closing pubsub bus")
-	if app.PubSubBus != nil {
-		if err = app.PubSubBus.Close(); err != nil {
+	if app.bus != nil {
+		if err = app.bus.Close(); err != nil {
 			app.Log.WithError(err).Warn("PubSub bus close failed")
 		}
 	}

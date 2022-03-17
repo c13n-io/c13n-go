@@ -13,8 +13,7 @@ type ErrKind int
 
 // Declaration of error kind enumeration.
 const (
-	MarshalError ErrKind = iota
-	Cancelled
+	Cancelled ErrKind = iota
 	DeadlineExceeded
 	NetworkError
 	PermissionError
