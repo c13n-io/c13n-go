@@ -1,34 +1,45 @@
 package lnchat
 
 import (
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"io/ioutil"
 	"net/url"
 
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/credentials"
 
 	"github.com/c13n-io/c13n-go/lnchat/lnconnect"
 )
 
 // NewCredentials constructs a set of credentials
 // from the address and the TLS and macaroon file paths.
-func NewCredentials(rpcAddr, tlsPath, macPath string) (lnconnect.Credentials, error) {
+func NewCredentials(rpcAddr, tlsPath, macPath string,
+	macConstraints MacaroonConstraints) (lnconnect.Credentials, error) {
+
 	creds := lnconnect.Credentials{
 		RPCAddress: rpcAddr,
 	}
 
-	var err error
 	if tlsPath != "" {
-		creds.TLSBytes, err = loadTLSFile(tlsPath)
+		tlsCreds, err := loadTLSCreds(tlsPath)
 		if err != nil {
-			return creds, errors.Wrap(err, "could not read TLS file")
+			return creds, errors.Wrap(err, "could not load TLS certificate")
 		}
+
+		creds.TLSCreds = tlsCreds
 	}
+
 	if macPath != "" {
-		creds.MacaroonBytes, err = loadMacFile(macPath)
+		mac, err := loadMacaroon(macPath)
 		if err != nil {
-			return creds, errors.Wrap(err, "could not read macaroon file")
+			return creds, errors.Wrap(err, "could not load macaroon")
+		}
+
+		creds.RPCCreds = macaroonCredentials{
+			Macaroon:    mac,
+			constraints: macConstraints,
 		}
 	}
 
@@ -37,66 +48,107 @@ func NewCredentials(rpcAddr, tlsPath, macPath string) (lnconnect.Credentials, er
 
 // NewCredentialsFromURL constructs a set of credentials
 // from an lndconnect URL.
-func NewCredentialsFromURL(lndConnectURL string) (lnconnect.Credentials, error) {
-	return parseLNDConnectURL(lndConnectURL)
+func NewCredentialsFromURL(lndConnectURL string,
+	macConstraints MacaroonConstraints) (lnconnect.Credentials, error) {
+	creds := lnconnect.Credentials{}
+
+	addr, tlsBytes, macBytes, err := parseLNDConnectURL(lndConnectURL)
+	if err != nil {
+		return creds, err
+	}
+	creds.RPCAddress = addr
+
+	tlsCreds, err := loadTLSCredsFromBytes(
+		pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: tlsBytes,
+		}),
+	)
+	if err != nil {
+		return creds, errors.Wrap(err, "could not load TLS certificate")
+	}
+	creds.TLSCreds = tlsCreds
+
+	mac, err := loadMacaroonFromBytes(macBytes)
+	if err != nil {
+		return creds, errors.Wrap(err, "could not load macaroon")
+	}
+	creds.RPCCreds = macaroonCredentials{
+		Macaroon:    mac,
+		constraints: macConstraints,
+	}
+
+	return creds, nil
 }
 
-func loadTLSFile(tlsPath string) ([]byte, error) {
-	tlsBytes, err := ioutil.ReadFile(tlsPath)
+func parseLNDConnectURL(lndConnectURL string) (string, []byte, []byte, error) {
+	decoder := base64.RawURLEncoding
+	// Retrieve and decode an attribute (base64URL-encoded) from a url query.
+	getDecodedAttrValue := func(values url.Values, key string) ([]byte, error) {
+		val := values.Get(key)
+		decodedVal, err := decoder.DecodeString(val)
+		if err != nil {
+			return nil, err
+		}
+
+		return decodedVal, nil
+	}
+
+	var addr string
+	var tlsBytes, macBytes []byte
+	var err error
+	if lndConnectURL != "" {
+		lndURL, err := url.Parse(lndConnectURL)
+		if err != nil {
+			return "", nil, nil,
+				errors.Wrap(err, "could not parse lndconnect URL")
+		}
+		if lndURL.Scheme != "lndconnect" {
+			return "", nil, nil,
+				errors.New("invalid scheme for lndconnect URL")
+		}
+
+		addr = lndURL.Host
+		attrMap := lndURL.Query()
+
+		tlsBytes, err = getDecodedAttrValue(attrMap, "cert")
+		if err != nil {
+			return addr, nil, nil,
+				errors.Wrap(err, "could not decode certificate")
+		}
+		if len(tlsBytes) == 0 {
+			return addr, nil, nil,
+				errors.New("lndconnect URL missing cert value")
+		}
+
+		macBytes, err = getDecodedAttrValue(attrMap, "macaroon")
+		if err != nil {
+			return addr, tlsBytes, nil,
+				errors.Wrap(err, "could not decode macaroon")
+		}
+		if len(macBytes) == 0 {
+			return addr, tlsBytes, nil,
+				errors.New("lndconnect URL missing macaroon value")
+		}
+	}
+
+	return addr, tlsBytes, macBytes, err
+}
+
+func loadTLSCreds(tlsPath string) (credentials.TransportCredentials, error) {
+	certBytes, err := ioutil.ReadFile(tlsPath)
 	if err != nil {
 		return nil, err
 	}
 
-	block, _ := pem.Decode(tlsBytes)
-	if block == nil || block.Type != "CERTIFICATE" {
-		return nil, errors.New("certificate block not found")
-	}
-
-	return block.Bytes, nil
+	return loadTLSCredsFromBytes(certBytes)
 }
 
-func loadMacFile(macaroonPath string) ([]byte, error) {
-	macBytes, err := ioutil.ReadFile(macaroonPath)
-
-	return macBytes, err
-}
-
-func parseLNDConnectURL(lndConnectURL string) (lnconnect.Credentials, error) {
-	var creds lnconnect.Credentials
-
-	if lndConnectURL != "" {
-		lndURL, err := url.Parse(lndConnectURL)
-		if err != nil {
-			return creds, errors.Wrap(err, "could not parse lndconnect URL")
-		}
-		if lndURL.Scheme != "lndconnect" {
-			return creds, errors.New("invalid scheme for lndconnect URL")
-		}
-
-		creds.RPCAddress = lndURL.Host
-
-		queryMap := lndURL.Query()
-		decoder := base64.RawURLEncoding
-
-		// If the query map does not contain a cert key or it's empty, error out.
-		cert, ok := queryMap["cert"]
-		if !ok || len(cert) != 1 || cert[0] == "" {
-			return creds, errors.New("TLS certificate must be present in lndconnect URL")
-		}
-		creds.TLSBytes, err = decoder.DecodeString(cert[0])
-		if err != nil {
-			return creds, errors.Wrap(err, "could not decode TLS bytes")
-		}
-
-		mac, ok := queryMap["macaroon"]
-		if !ok || len(mac) != 1 || mac[0] == "" {
-			return creds, errors.New("macaroon must be present in lndconnect URL")
-		}
-		creds.MacaroonBytes, err = decoder.DecodeString(mac[0])
-		if err != nil {
-			return creds, errors.Wrap(err, "could not decode macaroon bytes")
-		}
+func loadTLSCredsFromBytes(certBytes []byte) (credentials.TransportCredentials, error) {
+	tlsCertPool := x509.NewCertPool()
+	if !tlsCertPool.AppendCertsFromPEM(certBytes) {
+		return nil, errors.New("failed to append certificate")
 	}
 
-	return creds, nil
+	return credentials.NewClientTLSFromCert(tlsCertPool, ""), nil
 }

@@ -9,10 +9,12 @@ import (
 )
 
 func testNewLnchat(net *lntest.NetworkHarness, t *harnessTest) {
+	constraints := lnchat.MacaroonConstraints{}
 	creds, err := lnchat.NewCredentials(
 		net.Alice.Cfg.RPCAddr(),
 		net.Alice.TLSCertStr(),
 		net.Alice.AdminMacPath(),
+		constraints,
 	)
 	require.NoError(t.t, err)
 

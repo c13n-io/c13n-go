@@ -45,7 +45,8 @@ func initCliFlags() {
 	// APP flags
 	rootFlags.Int64("default-fee-limit-msat", 3000,
 		"Default fee limit for discussions in millisatoshi")
-	_ = viper.BindPFlag("app.default_fee_limit_msat", rootFlags.Lookup("default-fee-limit-msat"))
+	_ = viper.BindPFlag("app.default_fee_limit_msat",
+		rootFlags.Lookup("default-fee-limit-msat"))
 
 	// RPC flags
 	rootFlags.String("server-address", "localhost:9999",
@@ -69,7 +70,8 @@ func initCliFlags() {
 	_ = viper.BindPFlag("server.rpcpass", rootFlags.Lookup("server-pass"))
 	rootFlags.Int("graceful-shutdown-timeout", 10,
 		"Graceful shutdown timeout in seconds")
-	_ = viper.BindPFlag("server.graceful_shutdown_timeout", rootFlags.Lookup("graceful-shutdown-timeout"))
+	_ = viper.BindPFlag("server.graceful_shutdown_timeout",
+		rootFlags.Lookup("graceful-shutdown-timeout"))
 
 	// LND flags
 	rootFlags.String("lnd-address", "localhost:10009",
@@ -83,6 +85,13 @@ func initCliFlags() {
 	_ = viper.BindPFlag("lnd.macaroon_path", rootFlags.Lookup("lnd-macaroon-path"))
 	rootFlags.StringVarP(&lndConnectURL, "lndconnect", "l", "",
 		"lndconnect URL to use for connection to the Lightning daemon")
+	rootFlags.Int64("lnd-macaroon-timeout", 0,
+		"Lifetime of transmitted daemon macaroon in seconds")
+	_ = viper.BindPFlag("lnd.macaroon_timeout_secs",
+		rootFlags.Lookup("lnd-macaroon-timeout"))
+	rootFlags.String("lnd-macaroon-ip", "",
+		"IP to lock the transmitted daemon macaroon to")
+	_ = viper.BindPFlag("lnd.macaroon_ip", rootFlags.Lookup("lnd-macaroon-ip"))
 
 	// DB flags
 	rootFlags.String("db-path", "c13n.db",
