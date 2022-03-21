@@ -16,6 +16,7 @@ import (
 type MacaroonConstraints struct {
 	// Timeout restricts the lifetime of
 	// the transmitted macaroon (in seconds).
+	// A value of 0 (default) does not set a timeout caveat.
 	Timeout int64
 	// IPLock locks the transmitted macaroon to an IP address.
 	// Empty value is ignored.
