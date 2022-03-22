@@ -22,6 +22,8 @@ type LightManager interface {
 
 	SubscribeInvoiceUpdates(ctx context.Context, startIdx uint64,
 		filter InvoiceUpdateFilter) (<-chan InvoiceUpdate, error)
+	SubscribePaymentUpdates(ctx context.Context, startIdx uint64,
+		filter PaymentUpdateFilter) (<-chan PaymentUpdate, error)
 	SendPayment(ctx context.Context, recipient string, amt Amount, payReq string,
 		payOpts PaymentOptions, payload map[uint64][]byte,
 		filter PaymentUpdateFilter) (<-chan PaymentUpdate, error)
