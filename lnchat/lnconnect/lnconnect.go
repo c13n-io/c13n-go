@@ -2,6 +2,7 @@ package lnconnect
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -68,8 +69,10 @@ func InitializeConnection(cfg Credentials) (*grpc.ClientConn, error) {
 			ErrCredentials, err)
 	}
 
+	config := &tls.Config{}
+
 	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(tlsCerts, "")),
+		grpc.WithTransportCredentials(credentials.NewTLS(config)),
 		grpc.WithPerRPCCredentials(perRPCCreds),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(maxMsgRecvSize),
