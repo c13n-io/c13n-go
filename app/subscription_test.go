@@ -7,5 +7,5 @@ import (
 )
 
 func TestTopicConsts(t *testing.T) {
-	assert.EqualValues(t, "message.receive", ReceiveTopic)
+	assert.EqualValues(t, "message", messageTopic)
 }

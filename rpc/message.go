@@ -2,11 +2,9 @@ package rpc
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/c13n-io/c13n-go/app"
-	"github.com/c13n-io/c13n-go/model"
 	pb "github.com/c13n-io/c13n-go/rpc/services"
 	"github.com/c13n-io/c13n-go/slog"
 )
@@ -81,12 +79,11 @@ func (s *messageServiceServer) SendMessage(ctx context.Context, req *pb.SendMess
 }
 
 // SubscribeMessages returns received messages on the provided grpc stream.
-func (s *messageServiceServer) SubscribeMessages(_ *pb.SubscribeMessageRequest, srv pb.MessageService_SubscribeMessagesServer) error {
-	ctx := srv.Context()
-	ctx, cancel := context.WithCancel(ctx)
-	defer func() {
-		cancel()
-	}()
+func (s *messageServiceServer) SubscribeMessages(_ *pb.SubscribeMessageRequest,
+	srv pb.MessageService_SubscribeMessagesServer) error {
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
 
 	// Create a subscriber for received messages
 	msgChannel, err := s.App.SubscribeMessages(ctx)
@@ -101,20 +98,18 @@ messageLoop:
 		case <-ctx.Done():
 			s.Log.Printf("Context cancelled")
 			break messageLoop
-		case pubMsg, ok := <-msgChannel:
+		case msg, ok := <-msgChannel:
 			if !ok {
 				s.Log.Printf("Subscription channel closed.")
 				break messageLoop
 			}
-			// Decode message
-			var msg model.Message
-			if err := json.Unmarshal(pubMsg.Payload, &msg); err != nil {
-				return associateStatusCode(s.logError(err))
+			if msg.Error != nil {
+				return associateStatusCode(s.logError(
+					fmt.Errorf("message subscription error")))
 			}
-			// Acknowledge message receipt
-			pubMsg.Ack()
+
 			// Forward received message to grpc stream
-			resp, err := messageModelToSubscribeMessageResponse(&msg)
+			resp, err := messageModelToSubscribeMessageResponse(msg.Message)
 			if err != nil {
 				return associateStatusCode(s.logError(err))
 			}
