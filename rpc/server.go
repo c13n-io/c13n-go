@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"net"
+	"strings"
 
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
@@ -12,6 +13,7 @@ import (
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -155,7 +157,6 @@ func (s *Server) registerAllServices() {
 // WithBasicAuth creates an authorization interceptor with the provided basic auth credentials.
 func WithBasicAuth(username, password string) func(*Server) error {
 	return func(server *Server) error {
-		token := username + ":" + password
 		f := func(ctx context.Context) (context.Context, error) {
 			authError := status.Errorf(codes.Unauthenticated, "Invalid credentials")
 
@@ -168,7 +169,17 @@ func WithBasicAuth(username, password string) func(*Server) error {
 				return nil, status.Errorf(codes.Unauthenticated,
 					"Invalid base64 encoded data")
 			}
-			if string(creds) != token {
+
+			providedCreds := strings.Split(string(creds), ":")
+			providedUsername, providedPass := providedCreds[0], providedCreds[1]
+
+			// Check username match
+			if string(providedUsername) != username {
+				return nil, authError
+			}
+
+			// Check password hash match
+			if err := bcrypt.CompareHashAndPassword([]byte(password), []byte(providedPass)); err != nil {
 				return nil, authError
 			}
 
