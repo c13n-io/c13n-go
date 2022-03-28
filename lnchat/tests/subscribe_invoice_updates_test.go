@@ -176,7 +176,7 @@ func testSubscribeInvoiceUpdatesSettled(net *lntest.NetworkHarness, t *harnessTe
 
 	// Open a channel with 100k satoshis between Alice and Bob with Alice being
 	// the sole funder of the channel.
-	chanAmt := btcutil.Amount(1000000)
+	chanAmt := btcutil.Amount(100_000)
 	chanPoint := openChannelAndAssert(
 		t, net, net.Alice, net.Bob,
 		lntest.OpenChannelParams{
