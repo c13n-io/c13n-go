@@ -132,6 +132,7 @@ func TestInitConfigPriority(t *testing.T) {
 	rootCmd.SetArgs([]string{"--config", tmpConfigFile.Name(),
 		"--log-level", "debug",
 		"--server-address", "random_host:5555",
+		"--server-passwd-hash", "bcrypt_hash",
 		"--cert-path", "~/random/tls.cert",
 		"--tls-extra-ip", "10.10.10.12",
 		"--tls-extra-ip", "100.100.100.100",
@@ -148,6 +149,7 @@ func TestInitConfigPriority(t *testing.T) {
 	assert.Equal(t, "debug", viper.GetString("log_level"))
 
 	assert.Equal(t, "random_host:5555", viper.GetString("server.address"))
+	assert.Equal(t, "bcrypt_hash", viper.GetString("server.rpcpasswdhash"))
 	assert.Equal(t, false, viper.GetBool("server.disable_tls"))
 	assert.Equal(t, "~/random/tls.cert", viper.GetString("server.tls.cert_path"))
 	assert.Equal(t, "~/random/tls.key", viper.GetString("server.tls.key_path"))

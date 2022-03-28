@@ -155,7 +155,8 @@ func (s *Server) registerAllServices() {
 }
 
 // WithBasicAuth creates an authorization interceptor with the provided basic auth credentials.
-func WithBasicAuth(username, password string) func(*Server) error {
+func WithBasicAuth(username, hashedPassword string) func(*Server) error {
+	hashedPwd := []byte(hashedPassword)
 	return func(server *Server) error {
 		f := func(ctx context.Context) (context.Context, error) {
 			authError := status.Errorf(codes.Unauthenticated, "Invalid credentials")
@@ -170,16 +171,19 @@ func WithBasicAuth(username, password string) func(*Server) error {
 					"Invalid base64 encoded data")
 			}
 
-			providedCreds := strings.Split(string(creds), ":")
-			providedUsername, providedPass := providedCreds[0], providedCreds[1]
+			clientCreds := strings.SplitN(string(creds), ":", 2)
+			if len(clientCreds) != 2 {
+				return nil, authError
+			}
+			user, pass := clientCreds[0], clientCreds[1]
 
 			// Check username match
-			if string(providedUsername) != username {
+			if user != username {
 				return nil, authError
 			}
 
 			// Check password hash match
-			if err := bcrypt.CompareHashAndPassword([]byte(password), []byte(providedPass)); err != nil {
+			if err := bcrypt.CompareHashAndPassword(hashedPwd, []byte(pass)); err != nil {
 				return nil, authError
 			}
 
