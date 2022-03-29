@@ -8,7 +8,8 @@ server:
     cert_path: "./cert/c13n.pem"
     key_path:  "./cert/c13n.key"
   user: example
-  pass: replaceme # bcrypt hash of c13n RPC server
+  # bcrypt hash of c13n RPC server
+  pwdhash: replaceme
   graceful_shutdown_timeout: 10
 # LN service configuration
 lnd:

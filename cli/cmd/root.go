@@ -66,8 +66,8 @@ func initCliFlags() {
 	_ = viper.BindPFlag("server.tls.extra_domains", rootFlags.Lookup("tls-extra-domain"))
 	rootFlags.String("server-user", "", "Username for server connections")
 	_ = viper.BindPFlag("server.user", rootFlags.Lookup("server-user"))
-	rootFlags.String("server-passwd-hash", "", "Bcrypt password hash for server connections")
-	_ = viper.BindPFlag("server.rpcpasswdhash", rootFlags.Lookup("server-passwd-hash"))
+	rootFlags.String("server-pwdhash", "", "Bcrypt password hash for server connections")
+	_ = viper.BindPFlag("server.pwdhash", rootFlags.Lookup("server-pwdhash"))
 	rootFlags.Int("graceful-shutdown-timeout", 10,
 		"Graceful shutdown timeout in seconds")
 	_ = viper.BindPFlag("server.graceful_shutdown_timeout",

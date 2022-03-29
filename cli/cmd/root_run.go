@@ -128,10 +128,10 @@ func Run(_ *cobra.Command, _ []string) error {
 			viper.GetString("server.tls.key_path"),
 		))
 	}
-	if viper.IsSet("server.user") && viper.IsSet("server.rpcpasswdhash") {
+	if viper.IsSet("server.user") && viper.IsSet("server.pwdhash") {
 		srvOpts = append(srvOpts, rpc.WithBasicAuth(
 			viper.GetString("server.user"),
-			viper.GetString("server.rpcpasswdhash"),
+			viper.GetString("server.pwdhash"),
 		))
 	}
 	srvAddress := viper.GetString("server.address")
