@@ -16,7 +16,7 @@ import (
 	dbmock "github.com/c13n-io/c13n-go/store/mocks"
 )
 
-func TestSendPayment(t *testing.T) {
+func TestSendPay(t *testing.T) {
 	srcAddress := "000000000000000000000000000000000000000000000000000000000000000000"
 	destAddress := "111111111111111111111111111111111111111111111111111111111111111111"
 
@@ -268,7 +268,7 @@ func TestSendPayment(t *testing.T) {
 						FeeLimitMsat:   3000,
 						FinalCltvDelta: 20,
 						TimeoutSecs:    30,
-					}, mock.Anything, mock.Anything).Return(paymentUpdates, nil).Once()
+					}, mock.Anything, mock.Anything).Return(paymentUpdates, c.sendPaymentErr).Once()
 				}
 
 				mockDB.On("AddPayments", mock.AnythingOfType("*model.Payment")).Return(
@@ -302,7 +302,7 @@ func TestSendPayment(t *testing.T) {
 			ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 			defer cancel()
 
-			msg, err := app.SendPayment(ctxt, c.payload, c.amt, c.discID, c.payReq, opts)
+			msg, err := app.SendPay(ctxt, c.payload, c.amt, c.discID, c.payReq, opts)
 
 			if c.expectedErr != nil {
 				assert.Nil(t, msg)

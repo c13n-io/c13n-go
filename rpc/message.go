@@ -64,7 +64,7 @@ func (s *messageServiceServer) SendMessage(ctx context.Context, req *pb.SendMess
 	}
 	opts := messageOptionsFromRequest(req.GetOptions())
 
-	msg, err = s.App.SendPayment(ctx,
+	msg, err = s.App.SendPay(ctx,
 		msg.Payload, msg.AmtMsat, msg.DiscussionID, msg.PayReq, opts)
 	if err != nil {
 		return nil, associateStatusCode(s.logError(err))

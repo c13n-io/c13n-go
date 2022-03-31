@@ -12,12 +12,12 @@ import (
 	"github.com/c13n-io/c13n-go/model"
 )
 
-// SendPayment attempts to send a payment.
+// SendPay attempts to send a payment.
 // A payment fulfils the payment request, if one is provided,
 // otherwise it is addressed to the discussion participants.
 // If payload is present, it is sent along with the payment
 // (respecting the provided and discussion options, if applicable).
-func (app *App) SendPayment(ctx context.Context,
+func (app *App) SendPay(ctx context.Context,
 	payload string, amtMsat int64, discID uint64, payReq string,
 	opts model.MessageOptions) (*model.Message, error) {
 
