@@ -171,18 +171,15 @@ func WithBasicAuth(username, hashedPassword string) func(*Server) error {
 					"Invalid base64 encoded data")
 			}
 
-			clientCreds := strings.SplitN(string(creds), ":", 2)
-			if len(clientCreds) != 2 {
-				return nil, authError
-			}
-			user, pass := clientCreds[0], clientCreds[1]
-
-			// Check username match
-			if user != username {
+			// Ensure that BasicAuth decoded creds are of the following format
+			// username:password
+			credsStr := string(creds)
+			if !strings.HasPrefix(credsStr, username+":") {
 				return nil, authError
 			}
 
 			// Check password hash match
+			pass := strings.TrimPrefix(credsStr, username+":")
 			if err := bcrypt.CompareHashAndPassword(hashedPwd, []byte(pass)); err != nil {
 				return nil, authError
 			}

@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -30,28 +29,28 @@ func promptGetInput(pc promptContent) string {
 
 	result, err := prompt.Run()
 	if err != nil {
-		logger.WithError(err).Error("Prompt failed")
-		os.Exit(1)
+		logger.WithError(err).Fatal("Prompt failed")
 	}
 
 	return result
 }
 
 // generateHashCmd represents the generateHash command
-var generateHashCmd = &cobra.Command{
-	Use:   "generateHash",
-	Short: "Generate bcrypt hash from provided password.",
+var genpwdhash = &cobra.Command{
+	Use:   "genpwdhash",
+	Short: "Generate bcrypt hash from provided password for RPC authentication",
+	Long: "Generate bcrypt hash from provided password. " +
+		"This can be used as a value for the server.pwdhash config " +
+		"field or --server-pwdhash CLI option",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		cost, err := cmd.Flags().GetInt("cost")
 		if err != nil {
-			logger.WithError(err).Error()
-			os.Exit(1)
+			logger.WithError(err).Fatal("could not get cost value")
 		}
 
 		if cost < bcrypt.MinCost || cost > bcrypt.MaxCost {
-			logger.Errorf("Cost outside of range [%d,%d]", bcrypt.MinCost, bcrypt.MaxCost)
-			os.Exit(1)
+			logger.Fatalf("cost outside of range [%d,%d]", bcrypt.MinCost, bcrypt.MaxCost)
 		}
 
 		passwordInputPrompt := promptContent{
@@ -62,21 +61,15 @@ var generateHashCmd = &cobra.Command{
 
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordInput), cost)
 		if err != nil {
-			logger.WithError(err).Error()
-			os.Exit(1)
+			logger.WithError(err).Fatal("could not generate bcrypt hash")
 		}
 		fmt.Println(string(hashedPassword))
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(generateHashCmd)
+	rootCmd.AddCommand(genpwdhash)
 
-	generateHashFlags := generateHashCmd.Flags()
+	generateHashFlags := genpwdhash.Flags()
 	generateHashFlags.Int("cost", 10, "Default cost for bcrypt hashing")
-	err := generateHashCmd.MarkFlagRequired("cost")
-	if err != nil {
-		logger.WithError(err).Error()
-		os.Exit(1)
-	}
 }
