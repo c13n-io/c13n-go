@@ -150,6 +150,7 @@ func TestSendPay(t *testing.T) {
 				Participants: []string{
 					destAddress,
 				},
+				Options: DefaultOptions,
 			},
 			payReq:        "",
 			decodedPayReq: nil,
@@ -183,6 +184,7 @@ func TestSendPay(t *testing.T) {
 			discussion: &model.Discussion{
 				ID:           1,
 				Participants: []string{destAddress},
+				Options:      DefaultOptions,
 			},
 			payReq: "test payreq",
 			decodedPayReq: &lnchat.PayReq{
