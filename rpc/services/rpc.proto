@@ -319,7 +319,13 @@ service MessageService {
 	rpc SubscribeMessages(SubscribeMessageRequest) returns (stream SubscribeMessageResponse) {}
 }
 
-/** Represents a message of the application. */
+/** Represents a list of payments. */
+message Payments {
+	/** The list of payments fulfilling a message. */
+	repeated Payment payments = 1;
+}
+
+/** Represents a message sent over the Lightning network. */
 message Message {
 	/** The unique id of the message. */
 	uint64 id = 1;
@@ -328,7 +334,7 @@ message Message {
 	/** The Lightning address of the sender node. */
 	string sender = 3 [(validator.field) = {regex: "^[a-z0-9]{66}$"}];
 	/** The Lightning address of the receiver node. */
-	string receiver = 4 [(validator.field) = {msg_exists: true, regex: "^[a-z0-9]{66}$"}];
+	string receiver = 4 [(validator.field) = {msg_exists: true, regex: "^[a-z0-9]{66}$"}, deprecated = true];
 	/** Whether the message sender was verified. */
 	bool sender_verified = 11;
 	/** The message payload. */
@@ -339,7 +345,7 @@ message Message {
 
 	 This field is meaningful only for sent and estimated messages.
 	*/
-	int64 total_fees_msat = 7 [(validator.field) = {msg_exists: true}];
+	int64 total_fees_msat = 7 [(validator.field) = {msg_exists: true}, deprecated = true];
 	/** The time the message was sent. */
 	google.protobuf.Timestamp sent_timestamp = 8;
 	/** The time the message was received. */
@@ -348,18 +354,23 @@ message Message {
 
 	 This field is meaningful only for sent and estimated messages.
 	*/
-	repeated PaymentRoute payment_routes = 10;
+	repeated PaymentRoute payment_routes = 10 [deprecated = true];
 	/** The preimage belonging to the associated payment.
 
 	 This field is only meaningful for received messages and
 	 messages sent successfully to non-group discussions.
 	*/
-	string preimage = 12;
+	string preimage = 12 [deprecated = true];
 	/** The payment request this message was paid to.
 
 	 If empty, corresponds to a spontaneous payment.
 	*/
-	string pay_req = 13;
+	string pay_req = 13 [deprecated = true];
+	/** The associated Lightning entity. */
+	oneof lightning_data {
+		Payments payments = 14;
+		Invoice invoice = 15;
+	}
 }
 
 /** Represents a route fulfilling a payment HTLC. */
