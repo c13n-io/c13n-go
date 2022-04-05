@@ -505,9 +505,13 @@ service DiscussionService {
 	*/
 	rpc UpdateDiscussionLastRead(UpdateDiscussionLastReadRequest) returns (UpdateDiscussionResponse) {}
 	/**
-	 Remove a discussion from the database.
+	 Removes a discussion from the database.
 	*/
 	rpc RemoveDiscussion(RemoveDiscussionRequest) returns (RemoveDiscussionResponse) {}
+	/**
+	 Sends a message.
+	*/
+	rpc Send(SendRequest) returns (SendResponse) {}
 }
 
 /** Represents the information for a specific discussion. */
@@ -626,6 +630,32 @@ message RemoveDiscussionRequest {
 
 /** A RemoveDiscussionResponse is received in response to a RemoveDiscussion rpc call. */
 message RemoveDiscussionResponse {
+}
+
+/** Represents a request to send a message. */
+message SendRequest {
+	oneof destination {
+		/** The discussion where the message is to be sent. */
+		uint64 discussion_id = 1;
+		/** The payment request to fulfil.
+
+		If empty, a spontaneous message is sent.
+		A discussion with the recipient node will be created if it does not exist.
+		*/
+		string pay_req = 2;
+	}
+	/** The intended amount to be used for payment to each recipient. */
+	int64 amt_msat = 3;
+	/** The message payload. */
+	string payload = 4;
+	/** The message options for the current message (overriding any discussion options). */
+	MessageOptions options = 5;
+}
+
+/** A SendResponse is received in response to a Send rpc call. */
+message SendResponse {
+	/** The sent message. */
+	Message sent_message = 1;
 }
 
 /**

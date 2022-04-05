@@ -380,6 +380,22 @@ func (this *RemoveDiscussionRequest) Validate() error {
 func (this *RemoveDiscussionResponse) Validate() error {
 	return nil
 }
+func (this *SendRequest) Validate() error {
+	if this.Options != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Options); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("Options", err)
+		}
+	}
+	return nil
+}
+func (this *SendResponse) Validate() error {
+	if this.SentMessage != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.SentMessage); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("SentMessage", err)
+		}
+	}
+	return nil
+}
 func (this *CreateInvoiceRequest) Validate() error {
 	return nil
 }
