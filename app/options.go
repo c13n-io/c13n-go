@@ -4,12 +4,16 @@ import (
 	"github.com/c13n-io/c13n-go/model"
 )
 
-// DefaultOptions defines the default message options to be used when
-// no overrides have been set.
-var DefaultOptions = model.MessageOptions{
-	FeeLimitMsat: 3000,
-	Anonymous:    false,
-}
+var (
+	// DefaultOptions defines the default message options to be used when
+	// no overrides have been set.
+	DefaultOptions = model.MessageOptions{
+		FeeLimitMsat: 3000,
+		Anonymous:    false,
+	}
+	// DefaultPaymentOptions defines the default payment options to be used.
+	DefaultPaymentOptions = DefaultOptions.GetPaymentOptions()
+)
 
 // overrideOptions consolidates the provided options
 // with the first argument and returns the result.

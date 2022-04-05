@@ -316,3 +316,193 @@ func TestSendPay(t *testing.T) {
 		})
 	}
 }
+
+func TestSendPayment(t *testing.T) {
+	srcAddress := "000000000000000000000000000000000000000000000000000000000000000000"
+	destAddress := "111111111111111111111111111111111111111111111111111111111111111111"
+
+	dummyHash := "abcdxdcba"
+	dummyPreimage := "17422471"
+
+	selfInfo := lnchat.SelfInfo{
+		Node: lnchat.LightningNode{
+			Alias:   "my_node",
+			Address: srcAddress,
+		},
+	}
+
+	value := int64(15000)
+	fee := int64(500)
+
+	opts := lnchat.PaymentOptions{
+		FeeLimitMsat:   5000,
+		FinalCltvDelta: 20,
+		TimeoutSecs:    100,
+	}
+
+	payment := &model.Payment{
+		PayerAddress: srcAddress,
+		PayeeAddress: destAddress,
+		Payment: lnchat.Payment{
+			Hash:           dummyHash,
+			Preimage:       dummyPreimage,
+			Value:          lnchat.NewAmount(value),
+			PaymentRequest: "dog",
+			Status:         lnchat.PaymentSUCCEEDED,
+			PaymentIndex:   0,
+			Htlcs: []lnchat.HTLCAttempt{
+				{
+					Status: lnrpc.HTLCAttempt_SUCCEEDED,
+					Route: lnchat.Route{
+						Amt:  lnchat.NewAmount(value),
+						Fees: lnchat.NewAmount(fee),
+					},
+				},
+			},
+		},
+	}
+
+	paymentUpdatelist := []lnchat.PaymentUpdate{
+		{
+			Payment: &lnchat.Payment{
+				Hash:           dummyHash,
+				Preimage:       dummyPreimage,
+				Value:          lnchat.NewAmount(value),
+				PaymentRequest: "dog",
+				Status:         lnchat.PaymentSUCCEEDED,
+				PaymentIndex:   0,
+				Htlcs: []lnchat.HTLCAttempt{
+					{
+						Status: lnrpc.HTLCAttempt_SUCCEEDED,
+						Route: lnchat.Route{
+							Amt:  lnchat.NewAmount(value),
+							Fees: lnchat.NewAmount(fee),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	destNode, _ := lnchat.NewNodeFromString(destAddress)
+
+	cases := []struct {
+		name            string
+		dest            string
+		payReq          string
+		decodedPayReq   *lnchat.PayReq
+		amt             int64
+		payload         string
+		sendPaymentErr  error
+		signMessageErr  error
+		expectedErr     error
+		expectedPayment *model.Payment
+	}{
+		{
+			name:   "Both Payreq and address provided",
+			dest:   "111111111111111111111111111111111111111111111111111111111111111111",
+			payReq: "test payreq",
+			decodedPayReq: &lnchat.PayReq{
+				Destination: destNode,
+			},
+			amt:            0,
+			payload:        "",
+			sendPaymentErr: nil,
+			expectedErr: errors.New("exactly one of payment request" +
+				" and destination address must be specified"),
+			expectedPayment: nil,
+		},
+		{
+			name:   "Payreq provided",
+			dest:   "",
+			payReq: "dog",
+			decodedPayReq: &lnchat.PayReq{
+				Destination: destNode,
+			},
+			amt:             value,
+			payload:         "",
+			sendPaymentErr:  nil,
+			expectedErr:     nil,
+			expectedPayment: payment,
+		},
+		{
+			name:   "Address provided",
+			dest:   "",
+			payReq: "test payreq",
+			decodedPayReq: &lnchat.PayReq{
+				Destination: destNode,
+			},
+			amt:             value,
+			payload:         "",
+			sendPaymentErr:  nil,
+			expectedErr:     nil,
+			expectedPayment: payment,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+
+			mockInstaller := func(mockLNManager *lnmock.LightManager, mockDB *dbmock.Database) (
+				*lnmock.LightManager, *dbmock.Database, func()) {
+
+				// Mock self info
+				mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
+
+				mockDB.On("GetLastInvoiceIndex").Return(
+					uint64(1), nil).Once()
+
+				mockLNManager.On("SubscribeInvoiceUpdates",
+					mock.Anything, uint64(1), mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+
+				mockLNManager.On("DecodePayReq", mock.Anything, c.payReq).Return(c.decodedPayReq, nil)
+
+				mockLNManager.On("SignMessage", mock.Anything, mock.Anything).Return([]byte("sig"), c.signMessageErr).Once()
+
+				paymentUpdates := func() <-chan lnchat.PaymentUpdate {
+					ch := make(chan lnchat.PaymentUpdate)
+
+					go func(c chan lnchat.PaymentUpdate) {
+						defer close(c)
+
+						for _, update := range paymentUpdatelist {
+							c <- update
+						}
+					}(ch)
+					return ch
+				}()
+
+				mockLNManager.On("SendPayment", mock.Anything, c.dest, lnchat.NewAmount(c.amt), c.payReq,
+					opts, mock.Anything, mock.Anything).Return(paymentUpdates, c.sendPaymentErr).Once()
+
+				mockDB.On("AddPayments", mock.AnythingOfType("*model.Payment")).Return(
+					nil).Once()
+
+				mockDB.On("Close").Return(nil).Once()
+				mockLNManager.On("Close").Return(nil).Once()
+
+				mockStopFunc := func() {}
+
+				return mockLNManager, mockDB, mockStopFunc
+			}
+
+			app, appTestStartFunc, appTestStopFunc :=
+				createInitializedApp(t, mockInstaller)
+
+			appTestStartFunc()
+			defer appTestStopFunc()
+
+			ctxt, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+			defer cancel()
+
+			payment, err := app.SendPayment(ctxt, c.dest, c.amt, c.payReq, opts, nil)
+			if c.expectedErr != nil {
+				assert.Nil(t, payment)
+				assert.EqualError(t, err, c.expectedErr.Error())
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, c.expectedPayment, payment)
+			}
+		})
+	}
+}

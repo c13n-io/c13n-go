@@ -139,6 +139,51 @@ func defaultPaymentFilter(p *lnchat.Payment) bool {
 		p.Status == lnchat.PaymentFAILED
 }
 
+// SendPayment attempts to send a payment.
+func (app *App) SendPayment(ctx context.Context,
+	dest string, amtMsat int64, payReq string,
+	opts lnchat.PaymentOptions, tlvs map[uint64][]byte) (*model.Payment, error) {
+
+	// Validate arguments
+	if (payReq != "") == (dest != "") {
+		return nil, fmt.Errorf("exactly one of payment request " +
+			"and destination address must be specified")
+	}
+
+	recipient := dest
+
+	if payReq != "" {
+		decodedPayReq, err := app.LNManager.DecodePayReq(ctx, payReq)
+		if err != nil {
+			return nil, err
+		}
+		recipient = decodedPayReq.Destination.String()
+	}
+
+	// Perform payment attempt
+	result, err := app.send(ctx, dest, amtMsat, payReq, opts, tlvs)
+	if err != nil {
+		return nil, err
+	}
+
+	if result.Err != nil {
+		return nil, result.Err
+	}
+
+	payment := &model.Payment{
+		PayerAddress: app.Self.Node.Address,
+		PayeeAddress: recipient,
+		Payment:      *result.Payment,
+	}
+
+	// Store payment
+	if err := app.Database.AddPayments(payment); err != nil {
+		return payment, err
+	}
+
+	return payment, nil
+}
+
 // Attempts payment and returns the final payment update.
 func (app *App) send(ctx context.Context, dest string, amtMsat int64, payReq string,
 	opts lnchat.PaymentOptions, tlvs map[uint64][]byte) (lnchat.PaymentUpdate, error) {
