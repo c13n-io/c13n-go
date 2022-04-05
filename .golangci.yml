@@ -49,8 +49,8 @@ linters-settings:
       - name: exported
 
   staticcheck:
-    go: "1.14"
-    checks: ["inherit"]
+    go: "1.17"
+    checks: ["all"]
 
   errcheck:
     check-type-assertions: true
