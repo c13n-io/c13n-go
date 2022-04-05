@@ -3,6 +3,8 @@ package rpc
 import (
 	"context"
 
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/c13n-io/c13n-go/app"
 	pb "github.com/c13n-io/c13n-go/rpc/services"
 	"github.com/c13n-io/c13n-go/slog"

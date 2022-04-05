@@ -630,6 +630,11 @@ service PaymentService {
 	 Performs an invoice lookup.
 	*/
 	rpc LookupInvoice(LookupInvoiceRequest) returns (LookupInvoiceResponse) {}
+
+	/**
+	 Performs a payment.
+	*/
+	rpc Pay(PayRequest) returns (PayResponse) {}
 }
 
 /** Corresponds to an invoice creation request. */
@@ -660,6 +665,82 @@ message LookupInvoiceRequest {
 message LookupInvoiceResponse {
 	/** The returned invoice. */
 	Invoice invoice = 1;
+}
+
+/** Corresponds to a pay request. */
+message PayRequest {
+	oneof destination {
+		/** The payment request to pay to. */
+		string pay_req = 1;
+		/** The address to pay to. */
+		string address = 2;
+	}
+	/** The payment amount (in millisatoshi). */
+	uint64 amt_msat = 3;
+	/** The payment options. */
+	PaymentOptions options = 4;
+}
+
+/** PaymentOptions represents the payment's options. */
+message PaymentOptions {
+	/** The maximum fee allowed for sending a payment. */
+	int64 fee_limit_msat = 1;
+}
+
+/** A PayResponse is received in response to a pay request. */
+message PayResponse {
+	/** The returned payment. */
+	Payment payment = 1;
+}
+
+/** Represents a Lightning network payment */
+message Payment {
+	/** The payment hash of the payment. */
+	string hash = 1;
+	/** The preimage of the payment hash. */
+	string preimage = 2;
+	/** The payment amount. */
+	uint64 amt_msat = 3;
+	/** The time the payment was created. */
+	google.protobuf.Timestamp created_timestamp = 4;
+	/** The time the payment was finalized. */
+	google.protobuf.Timestamp resolved_timestamp = 5;
+	/** The fulfilled payment request (if any). */
+	string pay_req = 6;
+	/** The payment state. */
+	PaymentState state = 7;
+	/** The payment index. */
+	uint64 payment_index = 8;
+	/** The payment HTLCs */
+	repeated PaymentHTLC HTLCs = 9;
+}
+
+/** Represents an HTLC attempt of a payment. */
+message PaymentHTLC {
+	/** The route of the HTLC. */
+	PaymentRoute route = 1;
+	/** The time the HTLC was sent. */
+	google.protobuf.Timestamp attempt_timestamp = 2;
+	/** The time the HTLC was resolved. */
+	google.protobuf.Timestamp resolve_timestamp = 3;
+	/** The HTLC state. */
+	HTLCState state = 4;
+	/** The preimage used to settle the HTLC. */
+	string preimage = 5;
+}
+
+/** Represents the state of an invoice. */
+enum PaymentState {
+	PAYMENT_UNKNOWN = 0;
+	PAYMENT_INFLIGHT = 1;
+	PAYMENT_SUCCEEDED = 2;
+	PAYMENT_FAILED = 3;
+}
+
+enum HTLCState {
+	HTLC_IN_FLIGHT = 0;
+	HTLC_SUCCEEDED = 1;
+	HTLC_FAILED = 2;
 }
 
 /** Represents an Lightning network invoice. */
