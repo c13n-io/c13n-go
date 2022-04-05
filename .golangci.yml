@@ -64,7 +64,12 @@ linters-settings:
       - loopclosure
 
   gci:
-    local-prefixes: github.com/c13n-io/c13n-go
+    sections:
+      - standard
+      - default
+      - prefix(github.com/c13n-io/c13n-go)
+    section-separators:
+      - newLine
 
 linters:
   disable-all: true

@@ -114,7 +114,7 @@ dev-deps:
 	$(GOINSTALL) github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2
 	$(GOINSTALL) github.com/vektra/mockery/...@v1.0.0
 	$(GOINSTALL) golang.org/x/tools/cmd/goimports@latest
-	$(GOINSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0
+	$(GOINSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.1
 
 # Generate protobuf source code
 # http://github.com/golang/protobuf
