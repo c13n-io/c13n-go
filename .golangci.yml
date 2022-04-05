@@ -49,8 +49,8 @@ linters-settings:
       - name: exported
 
   staticcheck:
-    go: "1.14"
-    checks: ["inherit"]
+    go: "1.17"
+    checks: ["all"]
 
   errcheck:
     check-type-assertions: true
@@ -64,7 +64,12 @@ linters-settings:
       - loopclosure
 
   gci:
-    local-prefixes: github.com/c13n-io/c13n-go
+    sections:
+      - standard
+      - default
+      - prefix(github.com/c13n-io/c13n-go)
+    section-separators:
+      - newLine
 
 linters:
   disable-all: true
