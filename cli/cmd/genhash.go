@@ -39,9 +39,7 @@ func promptGetInput(pc promptContent) string {
 var genpwdhash = &cobra.Command{
 	Use:   "genpwdhash",
 	Short: "Generate bcrypt hash from provided password for RPC authentication",
-	Long: "Generate bcrypt hash from provided password. " +
-		"This can be used as a value for the server.pwdhash config " +
-		"field or --server-pwdhash CLI option",
+	Long:  "The generated output is to be used as server password hash (server.pwdhash)",
 
 	Run: func(cmd *cobra.Command, args []string) {
 		cost, err := cmd.Flags().GetInt("cost")
