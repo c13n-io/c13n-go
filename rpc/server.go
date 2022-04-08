@@ -174,13 +174,14 @@ func WithBasicAuth(username, hashedPassword string) func(*Server) error {
 			// Ensure that BasicAuth decoded creds are of the following format
 			// username:password
 			credsStr := string(creds)
-			if !strings.HasPrefix(credsStr, username+":") {
+			pass := strings.TrimPrefix(credsStr, username+":")
+			if pass == credsStr {
 				return nil, authError
 			}
 
 			// Check password hash match
-			pass := strings.TrimPrefix(credsStr, username+":")
-			if err := bcrypt.CompareHashAndPassword(hashedPwd, []byte(pass)); err != nil {
+			err = bcrypt.CompareHashAndPassword(hashedPwd, []byte(pass))
+			if err != nil {
 				return nil, authError
 			}
 
