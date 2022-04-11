@@ -345,7 +345,7 @@ func TestGetDiscussionStatistics(t *testing.T) {
 			expectedResponse:         nil,
 			expectedErr: Error{
 				Kind:    DiscussionNotFound,
-				details: "GetMessages",
+				details: "could not retrieve discussion messages",
 				Err:     store.ErrDiscussionNotFound,
 			},
 		},

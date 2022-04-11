@@ -27,13 +27,13 @@ func (app *App) GetDiscussions(_ context.Context) ([]model.Discussion, error) {
 }
 
 // GetDiscussionStatistics retrieves the discussion messages and calculates statistics.
-func (app *App) GetDiscussionStatistics(_ context.Context, id uint64) (
+func (app *App) GetDiscussionStatistics(ctx context.Context, id uint64) (
 	*model.DiscussionStatistics, error) {
 
 	// Fetch discussion messages
-	msgAggregates, err := app.Database.GetMessages(id, model.PageOptions{})
+	msgAggregates, err := app.GetDiscussionHistory(ctx, id, model.PageOptions{})
 	if err != nil {
-		return nil, newErrorf(err, "GetMessages")
+		return nil, err
 	}
 
 	var amtSent, amtRcv, amtFees, msgsSent, msgsRcv int64
@@ -69,42 +69,15 @@ func (app *App) GetDiscussionStatistics(_ context.Context, id uint64) (
 }
 
 // GetDiscussionHistory returns the requested range of messages for a specific discussion.
-func (app *App) GetDiscussionHistory(ctx context.Context, discID uint64,
-	pageOpts model.PageOptions) ([]model.Message, error) {
+func (app *App) GetDiscussionHistory(_ context.Context, discID uint64,
+	pageOpts model.PageOptions) ([]model.MessageAggregate, error) {
 
-	disc, err := app.retrieveDiscussion(ctx, discID)
+	msgAggregates, err := app.Database.GetMessages(discID, pageOpts)
 	if err != nil {
-		return nil, newErrorf(err, "could not retrieve discussion")
+		return nil, newErrorf(err, "could not retrieve discussion messages")
 	}
 
-	msgList, err := app.Database.GetMessages(discID, pageOpts)
-	if err != nil {
-		return nil, newErrorf(err, "GetMessages")
-	}
-
-	// NOTE: Since the discussion is fixed, we can forgo the lookup.
-	retrieveDisc := func(_ []string) (*model.Discussion, error) {
-		return disc, nil
-	}
-
-	msgs := make([]model.Message, len(msgList))
-	for i, m := range msgList {
-		var msg *model.Message
-		switch {
-		case len(m.Payments) == 0:
-			msg, err = model.NewIncomingMessage(m.RawMessage,
-				m.Invoice, retrieveDisc)
-		case m.Invoice == nil:
-			msg, err = model.NewOutgoingMessage(m.RawMessage,
-				true, m.Payments...)
-		}
-		if err != nil {
-			return nil, newErrorf(err, "message unmarshal failed")
-		}
-		msgs[i] = *msg
-	}
-
-	return msgs, nil
+	return msgAggregates, nil
 }
 
 // AddDiscussion adds a discussion to database.

@@ -79,16 +79,21 @@ func (s *discussionServiceServer) GetDiscussionHistoryByID(req *pb.GetDiscussion
 		}
 	}
 
-	msgList, err := s.App.GetDiscussionHistory(ctx, req.GetId(), pageOptions)
+	messages, err := s.App.GetDiscussionHistory(ctx, req.GetId(), pageOptions)
 	if err != nil {
 		return associateStatusCode(s.logError(err))
 	}
-	for _, msg := range msgList {
-		msgRPC, err := messageModelToHistoryMessageResponse(&msg)
+
+	for _, message := range messages {
+		msg, err := newMessage(&message)
 		if err != nil {
 			return associateStatusCode(s.logError(err))
 		}
-		if err := srv.Send(msgRPC); err != nil {
+
+		resp := &pb.GetDiscussionHistoryResponse{
+			Message: msg,
+		}
+		if err := srv.Send(resp); err != nil {
 			return associateStatusCode(s.logError(err))
 		}
 	}
@@ -234,6 +239,78 @@ func newSentMessage(rawMsg *model.RawMessage, paymentList []*model.Payment) (*pb
 			},
 		},
 	}, nil
+}
+
+func newMessage(aggregate *model.MessageAggregate) (*pb.Message, error) {
+	if aggregate == nil {
+		return nil, nil
+	}
+
+	raw := aggregate.RawMessage
+	payload, _, err := raw.UnmarshalPayload()
+	if err != nil {
+		return nil, err
+	}
+
+	msg := &pb.Message{
+		Id:             raw.ID,
+		DiscussionId:   raw.DiscussionID,
+		Sender:         raw.Sender,
+		SenderVerified: raw.SignatureVerified,
+		Payload:        payload,
+	}
+
+	var amtMsat uint64
+	var sentAt, receivedAt *timestamppb.Timestamp
+	switch {
+	case raw.InvoiceSettleIndex != 0:
+		invoice, err := invoiceModelToRPCInvoice(aggregate.Invoice)
+		if err != nil {
+			return nil, err
+		}
+
+		amtMsat = invoice.GetAmtPaidMsat()
+		sentAt = invoice.GetCreatedTimestamp()
+		receivedAt = invoice.GetSettledTimestamp()
+
+		msg.LightningData = &pb.Message_Invoice{
+			Invoice: invoice,
+		}
+	case len(raw.PaymentIndexes) != 0:
+		payments := make([]*pb.Payment, len(aggregate.Payments))
+		for i, pmnt := range aggregate.Payments {
+			payment, err := newPayment(pmnt)
+			if err != nil {
+				return nil, err
+			}
+
+			if payment.GetState() == pb.PaymentState_PAYMENT_SUCCEEDED {
+				amtMsat += payment.GetAmtMsat()
+			}
+
+			createdAt := payment.GetCreatedTimestamp()
+			if sentAt.AsTime().After(createdAt.AsTime()) || sentAt == nil {
+				sentAt = createdAt
+			}
+			resolvedAt := payment.GetResolvedTimestamp()
+			if receivedAt.AsTime().Before(resolvedAt.AsTime()) {
+				receivedAt = resolvedAt
+			}
+
+			payments[i] = payment
+		}
+
+		msg.LightningData = &pb.Message_Payments{
+			Payments: &pb.Payments{
+				Payments: payments,
+			},
+		}
+	}
+
+	msg.AmtMsat = int64(amtMsat)
+	msg.SentTimestamp, msg.ReceivedTimestamp = sentAt, receivedAt
+
+	return msg, nil
 }
 
 // NewDiscussionServiceServer initializes a new discussion service.
