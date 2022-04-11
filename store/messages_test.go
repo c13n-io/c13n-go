@@ -402,35 +402,35 @@ func TestGetMessages(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, &discussion, disc)
 
-	msgs := []MessageAggregate{
-		func() MessageAggregate {
+	msgs := []model.MessageAggregate{
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
@@ -491,115 +491,115 @@ func TestGetMessagesRange(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, &discussion, disc)
 
-	msgs := []MessageAggregate{
-		func() MessageAggregate {
+	msgs := []model.MessageAggregate{
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = disc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
@@ -631,7 +631,7 @@ func TestGetMessagesRange(t *testing.T) {
 	cases := []struct {
 		name         string
 		pageOpts     model.PageOptions
-		expectedList []MessageAggregate
+		expectedList []model.MessageAggregate
 		expectedErr  error
 	}{
 		{
@@ -674,7 +674,7 @@ func TestGetMessagesRange(t *testing.T) {
 				LastID:   invalidStartID,
 				PageSize: 10,
 			},
-			expectedList: []MessageAggregate{},
+			expectedList: []model.MessageAggregate{},
 		},
 		{
 			name: "reverse with size",
@@ -728,7 +728,7 @@ func TestGetMessagesRange(t *testing.T) {
 		},
 	}
 
-	resetRawMsgTimestamps := func(msgSlices ...[]MessageAggregate) {
+	resetRawMsgTimestamps := func(msgSlices ...[]model.MessageAggregate) {
 		for _, msgs := range msgSlices {
 			for _, m := range msgs {
 				m.RawMessage.Timestamp = time.Time{}

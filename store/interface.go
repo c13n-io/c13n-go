@@ -30,7 +30,8 @@ type Database interface {
 	GetLastInvoiceIndex() (invSettleIndex uint64, err error)
 	GetLastPaymentIndex() (paymentIndex uint64, err error)
 	AddRawMessage(*model.RawMessage) error
-	GetMessages(discussionUID uint64, pageOpts model.PageOptions) ([]MessageAggregate, error)
+	GetMessages(discussionUID uint64,
+		pageOpts model.PageOptions) ([]model.MessageAggregate, error)
 
 	// Close closes the database
 	Close() error
