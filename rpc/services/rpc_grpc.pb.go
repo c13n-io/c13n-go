@@ -915,10 +915,10 @@ type DiscussionServiceClient interface {
 	GetDiscussions(ctx context.Context, in *GetDiscussionsRequest, opts ...grpc.CallOption) (DiscussionService_GetDiscussionsClient, error)
 	//*
 	//Creates a unidirectional stream from server to client
-	//over which all previously exchanged messages belonging to
+	//over which previously exchanged messages belonging to
 	//a specific discussion are sent.
 	//
-	//The stream terminates when all discussion history is transmitted.
+	//The stream terminates when all requested discussion messages are transmitted.
 	GetDiscussionHistoryByID(ctx context.Context, in *GetDiscussionHistoryByIDRequest, opts ...grpc.CallOption) (DiscussionService_GetDiscussionHistoryByIDClient, error)
 	//*
 	//Calculates statistics about the requested discussion.
@@ -1066,10 +1066,10 @@ type DiscussionServiceServer interface {
 	GetDiscussions(*GetDiscussionsRequest, DiscussionService_GetDiscussionsServer) error
 	//*
 	//Creates a unidirectional stream from server to client
-	//over which all previously exchanged messages belonging to
+	//over which previously exchanged messages belonging to
 	//a specific discussion are sent.
 	//
-	//The stream terminates when all discussion history is transmitted.
+	//The stream terminates when all requested discussion messages are transmitted.
 	GetDiscussionHistoryByID(*GetDiscussionHistoryByIDRequest, DiscussionService_GetDiscussionHistoryByIDServer) error
 	//*
 	//Calculates statistics about the requested discussion.

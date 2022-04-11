@@ -486,10 +486,10 @@ service DiscussionService {
 	rpc GetDiscussions(GetDiscussionsRequest) returns (stream GetDiscussionsResponse) {}
 	/**
 	 Creates a unidirectional stream from server to client
-	 over which all previously exchanged messages belonging to
+	 over which previously exchanged messages belonging to
 	 a specific discussion are sent.
 
-	 The stream terminates when all discussion history is transmitted.
+	 The stream terminates when all requested discussion messages are transmitted.
 	*/
 	rpc GetDiscussionHistoryByID(GetDiscussionHistoryByIDRequest) returns (stream GetDiscussionHistoryResponse) {}
 	/**
