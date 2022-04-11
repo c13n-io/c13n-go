@@ -61,7 +61,7 @@ var genpwdhash = &cobra.Command{
 		if err != nil {
 			logger.WithError(err).Fatal("could not generate bcrypt hash")
 		}
-		fmt.Println(string(hashedPassword))
+		fmt.Printf("%q\n", string(hashedPassword))
 	},
 }
 
