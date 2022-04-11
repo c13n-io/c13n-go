@@ -128,7 +128,7 @@ go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.26.0
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
 go install github.com/mwitkow/go-proto-validators/...@v0.3.2
 go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2
-go install github.com/vektra/mockery/...@v1.0.0
+go install github.com/vektra/mockery/v2@v2.10.4
 go install golang.org/x/tools/cmd/goimports@latest
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.1
 ```

@@ -1,6 +1,6 @@
 package lnchat
 
-//go:generate mockery -dir=. -output=./mocks -outpkg=lnmock -name=LightManager
+//go:generate mockery --dir=. --output=./mocks --outpkg=lnmock --name=LightManager
 
 import (
 	"context"
