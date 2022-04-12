@@ -930,8 +930,11 @@ type DiscussionServiceClient interface {
 	//Updates a discussion's last read message.
 	UpdateDiscussionLastRead(ctx context.Context, in *UpdateDiscussionLastReadRequest, opts ...grpc.CallOption) (*UpdateDiscussionResponse, error)
 	//*
-	//Remove a discussion from the database.
+	//Removes a discussion from the database.
 	RemoveDiscussion(ctx context.Context, in *RemoveDiscussionRequest, opts ...grpc.CallOption) (*RemoveDiscussionResponse, error)
+	//*
+	//Sends a message.
+	Send(ctx context.Context, in *SendRequest, opts ...grpc.CallOption) (*SendResponse, error)
 }
 
 type discussionServiceClient struct {
@@ -1042,6 +1045,15 @@ func (c *discussionServiceClient) RemoveDiscussion(ctx context.Context, in *Remo
 	return out, nil
 }
 
+func (c *discussionServiceClient) Send(ctx context.Context, in *SendRequest, opts ...grpc.CallOption) (*SendResponse, error) {
+	out := new(SendResponse)
+	err := c.cc.Invoke(ctx, "/services.DiscussionService/Send", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DiscussionServiceServer is the server API for DiscussionService service.
 // All implementations must embed UnimplementedDiscussionServiceServer
 // for forward compatibility
@@ -1069,8 +1081,11 @@ type DiscussionServiceServer interface {
 	//Updates a discussion's last read message.
 	UpdateDiscussionLastRead(context.Context, *UpdateDiscussionLastReadRequest) (*UpdateDiscussionResponse, error)
 	//*
-	//Remove a discussion from the database.
+	//Removes a discussion from the database.
 	RemoveDiscussion(context.Context, *RemoveDiscussionRequest) (*RemoveDiscussionResponse, error)
+	//*
+	//Sends a message.
+	Send(context.Context, *SendRequest) (*SendResponse, error)
 	mustEmbedUnimplementedDiscussionServiceServer()
 }
 
@@ -1095,6 +1110,9 @@ func (UnimplementedDiscussionServiceServer) UpdateDiscussionLastRead(context.Con
 }
 func (UnimplementedDiscussionServiceServer) RemoveDiscussion(context.Context, *RemoveDiscussionRequest) (*RemoveDiscussionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveDiscussion not implemented")
+}
+func (UnimplementedDiscussionServiceServer) Send(context.Context, *SendRequest) (*SendResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
 }
 func (UnimplementedDiscussionServiceServer) mustEmbedUnimplementedDiscussionServiceServer() {}
 
@@ -1223,6 +1241,24 @@ func _DiscussionService_RemoveDiscussion_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DiscussionService_Send_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DiscussionServiceServer).Send(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/services.DiscussionService/Send",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DiscussionServiceServer).Send(ctx, req.(*SendRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DiscussionService_ServiceDesc is the grpc.ServiceDesc for DiscussionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1245,6 +1281,10 @@ var DiscussionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveDiscussion",
 			Handler:    _DiscussionService_RemoveDiscussion_Handler,
+		},
+		{
+			MethodName: "Send",
+			Handler:    _DiscussionService_Send_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

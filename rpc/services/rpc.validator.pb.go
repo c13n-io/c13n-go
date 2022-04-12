@@ -171,6 +171,16 @@ func (this *RemoveContactByAddressRequest) Validate() error {
 func (this *RemoveContactResponse) Validate() error {
 	return nil
 }
+func (this *Payments) Validate() error {
+	for _, item := range this.Payments {
+		if item != nil {
+			if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(item); err != nil {
+				return github_com_mwitkow_go_proto_validators.FieldError("Payments", err)
+			}
+		}
+	}
+	return nil
+}
 
 var _regex_Message_Sender = regexp.MustCompile(`^[a-z0-9]{66}$`)
 var _regex_Message_Receiver = regexp.MustCompile(`^[a-z0-9]{66}$`)
@@ -196,6 +206,20 @@ func (this *Message) Validate() error {
 		if item != nil {
 			if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(item); err != nil {
 				return github_com_mwitkow_go_proto_validators.FieldError("PaymentRoutes", err)
+			}
+		}
+	}
+	if oneOfNester, ok := this.GetLightningData().(*Message_Payments); ok {
+		if oneOfNester.Payments != nil {
+			if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(oneOfNester.Payments); err != nil {
+				return github_com_mwitkow_go_proto_validators.FieldError("Payments", err)
+			}
+		}
+	}
+	if oneOfNester, ok := this.GetLightningData().(*Message_Invoice); ok {
+		if oneOfNester.Invoice != nil {
+			if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(oneOfNester.Invoice); err != nil {
+				return github_com_mwitkow_go_proto_validators.FieldError("Invoice", err)
 			}
 		}
 	}
@@ -354,6 +378,22 @@ func (this *RemoveDiscussionRequest) Validate() error {
 	return nil
 }
 func (this *RemoveDiscussionResponse) Validate() error {
+	return nil
+}
+func (this *SendRequest) Validate() error {
+	if this.Options != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Options); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("Options", err)
+		}
+	}
+	return nil
+}
+func (this *SendResponse) Validate() error {
+	if this.SentMessage != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.SentMessage); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("SentMessage", err)
+		}
+	}
 	return nil
 }
 func (this *CreateInvoiceRequest) Validate() error {

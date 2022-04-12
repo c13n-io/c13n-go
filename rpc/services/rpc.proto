@@ -319,7 +319,13 @@ service MessageService {
 	rpc SubscribeMessages(SubscribeMessageRequest) returns (stream SubscribeMessageResponse) {}
 }
 
-/** Represents a message of the application. */
+/** Represents a list of payments. */
+message Payments {
+	/** The list of payments fulfilling a message. */
+	repeated Payment payments = 1;
+}
+
+/** Represents a message sent over the Lightning network. */
 message Message {
 	/** The unique id of the message. */
 	uint64 id = 1;
@@ -328,7 +334,7 @@ message Message {
 	/** The Lightning address of the sender node. */
 	string sender = 3 [(validator.field) = {regex: "^[a-z0-9]{66}$"}];
 	/** The Lightning address of the receiver node. */
-	string receiver = 4 [(validator.field) = {msg_exists: true, regex: "^[a-z0-9]{66}$"}];
+	string receiver = 4 [(validator.field) = {msg_exists: true, regex: "^[a-z0-9]{66}$"}, deprecated = true];
 	/** Whether the message sender was verified. */
 	bool sender_verified = 11;
 	/** The message payload. */
@@ -339,7 +345,7 @@ message Message {
 
 	 This field is meaningful only for sent and estimated messages.
 	*/
-	int64 total_fees_msat = 7 [(validator.field) = {msg_exists: true}];
+	int64 total_fees_msat = 7 [(validator.field) = {msg_exists: true}, deprecated = true];
 	/** The time the message was sent. */
 	google.protobuf.Timestamp sent_timestamp = 8;
 	/** The time the message was received. */
@@ -348,18 +354,23 @@ message Message {
 
 	 This field is meaningful only for sent and estimated messages.
 	*/
-	repeated PaymentRoute payment_routes = 10;
+	repeated PaymentRoute payment_routes = 10 [deprecated = true];
 	/** The preimage belonging to the associated payment.
 
 	 This field is only meaningful for received messages and
 	 messages sent successfully to non-group discussions.
 	*/
-	string preimage = 12;
+	string preimage = 12 [deprecated = true];
 	/** The payment request this message was paid to.
 
 	 If empty, corresponds to a spontaneous payment.
 	*/
-	string pay_req = 13;
+	string pay_req = 13 [deprecated = true];
+	/** The associated Lightning entity. */
+	oneof lightning_data {
+		Payments payments = 14;
+		Invoice invoice = 15;
+	}
 }
 
 /** Represents a route fulfilling a payment HTLC. */
@@ -494,9 +505,13 @@ service DiscussionService {
 	*/
 	rpc UpdateDiscussionLastRead(UpdateDiscussionLastReadRequest) returns (UpdateDiscussionResponse) {}
 	/**
-	 Remove a discussion from the database.
+	 Removes a discussion from the database.
 	*/
 	rpc RemoveDiscussion(RemoveDiscussionRequest) returns (RemoveDiscussionResponse) {}
+	/**
+	 Sends a message.
+	*/
+	rpc Send(SendRequest) returns (SendResponse) {}
 }
 
 /** Represents the information for a specific discussion. */
@@ -615,6 +630,32 @@ message RemoveDiscussionRequest {
 
 /** A RemoveDiscussionResponse is received in response to a RemoveDiscussion rpc call. */
 message RemoveDiscussionResponse {
+}
+
+/** Represents a request to send a message. */
+message SendRequest {
+	oneof destination {
+		/** The discussion where the message is to be sent. */
+		uint64 discussion_id = 1;
+		/** The payment request to fulfil.
+
+		If empty, a spontaneous message is sent.
+		A discussion with the recipient node will be created if it does not exist.
+		*/
+		string pay_req = 2;
+	}
+	/** The intended amount to be used for payment to each recipient. */
+	int64 amt_msat = 3;
+	/** The message payload. */
+	string payload = 4;
+	/** The message options for the current message (overriding any discussion options). */
+	MessageOptions options = 5;
+}
+
+/** A SendResponse is received in response to a Send rpc call. */
+message SendResponse {
+	/** The sent message. */
+	Message sent_message = 1;
 }
 
 /**
