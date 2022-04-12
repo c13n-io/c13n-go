@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -12,16 +13,123 @@ import (
 	"github.com/c13n-io/c13n-go/model"
 )
 
-// SendPayment attempts to send a payment.
-// A payment fulfils the payment request, if one is provided,
-// otherwise it is addressed to the discussion participants.
-// If payload is present, it is sent along with the payment
-// (respecting the provided and discussion options, if applicable).
-func (app *App) SendPayment(ctx context.Context,
-	payload string, amtMsat int64, discID uint64, payReq string,
-	opts model.MessageOptions) (*model.Message, error) {
+// SendMessage attempts to send a message.
+// If a payment request is provided, a discussion with the recipient
+// is created with default options if it does not exist.
+// Note: Anonymous messages to group discussions are disallowed.
+func (app *App) SendMessage(ctx context.Context, discID uint64, amtMsat int64, payReq string,
+	payload string, opts model.MessageOptions) (*model.RawMessage, []*model.Payment, error) {
 
-	return app.sendPayment(ctx, payload, amtMsat, discID, payReq, opts)
+	// Validate arguments
+	if (payReq != "") && (discID != 0) {
+		return nil, nil, fmt.Errorf("exactly one of payment request " +
+			"and discussion must be specified")
+	}
+
+	// Retrieve discussion
+	var err error
+	var disc *model.Discussion
+	switch payReq {
+	default:
+		// Create discussion if it does not exist
+		payRequest, err := app.LNManager.DecodePayReq(ctx, payReq)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "could not decode payment request")
+		}
+		disc, err = app.retrieveOrCreateDiscussion(&model.Discussion{
+			Participants: []string{payRequest.Destination.String()},
+			Options:      DefaultOptions,
+		})
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "could not retrieve discussion")
+		}
+	case "":
+		disc, err = app.retrieveDiscussion(ctx, discID)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "could not retrieve discussion")
+		}
+	}
+
+	// Disallow anonymous messages in group discussions
+	options := overrideOptions(disc.Options, true, opts)
+	if len(disc.Participants) > 1 && options.Anonymous {
+		return nil, nil, ErrDiscAnonymousMessage
+	}
+	payOpts := options.GetPaymentOptions()
+
+	// Create raw message
+	rawMsg, err := app.createRawMessage(ctx, disc, payload, !options.Anonymous)
+	if err != nil {
+		return nil, nil, err
+	}
+	tlvs := marshalPayload(rawMsg)
+
+	// Perform payment attempts in parallel
+	var wg sync.WaitGroup
+	var results sync.Map
+	for _, recipient := range disc.Participants {
+		wg.Add(1)
+		go func(dest string) {
+			defer wg.Done()
+
+			result, err := app.send(ctx, dest, amtMsat, payReq, payOpts, tlvs)
+			if err != nil {
+				results.Store(dest, err)
+				return
+			}
+			results.Store(dest, result)
+		}(recipient)
+	}
+
+	wg.Wait()
+
+	// Aggregate payments and errors
+	var errs []error
+	payments := make([]*model.Payment, 0, len(disc.Participants))
+	results.Range(func(key, val interface{}) bool {
+		recipient, ok := key.(string)
+		if !ok {
+			return false
+		}
+
+		switch v := val.(type) {
+		case lnchat.PaymentUpdate:
+			if v.Err != nil {
+				errs = append(errs, fmt.Errorf("payment error "+
+					"for recipient %s: %w", recipient, v.Err))
+				break
+			}
+			payments = append(payments, &model.Payment{
+				PayerAddress: app.Self.Node.Address,
+				PayeeAddress: recipient,
+				Payment:      *v.Payment,
+			})
+		case error:
+			errs = append(errs, fmt.Errorf("could not initiate "+
+				"payment to recipient %s: %w", recipient, err))
+		}
+		return true
+	})
+
+	// If there are no payments associated with the message, fail early
+	if len(payments) == 0 {
+		return nil, nil, newCompositeError(errs)
+	}
+
+	// Associate payments with the message
+	for _, payment := range payments {
+		rawMsg.WithPaymentIndexes(payment.PaymentIndex)
+	}
+
+	// Store payments and raw message
+	if err := app.Database.AddPayments(payments...); err != nil {
+		return rawMsg, payments, errors.Wrap(err, "could not store payments")
+	}
+	if err := app.Database.AddRawMessage(rawMsg); err != nil {
+		return rawMsg, payments, errors.Wrap(err, "could not store message")
+	}
+
+	return rawMsg, payments, newCompositeError(errs)
 }
 
 // defaultPaymentFilter is a payment update filter,
@@ -31,124 +139,84 @@ func defaultPaymentFilter(p *lnchat.Payment) bool {
 		p.Status == lnchat.PaymentFAILED
 }
 
-func (app *App) sendPayment(ctx context.Context,
-	payload string, amtMsat int64, discID uint64, payReq string,
-	opts model.MessageOptions) (*model.Message, error) {
+// SendPayment attempts to send a payment.
+func (app *App) SendPayment(ctx context.Context,
+	dest string, amtMsat int64, payReq string,
+	opts lnchat.PaymentOptions, tlvs map[uint64][]byte) (*model.Payment, error) {
 
-	// Exactly one of discussion and payment request must be defined.
-	if payReq != "" && discID != 0 {
-		return nil, fmt.Errorf("exactly one of payment request" +
-			" and discussion must be specified")
+	// Validate arguments
+	if (payReq != "") == (dest != "") {
+		return nil, fmt.Errorf("exactly one of payment request " +
+			"and destination address must be specified")
 	}
 
-	// In case a payment request is not provided, retrieve discussion.
-	var discussion *model.Discussion
-	var err error
-	if payReq == "" {
-		discussion, err = app.retrieveDiscussion(ctx, discID)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not retrieve discussion")
-		}
-	}
+	recipient := dest
 
-	// In case of payment to payment request, decode it and
-	// create a discussion with the recipient if one does not exist.
-	var payRequest *lnchat.PayReq
 	if payReq != "" {
-		payRequest, err = app.LNManager.DecodePayReq(ctx, payReq)
+		decodedPayReq, err := app.LNManager.DecodePayReq(ctx, payReq)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not"+
-				" decode payment request")
+			return nil, err
 		}
-
-		discussion, err = app.retrieveOrCreateDiscussion(&model.Discussion{
-			Participants: []string{payRequest.Destination.String()},
-			Options:      DefaultOptions,
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "could not retrieve discussion")
-		}
+		recipient = decodedPayReq.Destination.String()
 	}
 
-	options := overrideOptions(DefaultOptions, true, discussion.Options, opts)
-	payOpts := options.GetPaymentOptions()
-
-	// Disallow anonymous messages in group discussions
-	if len(discussion.Participants) > 1 && options.Anonymous {
-		return nil, ErrDiscAnonymousMessage
-	}
-
-	// NOTE: Currently, sending a payment means creating a message
-	// even if the payload is empty ("").
-
-	rawMsg, err := app.createRawMessage(ctx, discussion, payload, !options.Anonymous)
+	// Perform payment attempt
+	result, err := app.send(ctx, dest, amtMsat, payReq, opts, tlvs)
 	if err != nil {
 		return nil, err
 	}
 
-	paymentPayload := marshalPayload(rawMsg)
-
-	// Unified logic for payReq and spontaneous payment
-	// (possibly to multiple recipients), due to handling
-	// recipient and payReq compatibility in lnchat.
-	var recipients []string
-	switch payReq {
-	case "":
-		recipients = discussion.Participants
-	default:
-		recipients = []string{payRequest.Destination.String()}
+	if result.Err != nil {
+		return nil, result.Err
 	}
 
-	// Send payments and retrieve final updates.
-	var errs []error
-	var payments []*model.Payment
-	for _, recipient := range recipients {
-		paymentUpdates, err := app.LNManager.SendPayment(ctx,
-			recipient, lnchat.NewAmount(amtMsat), payReq, payOpts,
-			paymentPayload, defaultPaymentFilter)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("could not "+
-				"initiate payment to %s: %w", recipient, err))
-			continue
-		}
-
-		// NOTE: Waiting for updates can be handled concurrently.
-		update := <-paymentUpdates
-		switch {
-		case update.Err != nil:
-			errs = append(errs, fmt.Errorf("payment error "+
-				"for recipient %s: %w", recipient, update.Err))
-		case update.Payment != nil:
-			payments = append(payments, &model.Payment{
-				PayerAddress: app.Self.Node.Address,
-				PayeeAddress: recipient,
-				Payment:      *update.Payment,
-			})
-		}
+	payment := &model.Payment{
+		PayerAddress: app.Self.Node.Address,
+		PayeeAddress: recipient,
+		Payment:      *result.Payment,
 	}
 
-	// Associate only successful payments with the message.
-	for _, payment := range payments {
-		if payment.Status == lnchat.PaymentSUCCEEDED {
-			rawMsg.WithPaymentIndexes(payment.PaymentIndex)
-		}
+	// Store payment
+	if err := app.Database.AddPayments(payment); err != nil {
+		return payment, err
 	}
 
-	// Save all payments (irrespective of status).
-	if err := app.Database.AddPayments(payments...); err != nil {
-		return nil, errors.Wrap(err, "payment storage failed")
+	return payment, nil
+}
+
+// Attempts payment and returns the final payment update.
+func (app *App) send(ctx context.Context, dest string, amtMsat int64, payReq string,
+	opts lnchat.PaymentOptions, tlvs map[uint64][]byte) (lnchat.PaymentUpdate, error) {
+
+	var lastUpdate lnchat.PaymentUpdate
+
+	amt := lnchat.NewAmount(amtMsat)
+	updates, err := app.LNManager.SendPayment(ctx, dest, amt, payReq,
+		opts, tlvs, defaultPaymentFilter)
+	if err != nil {
+		return lastUpdate, err
 	}
 
-	// Store raw message, if it has associated payments
-	if len(rawMsg.PaymentIndexes) <= 0 {
-		if err := newCompositeError(errs); err != nil {
-			return nil, fmt.Errorf("failed to send message: %w", err)
-		}
-		return nil, fmt.Errorf("failed to send message")
+	for update := range updates {
+		lastUpdate = update
 	}
 
-	if err := app.Database.AddRawMessage(rawMsg); err != nil {
-		return nil, errors.Wrap(err, "message storage failed")
+	return lastUpdate, nil
+}
+
+// SendPay attempts to send a payment.
+// A payment fulfils the payment request, if one is provided,
+// otherwise it is addressed to the discussion participants.
+// If payload is present, it is sent along with the payment
+// (respecting the provided and discussion options, if applicable).
+func (app *App) SendPay(ctx context.Context,
+	payload string, amtMsat int64, discID uint64, payReq string,
+	opts model.MessageOptions) (*model.Message, error) {
+
+	rawMsg, payments, err := app.SendMessage(ctx,
+		discID, amtMsat, payReq, payload, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	msg, err := model.NewOutgoingMessage(rawMsg, true, payments...)
