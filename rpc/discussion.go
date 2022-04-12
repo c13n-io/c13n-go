@@ -173,71 +173,24 @@ func (s *discussionServiceServer) RemoveDiscussion(ctx context.Context, req *pb.
 // If a payment request is specified the discussion with the recipient is used,
 // (creating it with default options if it does not exist).
 func (s *discussionServiceServer) Send(ctx context.Context, req *pb.SendRequest) (*pb.SendResponse, error) {
-	msg, payments, err := s.App.SendMessage(ctx,
+	msgAggregate, err := s.App.SendMessage(ctx,
 		req.GetDiscussionId(), req.GetAmtMsat(), req.GetPayReq(),
 		req.GetPayload(), messageOptionsFromRequest(req.GetOptions()))
 	// SendMessage can partially succeed, in which case log the failures.
 	if err != nil {
 		rpcErr := associateStatusCode(s.logError(err))
-		if msg == nil {
+		if msgAggregate == nil {
 			return nil, rpcErr
 		}
 	}
 
-	message, err := newSentMessage(msg, payments)
+	message, err := newMessage(msgAggregate)
 	if err != nil {
 		return nil, associateStatusCode(s.logError(err))
 	}
 
 	return &pb.SendResponse{
 		SentMessage: message,
-	}, nil
-}
-
-func newSentMessage(rawMsg *model.RawMessage, paymentList []*model.Payment) (*pb.Message, error) {
-	payload, _, err := rawMsg.UnmarshalPayload()
-	if err != nil {
-		return nil, err
-	}
-
-	var sentAt, receivedAt *timestamppb.Timestamp
-	var sentMsat uint64
-	payments := make([]*pb.Payment, 0, len(paymentList))
-	for _, p := range paymentList {
-		payment, err := newPayment(p)
-		if err != nil {
-			return nil, err
-		}
-		payments = append(payments, payment)
-
-		if payment.GetState() == pb.PaymentState_PAYMENT_SUCCEEDED {
-			sentMsat += payment.GetAmtMsat()
-		}
-
-		cTime := payment.GetCreatedTimestamp()
-		rTime := payment.GetResolvedTimestamp()
-		if sentAt.AsTime().After(cTime.AsTime()) || sentAt == nil {
-			sentAt = cTime
-		}
-		if receivedAt.AsTime().Before(rTime.AsTime()) {
-			receivedAt = rTime
-		}
-	}
-
-	return &pb.Message{
-		Id:                rawMsg.ID,
-		DiscussionId:      rawMsg.DiscussionID,
-		Sender:            rawMsg.Sender,
-		SenderVerified:    rawMsg.SignatureVerified,
-		Payload:           payload,
-		AmtMsat:           int64(sentMsat),
-		SentTimestamp:     sentAt,
-		ReceivedTimestamp: receivedAt,
-		LightningData: &pb.Message_Payments{
-			Payments: &pb.Payments{
-				Payments: payments,
-			},
-		},
 	}, nil
 }
 
