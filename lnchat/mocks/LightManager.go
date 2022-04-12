@@ -301,6 +301,29 @@ func (_m *LightManager) SubscribeInvoiceUpdates(ctx context.Context, startIdx ui
 	return r0, r1
 }
 
+// SubscribePaymentUpdates provides a mock function with given fields: ctx, startIdx, filter
+func (_m *LightManager) SubscribePaymentUpdates(ctx context.Context, startIdx uint64, filter func(*lnchat.Payment) bool) (<-chan lnchat.PaymentUpdate, error) {
+	ret := _m.Called(ctx, startIdx, filter)
+
+	var r0 <-chan lnchat.PaymentUpdate
+	if rf, ok := ret.Get(0).(func(context.Context, uint64, func(*lnchat.Payment) bool) <-chan lnchat.PaymentUpdate); ok {
+		r0 = rf(ctx, startIdx, filter)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(<-chan lnchat.PaymentUpdate)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, uint64, func(*lnchat.Payment) bool) error); ok {
+		r1 = rf(ctx, startIdx, filter)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // VerifySignatureExtractPubkey provides a mock function with given fields: ctx, message, signature
 func (_m *LightManager) VerifySignatureExtractPubkey(ctx context.Context, message []byte, signature []byte) (string, error) {
 	ret := _m.Called(ctx, message, signature)

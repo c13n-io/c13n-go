@@ -71,4 +71,8 @@ var testsCases = []*testCase{
 		name: "LookupInvoice",
 		test: testLookupInvoice,
 	},
+	{
+		name: "SubscribePaymentUpdates",
+		test: testSubscribePaymentUpdates,
+	},
 }
