@@ -392,7 +392,7 @@ func TestSendPayment(t *testing.T) {
 		payReq          string
 		decodedPayReq   *lnchat.PayReq
 		amt             int64
-		payload         string
+		tlvs            map[uint64][]byte
 		sendPaymentErr  error
 		signMessageErr  error
 		expectedErr     error
@@ -401,12 +401,11 @@ func TestSendPayment(t *testing.T) {
 		{
 			name:   "Both Payreq and address provided",
 			dest:   "111111111111111111111111111111111111111111111111111111111111111111",
-			payReq: "test payreq",
+			payReq: "dummyPayreq",
 			decodedPayReq: &lnchat.PayReq{
 				Destination: destNode,
 			},
 			amt:            0,
-			payload:        "",
 			sendPaymentErr: nil,
 			expectedErr: errors.New("exactly one of payment request" +
 				" and destination address must be specified"),
@@ -415,25 +414,23 @@ func TestSendPayment(t *testing.T) {
 		{
 			name:   "Payreq provided",
 			dest:   "",
-			payReq: "dog",
+			payReq: "dummyPayreq",
 			decodedPayReq: &lnchat.PayReq{
 				Destination: destNode,
 			},
 			amt:             value,
-			payload:         "",
 			sendPaymentErr:  nil,
 			expectedErr:     nil,
 			expectedPayment: payment,
 		},
 		{
 			name:   "Address provided",
-			dest:   "",
-			payReq: "test payreq",
+			dest:   "111111111111111111111111111111111111111111111111111111111111111111",
+			payReq: "",
 			decodedPayReq: &lnchat.PayReq{
 				Destination: destNode,
 			},
 			amt:             value,
-			payload:         "",
 			sendPaymentErr:  nil,
 			expectedErr:     nil,
 			expectedPayment: payment,
@@ -473,7 +470,7 @@ func TestSendPayment(t *testing.T) {
 				}()
 
 				mockLNManager.On("SendPayment", mock.Anything, c.dest, lnchat.NewAmount(c.amt), c.payReq,
-					opts, mock.Anything, mock.Anything).Return(paymentUpdates, c.sendPaymentErr).Once()
+					opts, c.tlvs, mock.Anything).Return(paymentUpdates, c.sendPaymentErr).Once()
 
 				mockDB.On("AddPayments", mock.AnythingOfType("*model.Payment")).Return(
 					nil).Once()

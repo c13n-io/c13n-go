@@ -97,37 +97,20 @@ func (s *paymentServiceServer) Pay(ctx context.Context,
 func newPayment(payment *model.Payment) (*pb.Payment, error) {
 	var err error
 	var createdTime, resolvedTime *timestamppb.Timestamp
-	resolvedTimeNs := int64(0)
-	// Assign resolvedTimeNs to the latest succeeded htlc resolve timestamp
-	for _, h := range payment.Htlcs {
-		if h.Status == lnrpc.HTLCAttempt_SUCCEEDED && h.ResolveTimeNs > resolvedTimeNs {
-			resolvedTimeNs = h.ResolveTimeNs
-		}
-	}
-
 	htlcs := make([]*pb.PaymentHTLC, len(payment.Htlcs))
-	for i := range htlcs {
-		htlcs[i], err = newPaymentHTLC(payment.Htlcs[i])
+	for i, htlc := range payment.Htlcs {
+		htlcs[i], err = newPaymentHTLC(htlc)
 		if err != nil {
 			return nil, err
 		}
 
-		if payment.Htlcs[i].ResolveTimeNs > resolvedTimeNs {
-			resolvedTimeNs = payment.Htlcs[i].ResolveTimeNs
+		if htlcs[i].GetResolveTimestamp().AsTime().After(resolvedTime.AsTime()) || resolvedTime == nil {
+			resolvedTime = htlcs[i].GetResolveTimestamp()
 		}
 	}
 
-	if resolvedTimeNs > 0 {
-		ts := time.Unix(0, resolvedTimeNs)
-		if resolvedTime, err = newProtoTimestamp(ts); err != nil {
-			return nil, fmt.Errorf("marshal error: invalid timestamp: %v", err)
-		}
-	}
-	if payment.CreationTimeNs > 0 {
-		ts := time.Unix(0, payment.CreationTimeNs)
-		if createdTime, err = newProtoTimestamp(ts); err != nil {
-			return nil, fmt.Errorf("marshal error: invalid timestamp: %v", err)
-		}
+	if createdTime, err = newProtoTimestamp(time.Unix(0, payment.CreationTimeNs)); err != nil {
+		return nil, fmt.Errorf("marshal error: invalid timestamp: %v", err)
 	}
 
 	var state pb.PaymentState
@@ -200,9 +183,13 @@ func newPaymentHTLC(h lnchat.HTLCAttempt) (*pb.PaymentHTLC, error) {
 		state = pb.HTLCState_HTLC_FAILED
 	}
 
-	preimage, err := lntypes.MakePreimage(h.Preimage)
-	if err != nil {
-		return nil, fmt.Errorf("marshal error: invalid preimage: %v", err)
+	var hPreimage string
+	if h.Preimage != nil {
+		preimage, err := lntypes.MakePreimage(h.Preimage)
+		if err != nil {
+			return nil, fmt.Errorf("marshal error: invalid preimage: %v", err)
+		}
+		hPreimage = preimage.String()
 	}
 
 	return &pb.PaymentHTLC{
@@ -210,7 +197,7 @@ func newPaymentHTLC(h lnchat.HTLCAttempt) (*pb.PaymentHTLC, error) {
 		AttemptTimestamp: attemptTime,
 		ResolveTimestamp: resolveTime,
 		State:            state,
-		Preimage:         preimage.String(),
+		Preimage:         hPreimage,
 	}, nil
 
 }

@@ -76,6 +76,7 @@ func (PaymentState) EnumDescriptor() ([]byte, []int) {
 	return file_rpc_services_rpc_proto_rawDescGZIP(), []int{0}
 }
 
+//* Represents the state of a HTLC.
 type HTLCState int32
 
 const (
@@ -3534,7 +3535,7 @@ func (x *PayResponse) GetPayment() *Payment {
 	return nil
 }
 
-//* Represents a Lightning network payment
+//* Represents a Lightning network payment.
 type Payment struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -3556,7 +3557,7 @@ type Payment struct {
 	State PaymentState `protobuf:"varint,7,opt,name=state,proto3,enum=services.PaymentState" json:"state,omitempty"`
 	//* The payment index.
 	PaymentIndex uint64 `protobuf:"varint,8,opt,name=payment_index,json=paymentIndex,proto3" json:"payment_index,omitempty"`
-	//* The payment HTLCs
+	//* The payment HTLCs.
 	HTLCs []*PaymentHTLC `protobuf:"bytes,9,rep,name=HTLCs,proto3" json:"HTLCs,omitempty"`
 }
 

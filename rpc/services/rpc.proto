@@ -693,7 +693,7 @@ message PayResponse {
 	Payment payment = 1;
 }
 
-/** Represents a Lightning network payment */
+/** Represents a Lightning network payment. */
 message Payment {
 	/** The payment hash of the payment. */
 	string hash = 1;
@@ -711,7 +711,7 @@ message Payment {
 	PaymentState state = 7;
 	/** The payment index. */
 	uint64 payment_index = 8;
-	/** The payment HTLCs */
+	/** The payment HTLCs. */
 	repeated PaymentHTLC HTLCs = 9;
 }
 
@@ -737,6 +737,7 @@ enum PaymentState {
 	PAYMENT_FAILED = 3;
 }
 
+/** Represents the state of a HTLC. */
 enum HTLCState {
 	HTLC_IN_FLIGHT = 0;
 	HTLC_SUCCEEDED = 1;
