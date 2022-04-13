@@ -112,7 +112,7 @@ dev-deps:
 	$(GOINSTALL) google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0
 	$(GOINSTALL) github.com/mwitkow/go-proto-validators/...@v0.3.2
 	$(GOINSTALL) github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.3.2
-	$(GOINSTALL) github.com/vektra/mockery/...@v1.0.0
+	$(GOINSTALL) github.com/vektra/mockery/v2@v2.10.4
 	$(GOINSTALL) golang.org/x/tools/cmd/goimports@latest
 	$(GOINSTALL) github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.1
 

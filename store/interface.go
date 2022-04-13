@@ -1,6 +1,6 @@
 package store
 
-//go:generate mockery -dir=. -output=./mocks -outpkg=storemock -name=Database
+//go:generate mockery --dir=. --output=./mocks --outpkg=storemock --name=Database
 
 import (
 	"github.com/c13n-io/c13n-go/model"
