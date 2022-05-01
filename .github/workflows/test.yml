@@ -49,5 +49,11 @@ jobs:
       - name: Lint
         run: cd /c13n && make lint
 
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@master
+        with:
+          recursive: true
+          dockerfile: "Dockerfile"
+
       - name: Test
         run: cd /c13n && make test
