@@ -28,7 +28,7 @@ jobs:
       - name: Create release assets
         run: cd /c13n && make release
 
-      - uses: olegtarasov/get-tag@v2.1
+      - uses: olegtarasov/get-tag@v2.1.1
         id: tagName
 
       - name: Create Release

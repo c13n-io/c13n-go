@@ -30,7 +30,7 @@ jobs:
             /build_rtd.sh
 
       - name: Push to rtd repository
-        uses: cpina/github-action-push-to-another-repository@main
+        uses: cpina/github-action-push-to-another-repository@v1.4.2
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
