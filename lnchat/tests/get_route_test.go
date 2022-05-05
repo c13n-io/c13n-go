@@ -59,8 +59,6 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	}
 
-	ctxb := context.Background()
-
 	// Make sure Alice has enough utxos for anchoring. Because the anchor by
 	// itself often doesn't meet the dust limit, a utxo from the wallet
 	// needs to be attached as an additional input. This can still lead to a
@@ -81,16 +79,13 @@ func testGetRouteSingleHop(net *lntest.NetworkHarness, t *harnessTest) {
 
 	// Wait for Alice and Bob to recognize and advertise the new channel
 	// generated above.
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
+	err := net.Alice.WaitForNetworkChannelOpen(chanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't advertise channel before "+
 			"timeout: %v", err)
 	}
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
+
+	err = net.Bob.WaitForNetworkChannelOpen(chanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't advertise channel before "+
 			"timeout: %v", err)

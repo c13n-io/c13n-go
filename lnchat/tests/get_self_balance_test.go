@@ -144,19 +144,13 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-
-	err = net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
+	err = net.Alice.WaitForNetworkChannelOpen(chanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't advertise channel before "+
 			"timeout: %v", err)
 	}
 
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-
-	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
+	err = net.Bob.WaitForNetworkChannelOpen(chanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't advertise channel before "+
 			"timeout: %v", err)
@@ -177,7 +171,7 @@ func testGetSelfBalanceChannel(net *lntest.NetworkHarness, t *harnessTest) {
 
 	commitFee := int64(calcStaticFee(cType, 0))
 
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	tx := findChanFundingTx(ctxt, t, chanPoint, net.Alice)
 	txFees := tx.TotalFees
@@ -260,9 +254,7 @@ func testGetSelfBalancePendingCh(net *lntest.NetworkHarness, t *harnessTest) {
 	mineBlocks(t, net, 6, 1)
 
 	// Ensure that the channel is open.
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
+	err = net.Alice.WaitForNetworkChannelOpen(chanPoint)
 	if err != nil {
 		t.Fatalf("channel not seen on network before timeout:"+
 			" %v", err)
@@ -292,17 +284,13 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	)
 
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
+	err = net.Alice.WaitForNetworkChannelOpen(chanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't advertise channel before "+
 			"timeout: %v", err)
 	}
 
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
+	err = net.Bob.WaitForNetworkChannelOpen(chanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't advertise channel before "+
 			"timeout: %v", err)
@@ -324,7 +312,7 @@ func testGetSelfBalanceUnsettled(net *lntest.NetworkHarness, t *harnessTest) {
 		Hash:      preimageHash[:],
 		ValueMsat: int64(billedAmtMsat),
 	}
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
+	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
 	defer cancel()
 	holdInvResp, err := net.Bob.AddHoldInvoice(ctxt, holdInvoiceReq)
 	if err != nil {

@@ -37,8 +37,6 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 		// Needed in case of parallel testing.
 		subTest := subTest
 
-		ctxb := context.Background()
-
 		// Open a channel with 100k satoshis between Alice and Bob with Alice being
 		// the sole funder of the channel.
 		chanAmt := btcutil.Amount(1000000)
@@ -51,14 +49,12 @@ func testSingleHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Wait for Alice and Bob to recognize and advertise the new channel
 		// generated above.
-		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
+		err := net.Alice.WaitForNetworkChannelOpen(chanPoint)
 		if err != nil {
 			t.Fatalf("alice didn't advertise channel before "+
 				"timeout: %v", err)
 		}
-		err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
+		err = net.Bob.WaitForNetworkChannelOpen(chanPoint)
 		if err != nil {
 			t.Fatalf("bob didn't advertise channel before "+
 				"timeout: %v", err)
@@ -111,8 +107,6 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 		// Needed in case of parallel testing.
 		subTest := subTest
 
-		ctxb := context.Background()
-
 		// Open a channel with 100k satoshis between Alice and Bob with Alice being
 		// the sole funder of the channel.
 		chanAmt := btcutil.Amount(1000000)
@@ -125,14 +119,12 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 
 		// Wait for Alice and Bob to recognize and advertise the new channel
 		// generated above.
-		ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
+		err := net.Alice.WaitForNetworkChannelOpen(chanPoint)
 		if err != nil {
 			t.Fatalf("alice didn't advertise channel before "+
 				"timeout: %v", err)
 		}
-		err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
+		err = net.Bob.WaitForNetworkChannelOpen(chanPoint)
 		if err != nil {
 			t.Fatalf("bob didn't advertise channel before "+
 				"timeout: %v", err)
@@ -147,23 +139,19 @@ func testMultiHopTests(net *lntest.NetworkHarness, t *harnessTest) {
 			},
 		)
 
-		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		err = net.Bob.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+		err = net.Bob.WaitForNetworkChannelOpen(bobChanPoint)
 		if err != nil {
 			t.Fatalf("bob didn't advertise channel before "+
 				"timeout: %v", err)
 		}
-		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		err = carol.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+
+		err = carol.WaitForNetworkChannelOpen(bobChanPoint)
 		if err != nil {
 			t.Fatalf("carol didn't advertise channel before "+
 				"timeout: %v", err)
 		}
-		ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-		defer cancel()
-		err = net.Alice.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+
+		err = net.Alice.WaitForNetworkChannelOpen(bobChanPoint)
 		if err != nil {
 			t.Fatalf("alice didn't report channel: %v", err)
 		}
