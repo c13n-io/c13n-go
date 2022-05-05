@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - uses: pmorelli92/github-container-registry-build-push@2.0.0
         name: Build and Publish latest service image

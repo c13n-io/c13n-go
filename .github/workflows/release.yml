@@ -17,7 +17,7 @@ jobs:
       options: -v ${{ github.workspace }}:/c13n
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install dev dependencies
         run: cd /c13n && make dev-deps
@@ -62,7 +62,7 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Login to GitHub Packages Docker Registry
         uses: docker/login-action@v1
