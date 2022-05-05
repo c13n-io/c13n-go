@@ -21,4 +21,4 @@ jobs:
         with:
           token: ${{ secrets.API_TOKEN_GITHUB }}
           tag_name: ${{ steps.tagName.outputs.tag }}
-          repository: c13n-io/c13n-api-docs 
+          repository: c13n-io/c13n-api-docs

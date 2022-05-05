@@ -28,7 +28,7 @@ jobs:
           run: |
             echo "Running Script"
             /build_rtd.sh
-          
+
       - name: Push to rtd repository
         uses: cpina/github-action-push-to-another-repository@main
         env:
