@@ -54,7 +54,7 @@ jobs:
           context: .
           file: ./docker/c13n/Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: false
+          push: true
           tags: ${{ steps.tagName.outputs.version }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
