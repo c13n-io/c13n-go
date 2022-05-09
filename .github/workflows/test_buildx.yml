@@ -8,9 +8,6 @@ on:
 jobs:
   pull_request:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/c13n-io/c13n-go-testenv:latest
-      options: -v ${{ github.workspace }}:/c13n
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v2
