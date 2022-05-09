@@ -9,30 +9,19 @@ import (
 	"github.com/c13n-io/c13n-go/model"
 )
 
-// MessageAggregate represents a raw discussion message
-// along with the invoice or payments it references.
-type MessageAggregate struct {
-	// The raw message.
-	RawMessage *model.RawMessage
-	// The associated invoice (if any; only valid for incoming messages).
-	Invoice *model.Invoice
-	// The associated payments (if any; only valid for outgoind messages).
-	Payments []*model.Payment
-}
-
 func newMsgAggregate(raw model.RawMessage,
-	inv *model.Invoice, pays []model.Payment) MessageAggregate {
+	inv *model.Invoice, pays []model.Payment) model.MessageAggregate {
 
 	var payments []*model.Payment
-
 	if len(pays) > 0 {
 		payments = make([]*model.Payment, len(pays))
 	}
+
 	for i, pay := range pays {
 		payments[i] = &pay
 	}
 
-	return MessageAggregate{
+	return model.MessageAggregate{
 		RawMessage: &raw,
 		Invoice:    inv,
 		Payments:   payments,
@@ -42,13 +31,13 @@ func newMsgAggregate(raw model.RawMessage,
 // GetMessages retrieves messages belonging to a discussion.
 // The pageOpts parameter controls the requested message range.
 func (db *bhDatabase) GetMessages(discussionUID uint64,
-	pageOpts model.PageOptions) ([]MessageAggregate, error) {
+	pageOpts model.PageOptions) ([]model.MessageAggregate, error) {
 
 	if pageOpts.Reverse && pageOpts.LastID == 0 {
 		return nil, fmt.Errorf("reverse pagination without anchor is disallowed")
 	}
 
-	var messages []MessageAggregate
+	var messages []model.MessageAggregate
 	if err := db.bh.Badger().View(func(txn *badger.Txn) error {
 		discQuery := badgerhold.Where(badgerhold.Key).Eq(discussionUID)
 		if _, err := db.findSingleDiscussion(txn, discQuery); err != nil {
@@ -72,7 +61,7 @@ func (db *bhDatabase) GetMessages(discussionUID uint64,
 		if err := db.bh.TxFind(txn, &raws, query); err != nil {
 			return err
 		}
-		messages = make([]MessageAggregate, len(raws))
+		messages = make([]model.MessageAggregate, len(raws))
 
 		for i, raw := range raws {
 			switch {
@@ -104,7 +93,7 @@ func (db *bhDatabase) GetMessages(discussionUID uint64,
 	}
 
 	if pageOpts.Reverse {
-		reverseMsgs := make([]MessageAggregate, len(messages))
+		reverseMsgs := make([]model.MessageAggregate, len(messages))
 		for i := len(messages) - 1; i >= 0; i-- {
 			reverseMsgs[len(messages)-1-i] = messages[i]
 		}

@@ -236,7 +236,7 @@ func TestGetDiscussionStatistics(t *testing.T) {
 	}
 
 	var discussionID uint64 = 32
-	msgHistory := []store.MessageAggregate{
+	msgHistory := []model.MessageAggregate{
 		{
 			RawMessage: &model.RawMessage{
 				ID:                39,
@@ -326,7 +326,7 @@ func TestGetDiscussionStatistics(t *testing.T) {
 
 	cases := []struct {
 		name                     string
-		getDiscussionHistoryResp []store.MessageAggregate
+		getDiscussionHistoryResp []model.MessageAggregate
 		getDiscussionHistoryErr  error
 		expectedResponse         *model.DiscussionStatistics
 		expectedErr              error
@@ -345,7 +345,7 @@ func TestGetDiscussionStatistics(t *testing.T) {
 			expectedResponse:         nil,
 			expectedErr: Error{
 				Kind:    DiscussionNotFound,
-				details: "GetMessages",
+				details: "could not retrieve discussion messages",
 				Err:     store.ErrDiscussionNotFound,
 			},
 		},

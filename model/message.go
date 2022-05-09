@@ -2,6 +2,17 @@ package model
 
 import "github.com/c13n-io/c13n-go/lnchat"
 
+// MessageAggregate represents a raw discussion message
+// along with the invoice or payments it references.
+type MessageAggregate struct {
+	// The raw message.
+	RawMessage *RawMessage
+	// The invoice carrying the message (valid only for incoming messages).
+	Invoice *Invoice
+	// The payments fulfilling the message (valid only for outgoing messages).
+	Payments []*Payment
+}
+
 // Hop represents a hop in a payment route.
 type Hop struct {
 	// The channel id.

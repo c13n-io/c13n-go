@@ -233,35 +233,35 @@ func TestUpdateDiscussionLastRead(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, &disc, insertedDisc)
 
-	msgs := []MessageAggregate{
-		func() MessageAggregate {
+	msgs := []model.MessageAggregate{
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = insertedDisc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = insertedDisc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = insertedDisc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = insertedDisc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
@@ -313,27 +313,27 @@ func TestUpdateDiscussionLastMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, &disc, insertedDisc)
 
-	msgs := []MessageAggregate{
-		func() MessageAggregate {
+	msgs := []model.MessageAggregate{
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = insertedDisc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, payments := generateOutgoing(t, generateHex(t, 33))
 			raw.DiscussionID = insertedDisc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Payments:   payments,
 			}
 		}(),
-		func() MessageAggregate {
+		func() model.MessageAggregate {
 			raw, inv := generateIncoming(t, generateHex(t, 33))
 			raw.DiscussionID = insertedDisc.ID
-			return MessageAggregate{
+			return model.MessageAggregate{
 				RawMessage: raw,
 				Invoice:    inv,
 			}

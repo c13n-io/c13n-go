@@ -79,16 +79,21 @@ func (s *discussionServiceServer) GetDiscussionHistoryByID(req *pb.GetDiscussion
 		}
 	}
 
-	msgList, err := s.App.GetDiscussionHistory(ctx, req.GetId(), pageOptions)
+	messages, err := s.App.GetDiscussionHistory(ctx, req.GetId(), pageOptions)
 	if err != nil {
 		return associateStatusCode(s.logError(err))
 	}
-	for _, msg := range msgList {
-		msgRPC, err := messageModelToHistoryMessageResponse(&msg)
+
+	for _, message := range messages {
+		msg, err := newMessage(&message)
 		if err != nil {
 			return associateStatusCode(s.logError(err))
 		}
-		if err := srv.Send(msgRPC); err != nil {
+
+		resp := &pb.GetDiscussionHistoryResponse{
+			Message: msg,
+		}
+		if err := srv.Send(resp); err != nil {
 			return associateStatusCode(s.logError(err))
 		}
 	}
@@ -168,18 +173,18 @@ func (s *discussionServiceServer) RemoveDiscussion(ctx context.Context, req *pb.
 // If a payment request is specified the discussion with the recipient is used,
 // (creating it with default options if it does not exist).
 func (s *discussionServiceServer) Send(ctx context.Context, req *pb.SendRequest) (*pb.SendResponse, error) {
-	msg, payments, err := s.App.SendMessage(ctx,
+	msgAggregate, err := s.App.SendMessage(ctx,
 		req.GetDiscussionId(), req.GetAmtMsat(), req.GetPayReq(),
 		req.GetPayload(), messageOptionsFromRequest(req.GetOptions()))
 	// SendMessage can partially succeed, in which case log the failures.
 	if err != nil {
 		rpcErr := associateStatusCode(s.logError(err))
-		if msg == nil {
+		if msgAggregate == nil {
 			return nil, rpcErr
 		}
 	}
 
-	message, err := newSentMessage(msg, payments)
+	message, err := newMessage(msgAggregate)
 	if err != nil {
 		return nil, associateStatusCode(s.logError(err))
 	}
@@ -189,51 +194,76 @@ func (s *discussionServiceServer) Send(ctx context.Context, req *pb.SendRequest)
 	}, nil
 }
 
-func newSentMessage(rawMsg *model.RawMessage, paymentList []*model.Payment) (*pb.Message, error) {
-	payload, _, err := rawMsg.UnmarshalPayload()
+func newMessage(aggregate *model.MessageAggregate) (*pb.Message, error) {
+	if aggregate == nil {
+		return nil, nil
+	}
+
+	raw := aggregate.RawMessage
+	payload, _, err := raw.UnmarshalPayload()
 	if err != nil {
 		return nil, err
 	}
 
+	msg := &pb.Message{
+		Id:             raw.ID,
+		DiscussionId:   raw.DiscussionID,
+		Sender:         raw.Sender,
+		SenderVerified: raw.SignatureVerified,
+		Payload:        payload,
+	}
+
+	var amtMsat uint64
 	var sentAt, receivedAt *timestamppb.Timestamp
-	var sentMsat uint64
-	payments := make([]*pb.Payment, 0, len(paymentList))
-	for _, p := range paymentList {
-		payment, err := newPayment(p)
+	switch {
+	case raw.InvoiceSettleIndex != 0:
+		invoice, err := invoiceModelToRPCInvoice(aggregate.Invoice)
 		if err != nil {
 			return nil, err
 		}
-		payments = append(payments, payment)
 
-		if payment.GetState() == pb.PaymentState_PAYMENT_SUCCEEDED {
-			sentMsat += payment.GetAmtMsat()
+		amtMsat = invoice.GetAmtPaidMsat()
+		sentAt = invoice.GetCreatedTimestamp()
+		receivedAt = invoice.GetSettledTimestamp()
+
+		msg.LightningData = &pb.Message_Invoice{
+			Invoice: invoice,
+		}
+	case len(raw.PaymentIndexes) != 0:
+		payments := make([]*pb.Payment, len(aggregate.Payments))
+		for i, pmnt := range aggregate.Payments {
+			payment, err := newPayment(pmnt)
+			if err != nil {
+				return nil, err
+			}
+
+			if payment.GetState() == pb.PaymentState_PAYMENT_SUCCEEDED {
+				amtMsat += payment.GetAmtMsat()
+			}
+
+			createdAt := payment.GetCreatedTimestamp()
+			if sentAt.AsTime().After(createdAt.AsTime()) || sentAt == nil {
+				sentAt = createdAt
+			}
+			resolvedAt := payment.GetResolvedTimestamp()
+			if receivedAt.AsTime().Before(resolvedAt.AsTime()) {
+				receivedAt = resolvedAt
+			}
+
+			payments[i] = payment
 		}
 
-		cTime := payment.GetCreatedTimestamp()
-		rTime := payment.GetResolvedTimestamp()
-		if sentAt.AsTime().After(cTime.AsTime()) || sentAt == nil {
-			sentAt = cTime
-		}
-		if receivedAt.AsTime().Before(rTime.AsTime()) {
-			receivedAt = rTime
-		}
-	}
-
-	return &pb.Message{
-		Id:                rawMsg.ID,
-		DiscussionId:      rawMsg.DiscussionID,
-		Sender:            rawMsg.Sender,
-		SenderVerified:    rawMsg.SignatureVerified,
-		Payload:           payload,
-		AmtMsat:           int64(sentMsat),
-		SentTimestamp:     sentAt,
-		ReceivedTimestamp: receivedAt,
-		LightningData: &pb.Message_Payments{
+		msg.LightningData = &pb.Message_Payments{
 			Payments: &pb.Payments{
 				Payments: payments,
 			},
-		},
-	}, nil
+		}
+	}
+
+	msg.AmtMsat = int64(amtMsat)
+	msg.SentTimestamp, msg.ReceivedTimestamp = sentAt, receivedAt
+
+	return msg, nil
 }
 
 // NewDiscussionServiceServer initializes a new discussion service.

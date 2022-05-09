@@ -18,11 +18,11 @@ import (
 // is created with default options if it does not exist.
 // Note: Anonymous messages to group discussions are disallowed.
 func (app *App) SendMessage(ctx context.Context, discID uint64, amtMsat int64, payReq string,
-	payload string, opts model.MessageOptions) (*model.RawMessage, []*model.Payment, error) {
+	payload string, opts model.MessageOptions) (*model.MessageAggregate, error) {
 
 	// Validate arguments
 	if (payReq != "") && (discID != 0) {
-		return nil, nil, fmt.Errorf("exactly one of payment request " +
+		return nil, fmt.Errorf("exactly one of payment request " +
 			"and discussion must be specified")
 	}
 
@@ -34,33 +34,33 @@ func (app *App) SendMessage(ctx context.Context, discID uint64, amtMsat int64, p
 		// Create discussion if it does not exist
 		payRequest, err := app.LNManager.DecodePayReq(ctx, payReq)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "could not decode payment request")
+			return nil, errors.Wrap(err, "could not decode payment request")
 		}
 		disc, err = app.retrieveOrCreateDiscussion(&model.Discussion{
 			Participants: []string{payRequest.Destination.String()},
 			Options:      DefaultOptions,
 		})
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "could not retrieve discussion")
+			return nil, errors.Wrap(err, "could not retrieve discussion")
 		}
 	case "":
 		disc, err = app.retrieveDiscussion(ctx, discID)
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "could not retrieve discussion")
+			return nil, errors.Wrap(err, "could not retrieve discussion")
 		}
 	}
 
 	// Disallow anonymous messages in group discussions
 	options := overrideOptions(disc.Options, true, opts)
 	if len(disc.Participants) > 1 && options.Anonymous {
-		return nil, nil, ErrDiscAnonymousMessage
+		return nil, ErrDiscAnonymousMessage
 	}
 	payOpts := options.GetPaymentOptions()
 
 	// Create raw message
 	rawMsg, err := app.createRawMessage(ctx, disc, payload, !options.Anonymous)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	tlvs := marshalPayload(rawMsg)
 
@@ -113,23 +113,27 @@ func (app *App) SendMessage(ctx context.Context, discID uint64, amtMsat int64, p
 
 	// If there are no payments associated with the message, fail early
 	if len(payments) == 0 {
-		return nil, nil, newCompositeError(errs)
+		return nil, newCompositeError(errs)
 	}
 
 	// Associate payments with the message
 	for _, payment := range payments {
 		rawMsg.WithPaymentIndexes(payment.PaymentIndex)
 	}
+	msg := &model.MessageAggregate{
+		RawMessage: rawMsg,
+		Payments:   payments,
+	}
 
 	// Store payments and raw message
-	if err := app.Database.AddPayments(payments...); err != nil {
-		return rawMsg, payments, errors.Wrap(err, "could not store payments")
+	if err := app.Database.AddPayments(msg.Payments...); err != nil {
+		return msg, errors.Wrap(err, "could not store payments")
 	}
-	if err := app.Database.AddRawMessage(rawMsg); err != nil {
-		return rawMsg, payments, errors.Wrap(err, "could not store message")
+	if err := app.Database.AddRawMessage(msg.RawMessage); err != nil {
+		return msg, errors.Wrap(err, "could not store message")
 	}
 
-	return rawMsg, payments, newCompositeError(errs)
+	return msg, newCompositeError(errs)
 }
 
 // defaultPaymentFilter is a payment update filter,
@@ -213,13 +217,13 @@ func (app *App) SendPay(ctx context.Context,
 	payload string, amtMsat int64, discID uint64, payReq string,
 	opts model.MessageOptions) (*model.Message, error) {
 
-	rawMsg, payments, err := app.SendMessage(ctx,
+	msgAgg, err := app.SendMessage(ctx,
 		discID, amtMsat, payReq, payload, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	msg, err := model.NewOutgoingMessage(rawMsg, true, payments...)
+	msg, err := model.NewOutgoingMessage(msgAgg.RawMessage, true, msgAgg.Payments...)
 	if err != nil {
 		return nil, errors.Wrap(err, "message marshalling failed")
 	}
