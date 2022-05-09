@@ -291,13 +291,9 @@ func assertChannelPolicyUpdate(t *testing.T, node *lntest.HarnessNode,
 	advertisingNode string, policy *lnrpc.RoutingPolicy,
 	chanPoint *lnrpc.ChannelPoint, includeUnannounced bool) {
 
-	ctxb := context.Background()
-	ctxt, cancel := context.WithTimeout(ctxb, lntest.DefaultTimeout)
-	defer cancel()
-
 	require.NoError(
 		t, node.WaitForChannelPolicyUpdate(
-			ctxt, advertisingNode, policy,
+			advertisingNode, policy,
 			chanPoint, includeUnannounced,
 		), "error while waiting for channel update",
 	)
@@ -723,8 +719,6 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 	alice, bob *lntest.HarnessNode, carolHodl bool, c lnrpc.CommitmentType) (
 	*lnrpc.ChannelPoint, *lnrpc.ChannelPoint, *lntest.HarnessNode) {
 
-	ctxb := context.Background()
-
 	net.EnsureConnected(t.t, alice, bob)
 
 	// Make sure there are enough utxos for anchoring.
@@ -755,16 +749,12 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 		},
 	)
 
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err := alice.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
+	err := alice.WaitForNetworkChannelOpen(aliceChanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't report channel: %v", err)
 	}
 
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = bob.WaitForNetworkChannelOpen(ctxt, aliceChanPoint)
+	err = bob.WaitForNetworkChannelOpen(aliceChanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't report channel: %v", err)
 	}
@@ -804,21 +794,15 @@ func createThreeHopNetwork(t *harnessTest, net *lntest.NetworkHarness,
 			FundingShim:    bobFundingShim,
 		},
 	)
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = bob.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+	err = bob.WaitForNetworkChannelOpen(bobChanPoint)
 	if err != nil {
 		t.Fatalf("alice didn't report channel: %v", err)
 	}
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = carol.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+	err = carol.WaitForNetworkChannelOpen(bobChanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't report channel: %v", err)
 	}
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = alice.WaitForNetworkChannelOpen(ctxt, bobChanPoint)
+	err = alice.WaitForNetworkChannelOpen(bobChanPoint)
 	if err != nil {
 		t.Fatalf("bob didn't report channel: %v", err)
 	}

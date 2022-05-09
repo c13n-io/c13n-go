@@ -56,4 +56,4 @@ jobs:
           dockerfile: "Dockerfile"
 
       - name: Test
-        run: cd /c13n && make test
+        run: cd /c13n && make test && make clean

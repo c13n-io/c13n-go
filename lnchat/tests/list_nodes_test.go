@@ -77,10 +77,10 @@ func testListNodesOneChannel(net *lntest.NetworkHarness, t *harnessTest) {
 	}
 	chanPoint := openChannelAndAssert(t, net, net.Alice, net.Bob, chanParams)
 
-	err = net.Alice.WaitForNetworkChannelOpen(ctxb, chanPoint)
+	err = net.Alice.WaitForNetworkChannelOpen(chanPoint)
 	assert.NoErrorf(t.t, err, "alice didn't report channel")
 
-	err = net.Bob.WaitForNetworkChannelOpen(ctxb, chanPoint)
+	err = net.Bob.WaitForNetworkChannelOpen(chanPoint)
 	assert.NoErrorf(t.t, err, "bob didn't report channel")
 
 	// List visible nodes (should be 2: Alice and Bob).

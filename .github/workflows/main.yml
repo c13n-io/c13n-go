@@ -53,7 +53,7 @@ jobs:
         run: cd /c13n && make dev-deps
 
       - name: Test
-        run: cd /c13n && make test
+        run: cd /c13n && make test && make clean
 
   release-c13n-go-docker-image:
     needs: test

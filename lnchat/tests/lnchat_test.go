@@ -8,7 +8,6 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/integration/rpctest"
-	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/lightningnetwork/lnd/lntest"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +20,6 @@ var (
 const (
 	defaultTimeout      = lntest.DefaultTimeout
 	minerMempoolTimeout = lntest.MinerMempoolTimeout
-	channelOpenTimeout  = lntest.ChannelOpenTimeout
 	channelCloseTimeout = lntest.ChannelCloseTimeout
 	pendingHTLCTimeout  = defaultTimeout
 	itestLndBinary      = "./lnd-itest"
@@ -47,13 +45,12 @@ func TestLnchat(t *testing.T) {
 	//
 	// We will also connect it to our chain backend.
 	minerLogDir := "./.minerlogs"
-	miner, minerCleanup, err := lntest.NewMiner(
-		minerLogDir, "output_btcd_miner.log", harnessNetParams,
-		&rpcclient.NotificationHandlers{}, lntest.GetBtcdBinary(),
-	)
+	miner, err := lntest.NewTempMiner(
+		minerLogDir, "output_btcd_miner.log")
 	require.NoError(t, err, "failed to create new miner")
 	defer func() {
-		require.NoError(t, minerCleanup(), "failed to clean up miner")
+		err := miner.Stop()
+		require.NoError(t, err, "failed to stop miner")
 	}()
 
 	// Start a chain backend.

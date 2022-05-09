@@ -51,8 +51,6 @@ func testSubscribePaymentUpdates(net *lntest.NetworkHarness, t *harnessTest) {
 		},
 	}
 
-	ctxb := context.Background()
-
 	for i := 0; i < 2; i++ {
 		net.SendCoins(t.t, btcutil.SatoshiPerBitcoin, net.Alice)
 	}
@@ -67,14 +65,11 @@ func testSubscribePaymentUpdates(net *lntest.NetworkHarness, t *harnessTest) {
 	)
 
 	// Wait for Alice and Bob to recognize and advertise the channel.
-	ctxt, cancel := context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err := net.Alice.WaitForNetworkChannelOpen(ctxt, chanPoint)
+	err := net.Alice.WaitForNetworkChannelOpen(chanPoint)
 	assert.NoErrorf(t.t, err, "alice didn't "+
 		"advertise channel before timeout: %v", err)
-	ctxt, cancel = context.WithTimeout(ctxb, defaultTimeout)
-	defer cancel()
-	err = net.Bob.WaitForNetworkChannelOpen(ctxt, chanPoint)
+
+	err = net.Bob.WaitForNetworkChannelOpen(chanPoint)
 	assert.NoErrorf(t.t, err, "bob didn't "+
 		"advertise channel before timeout: %v", err)
 

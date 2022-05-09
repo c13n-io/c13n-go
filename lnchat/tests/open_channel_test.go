@@ -106,14 +106,10 @@ func testOpenChannelSuccess(net *lntest.NetworkHarness, t *harnessTest) {
 				OutputIndex: chanPoint.OutputIndex,
 			}
 
-			ctxt, cancel := context.WithTimeout(ctxb, channelOpenTimeout)
-			defer cancel()
-			err = net.Alice.WaitForNetworkChannelOpen(ctxt, &lnrpcChanPoint)
+			err = net.Alice.WaitForNetworkChannelOpen(&lnrpcChanPoint)
 			assert.NoError(t.t, err, "Alice did not report channel")
 
-			ctxt, cancel = context.WithTimeout(ctxb, channelOpenTimeout)
-			defer cancel()
-			err = net.Bob.WaitForNetworkChannelOpen(ctxt, &lnrpcChanPoint)
+			err = net.Bob.WaitForNetworkChannelOpen(&lnrpcChanPoint)
 			assert.NoError(t.t, err, "Bob did not report channel")
 
 			cType, err := channelCommitType(net.Alice, &lnrpcChanPoint)
