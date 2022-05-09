@@ -48,6 +48,10 @@ func TestLnchat(t *testing.T) {
 	miner, err := lntest.NewTempMiner(
 		minerLogDir, "output_btcd_miner.log")
 	require.NoError(t, err, "failed to create new miner")
+	defer func() {
+		err := miner.Stop()
+		require.NoError(t, err, "failed to stop miner")
+	}()
 
 	// Start a chain backend.
 	chainBackend, cleanUp, err := lntest.NewBackend(
