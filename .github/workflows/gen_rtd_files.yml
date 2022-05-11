@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - uses: pmorelli92/github-container-registry-build-push@2.0.0
         name: Build and Publish latest service image
@@ -28,9 +28,9 @@ jobs:
           run: |
             echo "Running Script"
             /build_rtd.sh
-          
+
       - name: Push to rtd repository
-        uses: cpina/github-action-push-to-another-repository@main
+        uses: cpina/github-action-push-to-another-repository@v1.4.2
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:

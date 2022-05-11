@@ -22,19 +22,10 @@ jobs:
           max_length: 30
 
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Cache vendor
-        uses: actions/cache@v2
-        id: cache-vendor
-        with:
-          path: |
-            ${{ github.workspace }}/vendor
-          key: ${{ runner.os }}-go-vendor-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-vendor-
       - name: Cache GO modules
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         id: cache-go-modules
         with:
           path: |

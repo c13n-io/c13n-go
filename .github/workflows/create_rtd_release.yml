@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - uses: olegtarasov/get-tag@v2.1
+      - uses: olegtarasov/get-tag@v2.1.1
         id: tagName
 
       - name: Release new c13n-api-docs version
@@ -21,4 +21,4 @@ jobs:
         with:
           token: ${{ secrets.API_TOKEN_GITHUB }}
           tag_name: ${{ steps.tagName.outputs.tag }}
-          repository: c13n-io/c13n-api-docs 
+          repository: c13n-io/c13n-api-docs
