@@ -676,6 +676,11 @@ service PaymentService {
 	 Performs a payment.
 	*/
 	rpc Pay(PayRequest) returns (PayResponse) {}
+
+	/**
+	 Subscribes to invoice (final state) updates.
+	*/
+	rpc SubscribeInvoices(SubscribeInvoicesRequest) returns (stream Invoice) {}
 }
 
 /** Corresponds to an invoice creation request. */
@@ -868,4 +873,8 @@ enum InvoiceHTLCState {
 	INVOICE_HTLC_ACCEPTED = 0;
 	INVOICE_HTLC_SETTLED = 1;
 	INVOICE_HTLC_CANCELLED = 2;
+}
+
+/** Corresponds to a subscription request for invoice updates. */
+message SubscribeInvoicesRequest {
 }

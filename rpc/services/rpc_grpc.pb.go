@@ -1315,6 +1315,9 @@ type PaymentServiceClient interface {
 	//*
 	//Performs a payment.
 	Pay(ctx context.Context, in *PayRequest, opts ...grpc.CallOption) (*PayResponse, error)
+	//*
+	//Subscribes to invoice (final state) updates.
+	SubscribeInvoices(ctx context.Context, in *SubscribeInvoicesRequest, opts ...grpc.CallOption) (PaymentService_SubscribeInvoicesClient, error)
 }
 
 type paymentServiceClient struct {
@@ -1352,6 +1355,38 @@ func (c *paymentServiceClient) Pay(ctx context.Context, in *PayRequest, opts ...
 	return out, nil
 }
 
+func (c *paymentServiceClient) SubscribeInvoices(ctx context.Context, in *SubscribeInvoicesRequest, opts ...grpc.CallOption) (PaymentService_SubscribeInvoicesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PaymentService_ServiceDesc.Streams[0], "/services.PaymentService/SubscribeInvoices", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &paymentServiceSubscribeInvoicesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type PaymentService_SubscribeInvoicesClient interface {
+	Recv() (*Invoice, error)
+	grpc.ClientStream
+}
+
+type paymentServiceSubscribeInvoicesClient struct {
+	grpc.ClientStream
+}
+
+func (x *paymentServiceSubscribeInvoicesClient) Recv() (*Invoice, error) {
+	m := new(Invoice)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility
@@ -1365,6 +1400,9 @@ type PaymentServiceServer interface {
 	//*
 	//Performs a payment.
 	Pay(context.Context, *PayRequest) (*PayResponse, error)
+	//*
+	//Subscribes to invoice (final state) updates.
+	SubscribeInvoices(*SubscribeInvoicesRequest, PaymentService_SubscribeInvoicesServer) error
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -1380,6 +1418,9 @@ func (UnimplementedPaymentServiceServer) LookupInvoice(context.Context, *LookupI
 }
 func (UnimplementedPaymentServiceServer) Pay(context.Context, *PayRequest) (*PayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Pay not implemented")
+}
+func (UnimplementedPaymentServiceServer) SubscribeInvoices(*SubscribeInvoicesRequest, PaymentService_SubscribeInvoicesServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeInvoices not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 
@@ -1448,6 +1489,27 @@ func _PaymentService_Pay_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PaymentService_SubscribeInvoices_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeInvoicesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PaymentServiceServer).SubscribeInvoices(m, &paymentServiceSubscribeInvoicesServer{stream})
+}
+
+type PaymentService_SubscribeInvoicesServer interface {
+	Send(*Invoice) error
+	grpc.ServerStream
+}
+
+type paymentServiceSubscribeInvoicesServer struct {
+	grpc.ServerStream
+}
+
+func (x *paymentServiceSubscribeInvoicesServer) Send(m *Invoice) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1468,6 +1530,12 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PaymentService_Pay_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "SubscribeInvoices",
+			Handler:       _PaymentService_SubscribeInvoices_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "rpc/services/rpc.proto",
 }

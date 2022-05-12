@@ -94,6 +94,45 @@ func (s *paymentServiceServer) Pay(ctx context.Context,
 	}, nil
 }
 
+// SubscribeInvoices returns a stream over which
+// invoices that have reached a final state are received.
+func (s *paymentServiceServer) SubscribeInvoices(_ *pb.SubscribeInvoicesRequest,
+	srv pb.PaymentService_SubscribeInvoicesServer) error {
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	invChannel, err := s.App.SubscribeInvoices(ctx)
+	if err != nil {
+		return associateStatusCode(s.logError(
+			fmt.Errorf("client subscription failed: %w", err)))
+	}
+
+invoiceLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			s.Log.Printf("client subscription ended")
+			break invoiceLoop
+		case inv, ok := <-invChannel:
+			if !ok {
+				s.Log.Printf("subscription channel closed")
+				break invoiceLoop
+			}
+
+			invoice, err := invoiceModelToRPCInvoice(inv)
+			if err != nil {
+				return associateStatusCode(s.logError(err))
+			}
+			if err := srv.Send(invoice); err != nil {
+				return associateStatusCode(s.logError(err))
+			}
+		}
+	}
+
+	return nil
+}
+
 func newPayment(payment *model.Payment) (*pb.Payment, error) {
 	var err error
 	var createdTime, resolvedTime *timestamppb.Timestamp
