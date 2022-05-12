@@ -38,8 +38,9 @@ func (app *App) subscribe(ctx context.Context, topic string) (<-chan *message.Me
 }
 
 const (
-	// messageTopic is the topic where message events are published.
+	// The below constants define the bus event topics.
 	messageTopic = "message"
+	invoiceTopic = "invoice"
 )
 
 func (app *App) publishMessage(msg *model.Message) error {
@@ -86,4 +87,39 @@ func (app *App) SubscribeMessages(ctx context.Context) (<-chan MaybeMessage, err
 	}()
 
 	return msgCh, nil
+}
+
+func (app *App) publishInvoice(inv *model.Invoice) error {
+	invBytes, err := json.Marshal(inv)
+	if err != nil {
+		return BusError{op: "publish", topic: invoiceTopic, e: err}
+	}
+
+	return app.publish(invoiceTopic, invBytes)
+}
+
+func (app *App) SubscribeInvoices(ctx context.Context) (<-chan *model.Invoice, error) {
+	subCh, err := app.subscribe(ctx, invoiceTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	clientCh := make(chan *model.Invoice)
+	go func() {
+		defer close(clientCh)
+
+		for subMsg := range subCh {
+			subMsg.Ack()
+
+			inv := new(model.Invoice)
+			if err := json.Unmarshal(subMsg.Payload, inv); err != nil {
+				e := BusError{op: "subscribe", topic: invoiceTopic, e: err}
+				app.Log.Error(e)
+				continue
+			}
+
+			clientCh <- inv
+		}
+	}()
+	return clientCh, nil
 }
