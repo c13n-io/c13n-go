@@ -324,8 +324,11 @@ func TestSubscribeInvoices(t *testing.T) {
 				// Mock self info
 				mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
 
-				mockDB.On("GetLastInvoiceIndex").Return(
-					uint64(1), nil).Once()
+				mockDB.On("GetLastInvoiceIndex").Return(uint64(1), nil).Once()
+				mockDB.On("GetLastPaymentIndex").Return(uint64(42), nil).Once()
+
+				mockLNManager.On("SubscribePaymentUpdates", mock.Anything, uint64(42),
+					mock.AnythingOfType("func(*lnchat.Payment) bool")).Return(nil, nil)
 
 				// Mock invoice update subscription channel
 				invoiceUpdateCh := func() <-chan lnchat.InvoiceUpdate {
