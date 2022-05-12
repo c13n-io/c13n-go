@@ -213,9 +213,12 @@ func TestEstimatePayment(t *testing.T) {
 				mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
 
 				mockDB.On("GetLastInvoiceIndex").Return(uint64(0), nil).Once()
+				mockDB.On("GetLastPaymentIndex").Return(uint64(3), nil).Once()
 
 				mockLNManager.On("SubscribeInvoiceUpdates", mock.Anything, uint64(0),
 					mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+				mockLNManager.On("SubscribePaymentUpdates", mock.Anything, uint64(3),
+					mock.AnythingOfType("func(*lnchat.Payment) bool")).Return(nil, nil)
 
 				mockDB.On("GetDiscussion", c.discID).Return(
 					c.discussion, c.getDiscussionErr).Once()

@@ -129,6 +129,14 @@ func (app *App) Init(ctx context.Context, infoTimeoutSecs uint) error {
 
 		return app.subscribeInvoices(ctx, lastInvoiceSettleIdx)
 	})
+	runGo(app.Tomb, app.Log, "payment subscription", func(ctx context.Context) error {
+		lastPaymentIdx, err := app.Database.GetLastPaymentIndex()
+		if err != nil {
+			return fmt.Errorf("could not retrieve last known payment: %v", err)
+		}
+
+		return app.subscribePayments(ctx, lastPaymentIdx)
+	})
 
 	return nil
 }

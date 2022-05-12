@@ -30,11 +30,17 @@ func TestSendPay(t *testing.T) {
 	destNode, err := lnchat.NewNodeFromString(destAddress)
 	assert.NoError(t, err)
 
+	paymentOpts := lnchat.PaymentOptions{
+		FeeLimitMsat:   3000,
+		FinalCltvDelta: 20,
+		TimeoutSecs:    30,
+	}
+
 	opts := model.MessageOptions{
 		Anonymous: false,
 	}
 
-	paymentUpdatelist := []lnchat.PaymentUpdate{
+	paymentUpdateList := []lnchat.PaymentUpdate{
 		{
 			Payment: &lnchat.Payment{
 				Status:   lnchat.PaymentSUCCEEDED,
@@ -53,10 +59,10 @@ func TestSendPay(t *testing.T) {
 		},
 	}
 
-	preimageHash, err := lntypes.MakeHashFromStr(paymentUpdatelist[0].Payment.Hash)
+	preimageHash, err := lntypes.MakeHashFromStr(paymentUpdateList[0].Payment.Hash)
 	assert.NoError(t, err)
 
-	preImage, err := lntypes.MakePreimageFromStr(paymentUpdatelist[0].Payment.Preimage)
+	preImage, err := lntypes.MakePreimageFromStr(paymentUpdateList[0].Payment.Preimage)
 	assert.NoError(t, err)
 
 	cases := []struct {
@@ -189,7 +195,7 @@ func TestSendPay(t *testing.T) {
 			payReq: "test payreq",
 			decodedPayReq: &lnchat.PayReq{
 				Destination: destNode,
-				Hash:        paymentUpdatelist[0].Payment.Hash,
+				Hash:        paymentUpdateList[0].Payment.Hash,
 			},
 			amt:         10000,
 			expectedErr: nil,
@@ -226,24 +232,33 @@ func TestSendPay(t *testing.T) {
 				// Mock self info
 				mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
 
-				mockDB.On("GetLastInvoiceIndex").Return(
-					uint64(1), nil).Once()
+				mockDB.On("GetLastInvoiceIndex").Return(uint64(1), nil).Once()
+				mockDB.On("GetLastPaymentIndex").Return(uint64(1), nil).Once()
 
-				mockLNManager.On("SubscribeInvoiceUpdates",
-					mock.Anything, uint64(1), mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+				mockLNManager.On("SubscribeInvoiceUpdates", mock.Anything, uint64(1),
+					mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+				mockLNManager.On("SubscribePaymentUpdates", mock.Anything, uint64(1),
+					mock.AnythingOfType("func(*lnchat.Payment) bool")).Return(nil, nil)
 
 				if c.decodedPayReq == nil {
-					mockLNManager.On("DecodePayReq", mock.Anything, c.payReq).Return(c.decodedPayReq, errors.New(""))
+					mockLNManager.On("DecodePayReq", mock.Anything, c.payReq).Return(
+						c.decodedPayReq, errors.New(""))
 				} else {
-					mockLNManager.On("DecodePayReq", mock.Anything, c.payReq).Return(c.decodedPayReq, nil)
+					mockLNManager.On("DecodePayReq", mock.Anything, c.payReq).Return(
+						c.decodedPayReq, nil)
 					if c.discussion == nil {
-						mockDB.On("GetDiscussionByParticipants", []string{destAddress}).Return(c.discussion, errors.New("")).Once()
+						mockDB.On("GetDiscussionByParticipants",
+							[]string{destAddress}).Return(
+							c.discussion, errors.New("")).Once()
 					} else {
-						mockDB.On("GetDiscussionByParticipants", []string{destAddress}).Return(c.discussion, nil).Once()
+						mockDB.On("GetDiscussionByParticipants",
+							[]string{destAddress}).Return(
+							c.discussion, nil).Once()
 					}
 				}
 
-				mockLNManager.On("SignMessage", mock.Anything, mock.Anything).Return([]byte("sig"), c.signMessageErr).Once()
+				mockLNManager.On("SignMessage", mock.Anything, mock.Anything).Return(
+					[]byte("sig"), c.signMessageErr).Once()
 
 				var recipients []string
 				if c.discussion != nil {
@@ -259,18 +274,16 @@ func TestSendPay(t *testing.T) {
 						go func(c chan lnchat.PaymentUpdate) {
 							defer close(c)
 
-							for _, update := range paymentUpdatelist {
+							for _, update := range paymentUpdateList {
 								c <- update
 							}
 						}(ch)
 						return ch
 					}()
 
-					mockLNManager.On("SendPayment", mock.Anything, recipient, lnchat.NewAmount(c.amt), c.payReq, lnchat.PaymentOptions{
-						FeeLimitMsat:   3000,
-						FinalCltvDelta: 20,
-						TimeoutSecs:    30,
-					}, mock.Anything, mock.Anything).Return(paymentUpdates, c.sendPaymentErr).Once()
+					mockLNManager.On("SendPayment", mock.Anything, recipient,
+						lnchat.NewAmount(c.amt), c.payReq, paymentOpts, mock.Anything,
+						mock.Anything).Return(paymentUpdates, c.sendPaymentErr).Once()
 				}
 
 				mockDB.On("AddPayments", mock.AnythingOfType("*model.Payment")).Return(
@@ -362,7 +375,7 @@ func TestSendPayment(t *testing.T) {
 		},
 	}
 
-	paymentUpdatelist := []lnchat.PaymentUpdate{
+	paymentUpdateList := []lnchat.PaymentUpdate{
 		{
 			Payment: &lnchat.Payment{
 				Hash:           dummyHash,
@@ -446,15 +459,19 @@ func TestSendPayment(t *testing.T) {
 				// Mock self info
 				mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
 
-				mockDB.On("GetLastInvoiceIndex").Return(
-					uint64(1), nil).Once()
+				mockDB.On("GetLastInvoiceIndex").Return(uint64(1), nil).Once()
+				mockDB.On("GetLastPaymentIndex").Return(uint64(1), nil).Once()
 
-				mockLNManager.On("SubscribeInvoiceUpdates",
-					mock.Anything, uint64(1), mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+				mockLNManager.On("SubscribeInvoiceUpdates", mock.Anything, uint64(1),
+					mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+				mockLNManager.On("SubscribePaymentUpdates", mock.Anything, uint64(1),
+					mock.AnythingOfType("func(*lnchat.Payment) bool")).Return(nil, nil)
 
-				mockLNManager.On("DecodePayReq", mock.Anything, c.payReq).Return(c.decodedPayReq, nil)
+				mockLNManager.On("DecodePayReq", mock.Anything, c.payReq).Return(
+					c.decodedPayReq, nil)
 
-				mockLNManager.On("SignMessage", mock.Anything, mock.Anything).Return([]byte("sig"), c.signMessageErr).Once()
+				mockLNManager.On("SignMessage", mock.Anything, mock.Anything).Return(
+					[]byte("sig"), c.signMessageErr).Once()
 
 				paymentUpdates := func() <-chan lnchat.PaymentUpdate {
 					ch := make(chan lnchat.PaymentUpdate)
@@ -462,18 +479,18 @@ func TestSendPayment(t *testing.T) {
 					go func(c chan lnchat.PaymentUpdate) {
 						defer close(c)
 
-						for _, update := range paymentUpdatelist {
+						for _, update := range paymentUpdateList {
 							c <- update
 						}
 					}(ch)
 					return ch
 				}()
 
-				mockLNManager.On("SendPayment", mock.Anything, c.dest, lnchat.NewAmount(c.amt), c.payReq,
-					opts, c.tlvs, mock.Anything).Return(paymentUpdates, c.sendPaymentErr).Once()
+				mockLNManager.On("SendPayment", mock.Anything, c.dest, lnchat.NewAmount(c.amt),
+					c.payReq, opts, c.tlvs, mock.Anything).Return(
+					paymentUpdates, c.sendPaymentErr).Once()
 
-				mockDB.On("AddPayments", mock.AnythingOfType("*model.Payment")).Return(
-					nil).Once()
+				mockDB.On("AddPayments", mock.AnythingOfType("*model.Payment")).Return(nil).Once()
 
 				mockDB.On("Close").Return(nil).Once()
 				mockLNManager.On("Close").Return(nil).Once()

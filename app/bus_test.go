@@ -8,4 +8,6 @@ import (
 
 func TestTopicConsts(t *testing.T) {
 	assert.EqualValues(t, "message", messageTopic)
+	assert.EqualValues(t, "invoice", invoiceTopic)
+	assert.EqualValues(t, "payment", paymentTopic)
 }
