@@ -11,18 +11,19 @@ import (
 )
 
 type BusError struct {
-	op string
-	e  error
+	op    string
+	topic string
+	e     error
 }
 
 func (be BusError) Error() string {
-	return "bus " + be.op + " error: " + be.e.Error()
+	return "bus " + be.op + " error on topic " + be.topic + ": " + be.e.Error()
 }
 
 func (app *App) publish(topic string, data []byte) error {
 	busMsg := message.NewMessage(watermill.NewUUID(), data)
 	if err := app.bus.Publish(topic, busMsg); err != nil {
-		return BusError{op: "publish", e: err}
+		return BusError{op: "publish", topic: topic, e: err}
 	}
 	return nil
 }
@@ -30,7 +31,7 @@ func (app *App) publish(topic string, data []byte) error {
 func (app *App) subscribe(ctx context.Context, topic string) (<-chan *message.Message, error) {
 	subCh, err := app.bus.Subscribe(ctx, topic)
 	if err != nil {
-		return subCh, BusError{op: "subscribe", e: err}
+		return subCh, BusError{op: "subscribe", topic: topic, e: err}
 	}
 
 	return subCh, nil
