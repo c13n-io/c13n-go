@@ -12,7 +12,8 @@ import (
 // defaultInvoiceFilter is an invoice update filter,
 // accepting only settled invoice updates.
 func defaultInvoiceFilter(inv *lnchat.Invoice) bool {
-	return inv.State == lnchat.InvoiceSETTLED
+	return inv.State == lnchat.InvoiceSETTLED ||
+		inv.State == lnchat.InvoiceCANCELLED
 }
 
 // verifySignature verifies the signature over the message and asserts that the
@@ -56,13 +57,22 @@ func (app *App) subscribeInvoices(ctx context.Context, lastInvoiceIdx uint64) er
 				return fmt.Errorf("invoice update failed: %w", invUpdate.Err)
 			}
 
-			// Store the invoice, regardless of payload being present.
+			// Store and publish the invoice, regardless of payload presence.
 			invoice := &model.Invoice{
 				CreatorAddress: app.Self.Node.Address,
 				Invoice:        *inv,
 			}
 			if err = app.Database.AddInvoice(invoice); err != nil {
 				app.Log.WithError(err).Error("invoice storage failed")
+			}
+
+			if err = app.publishInvoice(invoice); err != nil {
+				app.Log.WithError(err).Error("invoice notification failed")
+			}
+
+			// Extract payload only from settled invoices.
+			if inv.State != lnchat.InvoiceSETTLED {
+				continue
 			}
 
 			// Extract a raw message, if one exists.
