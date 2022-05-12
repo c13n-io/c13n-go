@@ -1,6 +1,10 @@
 package lnchat
 
-import "github.com/lightningnetwork/lnd/lnrpc"
+import (
+	"fmt"
+
+	"github.com/lightningnetwork/lnd/lnrpc"
+)
 
 // Amount represents an amount on the Lightning network.
 type Amount int64
@@ -98,6 +102,47 @@ type Payment struct {
 	PaymentIndex uint64
 	// The HTLC attempts made to settle the payment.
 	Htlcs []HTLCAttempt
+}
+
+func (p *Payment) GetDestination() (NodeID, error) {
+	var dest NodeID
+	switch true {
+	case p == nil:
+		return dest, fmt.Errorf("nil payment")
+	case len(p.Htlcs) == 0:
+		return dest, fmt.Errorf("payment contains no HTLCs")
+	}
+
+	for _, htlc := range p.Htlcs {
+		hops := htlc.Route.Hops
+		if len(hops) == 0 {
+			return dest, fmt.Errorf("payment contains HTLC without route")
+		}
+		dest = hops[len(hops)-1].NodeID
+	}
+
+	return dest, nil
+}
+
+// GetCustomRecords retrieves the custom records
+// contained in the successful payment HTLCs.
+func (p *Payment) GetCustomRecords() []map[uint64][]byte {
+	if p == nil || len(p.Htlcs) == 0 {
+		return nil
+	}
+
+	var htlcRecords []map[uint64][]byte
+	for _, htlc := range p.Htlcs {
+		if htlc.Status != lnrpc.HTLCAttempt_SUCCEEDED {
+			continue
+		}
+		lastHop := htlc.Route.Hops[len(htlc.Route.Hops)-1]
+		if len(lastHop.CustomRecords) > 0 {
+			htlcRecords = append(htlcRecords, lastHop.CustomRecords)
+		}
+	}
+
+	return htlcRecords
 }
 
 // PaymentStatus represents the status of a payment.
