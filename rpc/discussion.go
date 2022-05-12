@@ -217,7 +217,7 @@ func newMessage(aggregate *model.MessageAggregate) (*pb.Message, error) {
 	var sentAt, receivedAt *timestamppb.Timestamp
 	switch {
 	case raw.InvoiceSettleIndex != 0:
-		invoice, err := invoiceModelToRPCInvoice(aggregate.Invoice)
+		invoice, err := newInvoice(aggregate.Invoice)
 		if err != nil {
 			return nil, err
 		}
