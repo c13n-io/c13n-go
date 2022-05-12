@@ -191,7 +191,7 @@ func TestBackoffFn(t *testing.T) {
 	relativeErr := 0.05
 
 	for _, c := range cases {
-		res := subscriptionBackoffFn(c.n)
+		res := backoff(c.n)
 		assert.InEpsilonf(t, c.expected, res, relativeErr, "backoff for n=%d"+
 			" should be within %.2f of %v", c.n, relativeErr, c.expected)
 	}
