@@ -1,6 +1,7 @@
 package lnchat
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
@@ -29,6 +30,8 @@ func NewCredentials(rpcAddr, tlsPath, macPath string,
 		}
 
 		creds.TLSCreds = tlsCreds
+	} else {
+		creds.TLSCreds = credentials.NewTLS(&tls.Config{})
 	}
 
 	if macPath != "" {
