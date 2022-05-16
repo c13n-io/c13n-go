@@ -2,6 +2,7 @@ package store
 
 import (
 	"github.com/dgraph-io/badger/v3"
+	"github.com/timshannon/badgerhold/v4"
 
 	"github.com/c13n-io/c13n-go/model"
 )
@@ -12,10 +13,14 @@ func (db *bhDatabase) AddPayments(payments ...*model.Payment) error {
 		return nil
 	}
 
-	return db.bh.Badger().Update(func(txn *badger.Txn) error {
+	return retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		for _, payment := range payments {
 			paymentKey := payment.PaymentIndex
-			if err := db.bh.TxInsert(txn, paymentKey, payment); err != nil {
+
+			switch err := db.bh.TxInsert(txn, paymentKey, payment); err {
+			case badgerhold.ErrKeyExists:
+				return alreadyExists(payment)
+			default:
 				return err
 			}
 		}
