@@ -1318,6 +1318,9 @@ type PaymentServiceClient interface {
 	//*
 	//Subscribes to invoice (final state) updates.
 	SubscribeInvoices(ctx context.Context, in *SubscribeInvoicesRequest, opts ...grpc.CallOption) (PaymentService_SubscribeInvoicesClient, error)
+	//*
+	//Subscribes to payment (final state) updates.
+	SubscribePayments(ctx context.Context, in *SubscribePaymentsRequest, opts ...grpc.CallOption) (PaymentService_SubscribePaymentsClient, error)
 }
 
 type paymentServiceClient struct {
@@ -1387,6 +1390,38 @@ func (x *paymentServiceSubscribeInvoicesClient) Recv() (*Invoice, error) {
 	return m, nil
 }
 
+func (c *paymentServiceClient) SubscribePayments(ctx context.Context, in *SubscribePaymentsRequest, opts ...grpc.CallOption) (PaymentService_SubscribePaymentsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PaymentService_ServiceDesc.Streams[1], "/services.PaymentService/SubscribePayments", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &paymentServiceSubscribePaymentsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type PaymentService_SubscribePaymentsClient interface {
+	Recv() (*Payment, error)
+	grpc.ClientStream
+}
+
+type paymentServiceSubscribePaymentsClient struct {
+	grpc.ClientStream
+}
+
+func (x *paymentServiceSubscribePaymentsClient) Recv() (*Payment, error) {
+	m := new(Payment)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility
@@ -1403,6 +1438,9 @@ type PaymentServiceServer interface {
 	//*
 	//Subscribes to invoice (final state) updates.
 	SubscribeInvoices(*SubscribeInvoicesRequest, PaymentService_SubscribeInvoicesServer) error
+	//*
+	//Subscribes to payment (final state) updates.
+	SubscribePayments(*SubscribePaymentsRequest, PaymentService_SubscribePaymentsServer) error
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -1421,6 +1459,9 @@ func (UnimplementedPaymentServiceServer) Pay(context.Context, *PayRequest) (*Pay
 }
 func (UnimplementedPaymentServiceServer) SubscribeInvoices(*SubscribeInvoicesRequest, PaymentService_SubscribeInvoicesServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribeInvoices not implemented")
+}
+func (UnimplementedPaymentServiceServer) SubscribePayments(*SubscribePaymentsRequest, PaymentService_SubscribePaymentsServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribePayments not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 
@@ -1510,6 +1551,27 @@ func (x *paymentServiceSubscribeInvoicesServer) Send(m *Invoice) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _PaymentService_SubscribePayments_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribePaymentsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PaymentServiceServer).SubscribePayments(m, &paymentServiceSubscribePaymentsServer{stream})
+}
+
+type PaymentService_SubscribePaymentsServer interface {
+	Send(*Payment) error
+	grpc.ServerStream
+}
+
+type paymentServiceSubscribePaymentsServer struct {
+	grpc.ServerStream
+}
+
+func (x *paymentServiceSubscribePaymentsServer) Send(m *Payment) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1534,6 +1596,11 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeInvoices",
 			Handler:       _PaymentService_SubscribeInvoices_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SubscribePayments",
+			Handler:       _PaymentService_SubscribePayments_Handler,
 			ServerStreams: true,
 		},
 	},
