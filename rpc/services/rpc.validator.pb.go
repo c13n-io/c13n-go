@@ -531,3 +531,6 @@ func (this *InvoiceHTLC) Validate() error {
 func (this *SubscribeInvoicesRequest) Validate() error {
 	return nil
 }
+func (this *SubscribePaymentsRequest) Validate() error {
+	return nil
+}
