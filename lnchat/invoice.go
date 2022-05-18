@@ -72,11 +72,10 @@ type InvoiceHTLC struct {
 
 // GetCustomRecords returns the custom records transferred via the invoice HTLCs.
 func (inv Invoice) GetCustomRecords() []map[uint64][]byte {
-	records := make([]map[uint64][]byte, len(inv.Htlcs))
-	for i, htlc := range inv.Htlcs {
-		records[i] = make(map[uint64][]byte)
-		for k, v := range htlc.CustomRecords {
-			records[i][k] = v
+	var records []map[uint64][]byte
+	for _, htlc := range inv.Htlcs {
+		if len(htlc.CustomRecords) > 0 {
+			records = append(records, htlc.CustomRecords)
 		}
 	}
 
