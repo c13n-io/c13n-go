@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -192,6 +193,44 @@ func (s *discussionServiceServer) Send(ctx context.Context, req *pb.SendRequest)
 	return &pb.SendResponse{
 		SentMessage: message,
 	}, nil
+}
+
+// Subscribe creates a subscription stream for sent and received messages.
+func (s *discussionServiceServer) Subscribe(_ *pb.SubscribeMessagesRequest,
+	srv pb.DiscussionService_SubscribeServer) error {
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	msgChannel, err := s.App.SubscribeMessages(ctx)
+	if err != nil {
+		return associateStatusCode(s.logError(
+			fmt.Errorf("client subscription failed: %w", err)))
+	}
+
+messageLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			s.Log.Printf("client subscription ended")
+			break messageLoop
+		case msg, ok := <-msgChannel:
+			if !ok {
+				s.Log.Printf("subscription channel closed")
+				break messageLoop
+			}
+
+			message, err := newMessage(&msg)
+			if err != nil {
+				return associateStatusCode(s.logError(err))
+			}
+			if err := srv.Send(message); err != nil {
+				return associateStatusCode(s.logError(err))
+			}
+		}
+	}
+
+	return nil
 }
 
 func newMessage(aggregate *model.MessageAggregate) (*pb.Message, error) {
