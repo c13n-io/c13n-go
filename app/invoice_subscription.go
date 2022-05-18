@@ -40,6 +40,10 @@ func (app *App) subscribeInvoices(ctx context.Context, lastInvoiceIdx uint64) er
 		return err
 	}
 
+	verifySignature := func(msg, sig []byte, sender string) (bool, error) {
+		return app.verifySignature(ctx, msg, sig, sender)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -70,55 +74,40 @@ func (app *App) subscribeInvoices(ctx context.Context, lastInvoiceIdx uint64) er
 				app.Log.WithError(err).Error("invoice notification failed")
 			}
 
-			// Extract payload only from settled invoices.
-			if inv.State != lnchat.InvoiceSETTLED {
+			// Attempt payload extraction if the invoice is settled
+			// and the HTLCs fulfilling it carry payload.
+			records := inv.GetCustomRecords()
+			if len(records) == 0 || inv.State != lnchat.InvoiceSETTLED {
 				continue
 			}
 
-			// Extract a raw message, if one exists.
-			rawMsg, err := payloadExtractor(inv,
-				func(msg, sig []byte, sender string) (bool, error) {
-					return app.verifySignature(ctx, msg, sig, sender)
-				},
-			)
+			rawMsg, err := payloadExtractor(records, verifySignature)
 			if err != nil {
-				app.Log.WithError(err).Info("message extraction failed")
-			}
-
-			// If no payload exists, there is nothing more
-			// to be done on this iteration.
-			if rawMsg == nil {
+				app.Log.WithError(err).Warn("message extraction failed")
 				continue
 			}
+			rawMsg.InvoiceSettleIndex = inv.SettleIndex
 
-			// Retrieve (or create) the appropriate discussion,
-			// and store the message.
+			// Retrieve (or create) the appropriate discussion.
 			var disc *model.Discussion
 			disc, err = app.retrieveOrCreateRawMsgDiscussion(rawMsg)
 			if err != nil {
 				app.Log.WithError(err).Error("discussion retrieval failed")
 				continue
 			}
-
-			// Store invoice (and raw message, if present).
 			rawMsg.DiscussionID = disc.ID
+
+			// Store and publish the raw message.
 			if err := app.Database.AddRawMessage(rawMsg); err != nil {
 				app.Log.WithError(err).Error("message storage failed")
 				continue
 			}
 
-			// Publish the message to the appropriate topic.
-			retrieveDisc := func(_ []string) (*model.Discussion, error) {
-				return disc, nil
-			}
-			msg, err := model.NewIncomingMessage(rawMsg, invoice, retrieveDisc)
-			if err != nil {
-				app.Log.WithError(err).Error("message unmarshalling failed")
-				continue
-			}
-
-			if err := app.publishMessage(msg); err != nil {
-				app.Log.WithError(err).Error("message publish failed")
+			if err := app.publishMessage(model.MessageAggregate{
+				RawMessage: rawMsg,
+				Invoice:    invoice,
+			}); err != nil {
+				app.Log.WithError(err).Error("message notification failed")
 				continue
 			}
 		}
