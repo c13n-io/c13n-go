@@ -129,17 +129,21 @@ func (app *App) SendMessage(ctx context.Context, discID uint64, amtMsat int64, p
 
 		rawMsg.WithPaymentIndexes(payment.PaymentIndex)
 	}
-	msg := &model.MessageAggregate{
+	msg := model.MessageAggregate{
 		RawMessage: rawMsg,
 		Payments:   payments,
 	}
 
-	// Store raw message
+	// Store and publish raw message
 	if err := app.Database.AddRawMessage(msg.RawMessage); err != nil {
-		return msg, errors.Wrap(err, "could not store message")
+		return &msg, errors.Wrap(err, "could not store message")
 	}
 
-	return msg, newCompositeError(errs)
+	if err := app.publishMessage(msg); err != nil {
+		return &msg, errors.Wrap(err, "message notification failed")
+	}
+
+	return &msg, newCompositeError(errs)
 }
 
 // defaultPaymentFilter is a payment update filter,

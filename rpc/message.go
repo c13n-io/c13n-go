@@ -104,6 +104,11 @@ messageLoop:
 				break messageLoop
 			}
 
+			// For behaviour compatibility, ignore sent messages.
+			if len(message.Payments) != 0 {
+				continue
+			}
+
 			// Forward received message to grpc stream
 			msg, err := newMessage(&message)
 			if err != nil {
