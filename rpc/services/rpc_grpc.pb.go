@@ -697,6 +697,7 @@ type MessageServiceClient interface {
 	//In case of failure (payment amount too large or small, payload too large),
 	//an empty response is returned.
 	EstimateMessage(ctx context.Context, in *EstimateMessageRequest, opts ...grpc.CallOption) (*EstimateMessageResponse, error)
+	// Deprecated: Do not use.
 	//*
 	//Sends a message
 	//
@@ -728,6 +729,7 @@ func (c *messageServiceClient) EstimateMessage(ctx context.Context, in *Estimate
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *messageServiceClient) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
 	out := new(SendMessageResponse)
 	err := c.cc.Invoke(ctx, "/services.MessageService/SendMessage", in, out, opts...)
@@ -779,6 +781,7 @@ type MessageServiceServer interface {
 	//In case of failure (payment amount too large or small, payload too large),
 	//an empty response is returned.
 	EstimateMessage(context.Context, *EstimateMessageRequest) (*EstimateMessageResponse, error)
+	// Deprecated: Do not use.
 	//*
 	//Sends a message
 	//

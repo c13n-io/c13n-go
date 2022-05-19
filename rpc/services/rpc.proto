@@ -309,7 +309,9 @@ service MessageService {
 	 In case of failure (payment amount too large or small, payload too large),
 	 an empty response is returned.
 	*/
-	rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
+	rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {
+		option deprecated = true;
+	}
 	/**
 	 Creates a unidirectional stream from server to client
 	 over which all received messages are sent.
@@ -430,6 +432,7 @@ message EstimateMessageResponse {
 
 /** Corresponds to a request to send a message. */
 message SendMessageRequest {
+	option deprecated = true;
 	/** The discussion id where the message is to be sent. */
 	uint64 discussion_id = 1;
 	/** The message payload (as a string). */

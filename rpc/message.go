@@ -57,7 +57,9 @@ func (s *messageServiceServer) EstimateMessage(ctx context.Context, req *pb.Esti
 // If the message contains a payment request, the payment is not spontaneous
 // but instead the invoice is paid. In that case, the message is associated
 // with the recipient's discussion, which is created if it doesn't exist.
-func (s *messageServiceServer) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
+func (s *messageServiceServer) SendMessage(ctx context.Context, req *pb.SendMessageRequest) (
+	*pb.SendMessageResponse, error) {
+
 	msg, err := sendMessageRequestToMessageModel(req)
 	if err != nil {
 		return nil, associateStatusCode(s.logError(err))
