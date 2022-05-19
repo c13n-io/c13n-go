@@ -3,7 +3,6 @@ package itest
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	netutils "net"
 	"strconv"
@@ -42,15 +41,6 @@ func testInitializeConnection(net *lntest.NetworkHarness, t *harnessTest) {
 			rpcAddress: netutils.JoinHostPort("127.0.0.1",
 				strconv.Itoa(net.Alice.Cfg.RPCPort-42)),
 			err: context.DeadlineExceeded,
-		},
-		{
-			name:       "invalid transport credentials",
-			testType:   "short",
-			tlsPath:    "",
-			macPath:    net.Alice.AdminMacPath(),
-			rpcAddress: net.Alice.Cfg.RPCAddr(),
-			err: fmt.Errorf("credentials error: " +
-				"TLS certificate not provided"),
 		},
 		{
 			name:       "no macaroon credentials provided",

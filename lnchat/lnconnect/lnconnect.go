@@ -28,10 +28,6 @@ var (
 
 // InitializeConnection establishes a connection with a Lightning daemon.
 func InitializeConnection(cfg Credentials) (*grpc.ClientConn, error) {
-	if cfg.TLSCreds == nil {
-		return nil, fmt.Errorf("%w: TLS certificate not provided", ErrCredentials)
-	}
-
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(cfg.TLSCreds),
 		grpc.WithBlock(),
