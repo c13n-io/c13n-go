@@ -318,7 +318,9 @@ service MessageService {
 
 	 The stream does not terminate until the client stops it.
 	*/
-	rpc SubscribeMessages(SubscribeMessageRequest) returns (stream SubscribeMessageResponse) {}
+	rpc SubscribeMessages(SubscribeMessageRequest) returns (stream SubscribeMessageResponse) {
+		option deprecated = true;
+	}
 }
 
 /** Represents a list of payments. */
@@ -464,6 +466,7 @@ message SendMessageResponse {
  over which to be notified of received messages.
 */
 message SubscribeMessageRequest {
+	option deprecated = true;
 }
 
 /**

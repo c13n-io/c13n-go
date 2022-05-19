@@ -81,6 +81,7 @@ func (s *messageServiceServer) SendMessage(ctx context.Context, req *pb.SendMess
 }
 
 // SubscribeMessages returns received messages on the provided grpc stream.
+//nolint:staticcheck // Deprecated pb.SubscribeMessageRequest
 func (s *messageServiceServer) SubscribeMessages(_ *pb.SubscribeMessageRequest,
 	srv pb.MessageService_SubscribeMessagesServer) error {
 
