@@ -70,7 +70,7 @@ func (db *bhDatabase) GetDiscussionByParticipants(
 func (db *bhDatabase) RemoveDiscussion(uid uint64) (discussion *model.Discussion, err error) {
 	query := badgerhold.Where(badgerhold.Key).Eq(uid)
 
-	err = db.bh.Badger().Update(func(txn *badger.Txn) error {
+	err = retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		discussion, err = db.findSingleDiscussion(txn, query)
 		if err != nil {
 			return err
@@ -87,7 +87,7 @@ func (db *bhDatabase) RemoveDiscussion(uid uint64) (discussion *model.Discussion
 func (db *bhDatabase) UpdateDiscussionLastRead(uid uint64, readMsgID uint64) error {
 	query := badgerhold.Where(badgerhold.Key).Eq(uid)
 
-	err := db.bh.Badger().Update(func(txn *badger.Txn) error {
+	return retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		// Verify that the message belongs to the discussion.
 		msg := &model.RawMessage{}
 		if err := db.bh.TxGet(txn, readMsgID, msg); err != nil {
@@ -114,8 +114,6 @@ func (db *bhDatabase) UpdateDiscussionLastRead(uid uint64, readMsgID uint64) err
 
 		return nil
 	})
-
-	return err
 }
 
 func (db *bhDatabase) findSingleDiscussion(txn *badger.Txn,

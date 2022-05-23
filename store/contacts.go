@@ -26,7 +26,7 @@ func (db *bhDatabase) AddContact(contact *model.Contact) (
 
 	uniq := badgerhold.Where("Node.Address").Eq(contact.Node.Address)
 
-	if err = db.bh.Badger().Update(func(txn *badger.Txn) error {
+	if err = retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		switch _, err = db.findSingleContact(txn, uniq); err {
 		case ErrContactNotFound:
 		case nil:
@@ -71,7 +71,7 @@ func (db *bhDatabase) GetContactByID(uid uint64) (contact *model.Contact, err er
 func (db *bhDatabase) RemoveContact(address string) (contact *model.Contact, err error) {
 	addressQuery := badgerhold.Where("Node.Address").Eq(address)
 
-	err = db.bh.Badger().Update(func(txn *badger.Txn) error {
+	err = retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		contact, err = db.findSingleContact(txn, addressQuery)
 		if err != nil {
 			return err
@@ -87,7 +87,7 @@ func (db *bhDatabase) RemoveContact(address string) (contact *model.Contact, err
 func (db *bhDatabase) RemoveContactByID(uid uint64) (contact *model.Contact, err error) {
 	query := badgerhold.Where(badgerhold.Key).Eq(uid)
 
-	err = db.bh.Badger().Update(func(txn *badger.Txn) error {
+	err = retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		contact, err = db.findSingleContact(txn, query)
 		if err != nil {
 			return err
