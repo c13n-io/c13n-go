@@ -383,11 +383,54 @@ func (m *manager) VerifySignatureExtractPubkey(ctx context.Context, message, sig
 // If a route was found, it is returned along with a probability of success
 // for the payment.
 func (m *manager) GetRoute(ctx context.Context,
-	recipient string, amount Amount, payOpts PaymentOptions,
+	recipient string, amount Amount, payReq string, payOpts PaymentOptions,
 	payload map[uint64][]byte) (*Route, float64, error) {
 
+	dest, amtMsat, hints, err := func(destAddr string,
+		amtMsat int64, req string) (string, int64, []RouteHint, error) {
+
+		var reqAmtMsat, reqDest = int64(0), ""
+		var hints []RouteHint
+		if req != "" {
+			decodedPayReq, err := m.DecodePayReq(ctx, req)
+			if err != nil {
+				return "", 0, nil, errors.Wrap(err,
+					"could not decode payment request")
+			}
+			reqAmtMsat = decodedPayReq.Amt.Msat()
+			reqDest = decodedPayReq.Destination.String()
+			hints = decodedPayReq.RouteHints
+		}
+
+		switch {
+		case reqAmtMsat == 0 && amtMsat == 0:
+			return "", 0, nil, errors.New("payment amount " +
+				"has not been specified")
+		case reqAmtMsat != 0 && amtMsat != 0 && reqAmtMsat != amtMsat:
+			return "", 0, nil, errors.New("payment request amount " +
+				"non-zero but specified amount difers")
+		case reqAmtMsat != 0:
+			amtMsat = reqAmtMsat
+		}
+		switch {
+		case reqDest == "" && destAddr == "":
+			return "", 0, nil, errors.New("destination " +
+				"has not been specified")
+		case reqDest != "" && destAddr != "" && reqDest != destAddr:
+			return "", 0, nil, errors.New("specified destination " +
+				"and payment request destination differ")
+		case reqDest != "":
+			destAddr = reqDest
+		}
+
+		return destAddr, amtMsat, hints, nil
+	}(recipient, amount.Msat(), payReq)
+	if err != nil {
+		return nil, .0, err
+	}
+
 	// Create route request
-	req, err := createQueryRoutesRequest(recipient, amount.Msat(), payload, payOpts)
+	req, err := createQueryRoutesRequest(dest, amtMsat, hints, payOpts, payload)
 	if err != nil {
 		return nil, .0, err
 	}

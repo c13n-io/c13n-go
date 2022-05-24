@@ -33,7 +33,7 @@ type LightManager interface {
 		expiry int64, privateHints bool) (*Invoice, error)
 	LookupInvoice(ctx context.Context, payHash string) (*Invoice, error)
 
-	GetRoute(ctx context.Context, recipient string, amt Amount,
+	GetRoute(ctx context.Context, recipient string, amt Amount, payReq string,
 		payOpts PaymentOptions, payload map[uint64][]byte) (
 		route *Route, prob float64, err error)
 

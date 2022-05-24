@@ -47,7 +47,7 @@ func (app *App) EstimatePayment(ctx context.Context,
 	var errs []error
 	for _, recipient := range discussion.Participants {
 		route, prob, err := app.LNManager.GetRoute(ctx, recipient,
-			lnchat.NewAmount(amtMsat), payOpts, paymentPayload)
+			lnchat.NewAmount(amtMsat), "", payOpts, paymentPayload)
 		switch err {
 		case nil:
 			routes[recipient] = *route

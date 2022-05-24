@@ -74,8 +74,8 @@ func unmarshalInvoice(i *lnrpc.Invoice) (*Invoice, error) {
 // unmarshalRouteHints creates an lnchat.RouteHint list
 // from the corresponding lnrpc type.
 func unmarshalRouteHints(r []*lnrpc.RouteHint) ([]RouteHint, error) {
-	if r == nil {
-		return nil, fmt.Errorf("cannot unmarshal nil route hints")
+	if len(r) == 0 {
+		return nil, fmt.Errorf("cannot unmarshal empty route hints")
 	}
 
 	routeHints := make([]RouteHint, len(r))
