@@ -172,6 +172,27 @@ paymentLoop:
 	return nil
 }
 
+// GetRoute discovers and returns a route
+// that can accomodate the requested payment.
+func (s *paymentServiceServer) GetRoute(ctx context.Context,
+	req *pb.RouteRequest) (*pb.RouteResponse, error) {
+
+	paymentOpts := app.DefaultPaymentOptions
+	if opts := req.GetOptions(); opts != nil {
+		paymentOpts.FeeLimitMsat = opts.GetFeeLimitMsat()
+	}
+
+	route, err := s.App.GetRoute(ctx, req.GetAddress(), int64(req.GetAmtMsat()),
+		req.GetPayReq(), paymentOpts)
+	if err != nil {
+		return nil, associateStatusCode(s.logError(err))
+	}
+
+	return &pb.RouteResponse{
+		Route: newRoute(route),
+	}, nil
+}
+
 func newPayment(payment *model.Payment) (*pb.Payment, error) {
 	var err error
 	var createdTime, resolvedTime *timestamppb.Timestamp
@@ -398,6 +419,29 @@ func newInvoiceHints(hints []lnchat.RouteHint) ([]*pb.RouteHint, error) {
 	}
 
 	return res, nil
+}
+
+func newRoute(route *model.Route) *pb.PaymentRoute {
+	if route == nil {
+		return nil
+	}
+
+	hops := make([]*pb.PaymentHop, len(route.RouteHops))
+	for i, hop := range route.RouteHops {
+		hops[i] = &pb.PaymentHop{
+			ChanId:           hop.ChanID,
+			HopAddress:       hop.HopAddress,
+			AmtToForwardMsat: hop.AmtToForwardMsat,
+			FeeMsat:          hop.FeeMsat,
+		}
+	}
+
+	return &pb.PaymentRoute{
+		Hops:          hops,
+		TotalTimelock: route.TotalTimeLock,
+		RouteAmtMsat:  route.RouteAmtMsat,
+		RouteFeesMsat: route.RouteFeesMsat,
+	}
 }
 
 // NewPaymentServiceServer initializes a new payment service.

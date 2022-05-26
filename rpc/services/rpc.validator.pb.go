@@ -537,3 +537,19 @@ func (this *SubscribePaymentsRequest) Validate() error {
 func (this *SubscribeMessagesRequest) Validate() error {
 	return nil
 }
+func (this *RouteRequest) Validate() error {
+	if this.Options != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Options); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("Options", err)
+		}
+	}
+	return nil
+}
+func (this *RouteResponse) Validate() error {
+	if this.Route != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Route); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("Route", err)
+		}
+	}
+	return nil
+}
