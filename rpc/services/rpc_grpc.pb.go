@@ -691,6 +691,7 @@ var ContactService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MessageServiceClient interface {
+	// Deprecated: Do not use.
 	//*
 	//Estimates the route and fees for the requested message.
 	//
@@ -721,6 +722,7 @@ func NewMessageServiceClient(cc grpc.ClientConnInterface) MessageServiceClient {
 	return &messageServiceClient{cc}
 }
 
+// Deprecated: Do not use.
 func (c *messageServiceClient) EstimateMessage(ctx context.Context, in *EstimateMessageRequest, opts ...grpc.CallOption) (*EstimateMessageResponse, error) {
 	out := new(EstimateMessageResponse)
 	err := c.cc.Invoke(ctx, "/services.MessageService/EstimateMessage", in, out, opts...)
@@ -777,6 +779,7 @@ func (x *messageServiceSubscribeMessagesClient) Recv() (*SubscribeMessageRespons
 // All implementations must embed UnimplementedMessageServiceServer
 // for forward compatibility
 type MessageServiceServer interface {
+	// Deprecated: Do not use.
 	//*
 	//Estimates the route and fees for the requested message.
 	//

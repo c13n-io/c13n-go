@@ -302,7 +302,9 @@ service MessageService {
 	 In case of failure (payment amount too large or small, payload too large),
 	 an empty response is returned.
 	*/
-	rpc EstimateMessage(EstimateMessageRequest) returns (EstimateMessageResponse) {}
+	rpc EstimateMessage(EstimateMessageRequest) returns (EstimateMessageResponse) {
+		option deprecated = true;
+	}
 	/**
 	 Sends a message
 
@@ -411,6 +413,7 @@ message MessageOptions {
 
 /** Corresponds to a request to estimate a message. */
 message EstimateMessageRequest {
+	option deprecated = true;
 	/** The discussion id where the message is to be sent. */
 	uint64 discussion_id = 1;
 	/** The message payload (as a string). */
