@@ -59,6 +59,21 @@ func TestAddInvoice(t *testing.T) {
 				assert.NoError(t, err)
 			},
 		},
+		{
+			name: "duplicate",
+			test: func(t *testing.T) {
+				db, cleanup := createInMemoryDB(t)
+				defer cleanup()
+
+				err := db.AddInvoice(testInvoice)
+				require.NoError(t, err)
+
+				expectedErr := alreadyExists(testInvoice)
+
+				err = db.AddInvoice(testInvoice)
+				assert.EqualError(t, err, expectedErr.Error())
+			},
+		},
 	}
 
 	for _, c := range cases {
