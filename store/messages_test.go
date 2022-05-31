@@ -141,16 +141,6 @@ func generateOutgoing(t *testing.T, receivers ...string) (
 	return rawMsg, payments
 }
 
-func TestAddInvoice(t *testing.T) {
-	db, cleanup := createInMemoryDB(t)
-	defer cleanup()
-
-	_, inv := generateIncoming(t, generateHex(t, 33))
-
-	err := db.AddInvoice(inv)
-	assert.NoError(t, err)
-}
-
 func TestAddPayments(t *testing.T) {
 	db, cleanup := createInMemoryDB(t)
 	defer cleanup()
