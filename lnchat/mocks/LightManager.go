@@ -89,13 +89,13 @@ func (_m *LightManager) DecodePayReq(ctx context.Context, payReq string) (*lncha
 	return r0, r1
 }
 
-// GetRoute provides a mock function with given fields: ctx, recipient, amt, payOpts, payload
-func (_m *LightManager) GetRoute(ctx context.Context, recipient string, amt lnchat.Amount, payOpts lnchat.PaymentOptions, payload map[uint64][]byte) (*lnchat.Route, float64, error) {
-	ret := _m.Called(ctx, recipient, amt, payOpts, payload)
+// GetRoute provides a mock function with given fields: ctx, recipient, amt, payReq, payOpts, payload
+func (_m *LightManager) GetRoute(ctx context.Context, recipient string, amt lnchat.Amount, payReq string, payOpts lnchat.PaymentOptions, payload map[uint64][]byte) (*lnchat.Route, float64, error) {
+	ret := _m.Called(ctx, recipient, amt, payReq, payOpts, payload)
 
 	var r0 *lnchat.Route
-	if rf, ok := ret.Get(0).(func(context.Context, string, lnchat.Amount, lnchat.PaymentOptions, map[uint64][]byte) *lnchat.Route); ok {
-		r0 = rf(ctx, recipient, amt, payOpts, payload)
+	if rf, ok := ret.Get(0).(func(context.Context, string, lnchat.Amount, string, lnchat.PaymentOptions, map[uint64][]byte) *lnchat.Route); ok {
+		r0 = rf(ctx, recipient, amt, payReq, payOpts, payload)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*lnchat.Route)
@@ -103,15 +103,15 @@ func (_m *LightManager) GetRoute(ctx context.Context, recipient string, amt lnch
 	}
 
 	var r1 float64
-	if rf, ok := ret.Get(1).(func(context.Context, string, lnchat.Amount, lnchat.PaymentOptions, map[uint64][]byte) float64); ok {
-		r1 = rf(ctx, recipient, amt, payOpts, payload)
+	if rf, ok := ret.Get(1).(func(context.Context, string, lnchat.Amount, string, lnchat.PaymentOptions, map[uint64][]byte) float64); ok {
+		r1 = rf(ctx, recipient, amt, payReq, payOpts, payload)
 	} else {
 		r1 = ret.Get(1).(float64)
 	}
 
 	var r2 error
-	if rf, ok := ret.Get(2).(func(context.Context, string, lnchat.Amount, lnchat.PaymentOptions, map[uint64][]byte) error); ok {
-		r2 = rf(ctx, recipient, amt, payOpts, payload)
+	if rf, ok := ret.Get(2).(func(context.Context, string, lnchat.Amount, string, lnchat.PaymentOptions, map[uint64][]byte) error); ok {
+		r2 = rf(ctx, recipient, amt, payReq, payOpts, payload)
 	} else {
 		r2 = ret.Error(2)
 	}

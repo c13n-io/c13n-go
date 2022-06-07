@@ -6,7 +6,7 @@ import (
 )
 
 func createQueryRoutesRequest(dest string, amtMsat int64,
-	customRecords map[uint64][]byte, options PaymentOptions) (
+	hints []RouteHint, options PaymentOptions, customRecords map[uint64][]byte) (
 	*lnrpc.QueryRoutesRequest, error) {
 
 	preimage := lntypes.Preimage{}
@@ -28,10 +28,36 @@ func createQueryRoutesRequest(dest string, amtMsat int64,
 		DestFeatures: []lnrpc.FeatureBit{
 			lnrpc.FeatureBit_TLV_ONION_OPT,
 		},
+		RouteHints:        marshalRouteHints(hints),
 		DestCustomRecords: records,
 		UseMissionControl: true,
 		FeeLimit:          feeLimit,
 	}
 
 	return request, nil
+}
+
+func marshalRouteHints(hints []RouteHint) []*lnrpc.RouteHint {
+	if len(hints) == 0 {
+		return nil
+	}
+
+	lnrpcHints := make([]*lnrpc.RouteHint, len(hints))
+	for ri, hint := range hints {
+		hops := make([]*lnrpc.HopHint, len(hint.HopHints))
+		for hi, hop := range hint.HopHints {
+			hops[hi] = &lnrpc.HopHint{
+				NodeId:                    hop.NodeID.String(),
+				ChanId:                    hop.ChanID,
+				FeeBaseMsat:               hop.FeeBaseMsat,
+				FeeProportionalMillionths: hop.FeeRate,
+				CltvExpiryDelta:           hop.CltvExpiryDelta,
+			}
+		}
+		lnrpcHints[ri] = &lnrpc.RouteHint{
+			HopHints: hops,
+		}
+	}
+
+	return lnrpcHints
 }

@@ -44,7 +44,7 @@ func unmarshalPaymentRequest(payReq *lnrpc.PayReq) (*PayReq, error) {
 	}
 
 	var hints []RouteHint
-	if hints != nil {
+	if len(payReq.RouteHints) != 0 {
 		hints, err = unmarshalRouteHints(payReq.RouteHints)
 		if err != nil {
 			return nil, err

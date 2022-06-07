@@ -12,6 +12,43 @@ import (
 	"github.com/c13n-io/c13n-go/model"
 )
 
+// GetRoute attempts to discover a route that can fulfil a payment.
+func (app *App) GetRoute(ctx context.Context, dest string, amtMsat int64,
+	payReq string, opts lnchat.PaymentOptions) (*model.Route, error) {
+
+	route, _, err := app.LNManager.GetRoute(ctx,
+		dest, lnchat.NewAmount(amtMsat), payReq, opts, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not find route: %w", err)
+	}
+
+	return newRoute(route), nil
+}
+
+func newRoute(route *lnchat.Route) *model.Route {
+	if route == nil {
+		return nil
+	}
+
+	hops := make([]model.Hop, len(route.Hops))
+	for i, hop := range route.Hops {
+		hops[i] = model.Hop{
+			ChanID:           hop.ChannelID,
+			HopAddress:       hop.NodeID.String(),
+			AmtToForwardMsat: hop.AmtToForward.Msat(),
+			FeeMsat:          hop.Fees.Msat(),
+			CustomRecords:    hop.CustomRecords,
+		}
+	}
+
+	return &model.Route{
+		TotalTimeLock: route.TimeLock,
+		RouteAmtMsat:  route.Amt.Msat(),
+		RouteFeesMsat: route.Fees.Msat(),
+		RouteHops:     hops,
+	}
+}
+
 // EstimatePayment attempts to calculate the details for
 // sending a payment (or message) to a discussion.
 // If the discussion contains multiple participants,
@@ -47,7 +84,7 @@ func (app *App) EstimatePayment(ctx context.Context,
 	var errs []error
 	for _, recipient := range discussion.Participants {
 		route, prob, err := app.LNManager.GetRoute(ctx, recipient,
-			lnchat.NewAmount(amtMsat), payOpts, paymentPayload)
+			lnchat.NewAmount(amtMsat), "", payOpts, paymentPayload)
 		switch err {
 		case nil:
 			routes[recipient] = *route

@@ -691,6 +691,7 @@ var ContactService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MessageServiceClient interface {
+	// Deprecated: Do not use.
 	//*
 	//Estimates the route and fees for the requested message.
 	//
@@ -721,6 +722,7 @@ func NewMessageServiceClient(cc grpc.ClientConnInterface) MessageServiceClient {
 	return &messageServiceClient{cc}
 }
 
+// Deprecated: Do not use.
 func (c *messageServiceClient) EstimateMessage(ctx context.Context, in *EstimateMessageRequest, opts ...grpc.CallOption) (*EstimateMessageResponse, error) {
 	out := new(EstimateMessageResponse)
 	err := c.cc.Invoke(ctx, "/services.MessageService/EstimateMessage", in, out, opts...)
@@ -777,6 +779,7 @@ func (x *messageServiceSubscribeMessagesClient) Recv() (*SubscribeMessageRespons
 // All implementations must embed UnimplementedMessageServiceServer
 // for forward compatibility
 type MessageServiceServer interface {
+	// Deprecated: Do not use.
 	//*
 	//Estimates the route and fees for the requested message.
 	//
@@ -1396,6 +1399,10 @@ type PaymentServiceClient interface {
 	//*
 	//Subscribes to payment (final state) updates.
 	SubscribePayments(ctx context.Context, in *SubscribePaymentsRequest, opts ...grpc.CallOption) (PaymentService_SubscribePaymentsClient, error)
+	//*
+	//Attempts to find a route capable of carrying
+	//the requested amount to the destination.
+	GetRoute(ctx context.Context, in *RouteRequest, opts ...grpc.CallOption) (*RouteResponse, error)
 }
 
 type paymentServiceClient struct {
@@ -1497,6 +1504,15 @@ func (x *paymentServiceSubscribePaymentsClient) Recv() (*Payment, error) {
 	return m, nil
 }
 
+func (c *paymentServiceClient) GetRoute(ctx context.Context, in *RouteRequest, opts ...grpc.CallOption) (*RouteResponse, error) {
+	out := new(RouteResponse)
+	err := c.cc.Invoke(ctx, "/services.PaymentService/GetRoute", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PaymentServiceServer is the server API for PaymentService service.
 // All implementations must embed UnimplementedPaymentServiceServer
 // for forward compatibility
@@ -1516,6 +1532,10 @@ type PaymentServiceServer interface {
 	//*
 	//Subscribes to payment (final state) updates.
 	SubscribePayments(*SubscribePaymentsRequest, PaymentService_SubscribePaymentsServer) error
+	//*
+	//Attempts to find a route capable of carrying
+	//the requested amount to the destination.
+	GetRoute(context.Context, *RouteRequest) (*RouteResponse, error)
 	mustEmbedUnimplementedPaymentServiceServer()
 }
 
@@ -1537,6 +1557,9 @@ func (UnimplementedPaymentServiceServer) SubscribeInvoices(*SubscribeInvoicesReq
 }
 func (UnimplementedPaymentServiceServer) SubscribePayments(*SubscribePaymentsRequest, PaymentService_SubscribePaymentsServer) error {
 	return status.Errorf(codes.Unimplemented, "method SubscribePayments not implemented")
+}
+func (UnimplementedPaymentServiceServer) GetRoute(context.Context, *RouteRequest) (*RouteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoute not implemented")
 }
 func (UnimplementedPaymentServiceServer) mustEmbedUnimplementedPaymentServiceServer() {}
 
@@ -1647,6 +1670,24 @@ func (x *paymentServiceSubscribePaymentsServer) Send(m *Payment) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _PaymentService_GetRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RouteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PaymentServiceServer).GetRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/services.PaymentService/GetRoute",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PaymentServiceServer).GetRoute(ctx, req.(*RouteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PaymentService_ServiceDesc is the grpc.ServiceDesc for PaymentService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1665,6 +1706,10 @@ var PaymentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Pay",
 			Handler:    _PaymentService_Pay_Handler,
+		},
+		{
+			MethodName: "GetRoute",
+			Handler:    _PaymentService_GetRoute_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

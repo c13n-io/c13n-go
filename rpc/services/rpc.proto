@@ -302,7 +302,9 @@ service MessageService {
 	 In case of failure (payment amount too large or small, payload too large),
 	 an empty response is returned.
 	*/
-	rpc EstimateMessage(EstimateMessageRequest) returns (EstimateMessageResponse) {}
+	rpc EstimateMessage(EstimateMessageRequest) returns (EstimateMessageResponse) {
+		option deprecated = true;
+	}
 	/**
 	 Sends a message
 
@@ -411,6 +413,7 @@ message MessageOptions {
 
 /** Corresponds to a request to estimate a message. */
 message EstimateMessageRequest {
+	option deprecated = true;
 	/** The discussion id where the message is to be sent. */
 	uint64 discussion_id = 1;
 	/** The message payload (as a string). */
@@ -697,6 +700,12 @@ service PaymentService {
 	 Subscribes to payment (final state) updates.
 	*/
 	rpc SubscribePayments(SubscribePaymentsRequest) returns (stream Payment) {}
+
+	/**
+	 Attempts to find a route capable of carrying
+	 the requested amount to the destination.
+	*/
+	rpc GetRoute(RouteRequest) returns (RouteResponse) {}
 }
 
 /** Corresponds to an invoice creation request. */
@@ -901,4 +910,24 @@ message SubscribePaymentsRequest {
 
 /** Corresponds to a message subscription request. */
 message SubscribeMessagesRequest {
+}
+
+/** Corresponds to a route discovery request. */
+message RouteRequest {
+	oneof destination {
+		/** The payment request to pay to. */
+		string pay_req = 1;
+		/** The address to pay to. */
+		string address = 2;
+	}
+	/** The payment amount (in millisatoshi). */
+	uint64 amt_msat = 3;
+	/** The payment options. */
+	PaymentOptions options = 4;
+}
+
+/** A RouteResponse is received in response to a route discovery request. */
+message RouteResponse {
+	/** A route that can fulfil the requested payment. */
+	PaymentRoute route = 1;
 }

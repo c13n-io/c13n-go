@@ -51,6 +51,7 @@ func TestEstimatePayment(t *testing.T) {
 	type getRouteCall struct {
 		recipient     string
 		amt           int64
+		payReq        string
 		payOpts       lnchat.PaymentOptions
 		payload       map[uint64][]byte
 		expectedRoute *lnchat.Route
@@ -105,6 +106,7 @@ func TestEstimatePayment(t *testing.T) {
 				{
 					recipient: discussions[0].Participants[0],
 					amt:       1023,
+					payReq:    "",
 					payOpts:   payOptsWithFeeLimit(3200),
 					payload: mustCreatePayload(t, discussions[0].Participants,
 						testPayload, srcAddress, []byte("dummy signature")),
@@ -191,6 +193,7 @@ func TestEstimatePayment(t *testing.T) {
 				{
 					recipient: discussions[0].Participants[0],
 					amt:       103,
+					payReq:    "",
 					payOpts:   payOptsWithFeeLimit(3200),
 					payload: mustCreatePayload(t, discussions[0].Participants,
 						"test should fail to find route", srcAddress, []byte("dummy signature")),
@@ -234,8 +237,10 @@ func TestEstimatePayment(t *testing.T) {
 					for _, call := range c.getRouteCalls {
 						mockLNManager.On("GetRoute", mock.Anything,
 							call.recipient, lnchat.NewAmount(call.amt),
-							call.payOpts, call.payload).Return(
-							call.expectedRoute, call.expectedProb, call.expectedErr).Once()
+							call.payReq, call.payOpts, call.payload).Return(
+							call.expectedRoute, call.expectedProb,
+							call.expectedErr,
+						).Once()
 					}
 				}
 
