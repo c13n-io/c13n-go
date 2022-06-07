@@ -61,23 +61,28 @@ func (app *App) subscribeInvoices(ctx context.Context, lastInvoiceIdx uint64) er
 				return fmt.Errorf("invoice update failed: %w", invUpdate.Err)
 			}
 
-			// Store and publish the invoice, regardless of payload presence.
+			// Publish invoice update.
 			invoice := &model.Invoice{
 				CreatorAddress: app.Self.Node.Address,
 				Invoice:        *inv,
 			}
-			if err = app.Database.AddInvoice(invoice); err != nil {
-				app.Log.WithError(err).Error("invoice storage failed")
-			}
-
 			if err = app.publishInvoice(invoice); err != nil {
 				app.Log.WithError(err).Error("invoice notification failed")
+			}
+
+			// Store settled invoices, regardless of payload presence.
+			if inv.State != lnchat.InvoiceSETTLED {
+				continue
+			}
+
+			if err = app.Database.AddInvoice(invoice); err != nil {
+				app.Log.WithError(err).Error("invoice storage failed")
 			}
 
 			// Attempt payload extraction if the invoice is settled
 			// and the HTLCs fulfilling it carry payload.
 			records := inv.GetCustomRecords()
-			if len(records) == 0 || inv.State != lnchat.InvoiceSETTLED {
+			if len(records) == 0 {
 				continue
 			}
 

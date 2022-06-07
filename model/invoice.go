@@ -26,51 +26,39 @@ func (i *Invoice) Type() string {
 
 // Indexes satisfies badgerhold.Storer interface for Invoice type.
 func (i *Invoice) Indexes() map[string]badgerhold.Index {
-	indexIdxFunc := func(name string, value interface{}) ([]byte, error) {
-		var inv *Invoice
-
-		switch v := value.(type) {
-		case *Invoice:
-			inv = v
-		// Workaround for badgerhold issue !43
-		case **Invoice:
-			inv = *v
-		default:
-			return nil, fmt.Errorf("InvoiceSettleIndex: expected Invoice, got %T", value)
-		}
-
-		// Return the invoice SettleIndex.
-		b := make([]byte, 8)
-		binary.BigEndian.PutUint64(b, inv.SettleIndex)
-
-		return b, nil
-	}
-	preimageIdxFunc := func(name string, value interface{}) ([]byte, error) {
-		var inv *Invoice
-
-		switch v := value.(type) {
-		case *Invoice:
-			inv = v
-		case **Invoice:
-			inv = *v
-		default:
-			return nil, fmt.Errorf("InvoicePreimageIndex: expected Invoice, got %T", value)
-		}
-
-		b := make([]byte, len(inv.Preimage))
-		copy(b, inv.Preimage)
-
-		return b, nil
+	getInvoice := func(value interface{}) (inv *Invoice, ok bool) {
+		inv, ok = value.(*Invoice)
+		return
 	}
 
 	return map[string]badgerhold.Index{
 		"SettleIndex": badgerhold.Index{
-			IndexFunc: indexIdxFunc,
-			Unique:    true,
+			IndexFunc: func(_ string, value interface{}) ([]byte, error) {
+				inv, ok := getInvoice(value)
+				if !ok {
+					return nil, fmt.Errorf("InvoiceSettleIndex:"+
+						" expected Invoice, got %T", value)
+				}
+
+				b := make([]byte, 8)
+				binary.BigEndian.PutUint64(b, inv.SettleIndex)
+				return b, nil
+			},
+			Unique: true,
 		},
 		"PreimageIndex": badgerhold.Index{
-			IndexFunc: preimageIdxFunc,
-			Unique:    true,
+			IndexFunc: func(_ string, value interface{}) ([]byte, error) {
+				inv, ok := getInvoice(value)
+				if !ok {
+					return nil, fmt.Errorf("InvoicePreimageIndex:"+
+						" expected Invoice, got %T", value)
+				}
+
+				b := make([]byte, len(inv.Preimage))
+				copy(b, inv.Preimage)
+				return b, nil
+			},
+			Unique: true,
 		},
 	}
 }

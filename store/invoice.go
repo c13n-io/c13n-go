@@ -2,6 +2,7 @@ package store
 
 import (
 	"github.com/dgraph-io/badger/v3"
+	"github.com/timshannon/badgerhold/v4"
 
 	"github.com/c13n-io/c13n-go/model"
 )
@@ -10,7 +11,12 @@ import (
 func (db *bhDatabase) AddInvoice(inv *model.Invoice) error {
 	return retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		invoiceKey := inv.SettleIndex
-		return db.bh.TxInsert(txn, invoiceKey, inv)
+		switch err := db.bh.TxInsert(txn, invoiceKey, inv); err {
+		case badgerhold.ErrKeyExists:
+			return alreadyExists(inv)
+		default:
+			return err
+		}
 	})
 }
 
