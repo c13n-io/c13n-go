@@ -43,7 +43,7 @@ func (s *paymentServiceServer) CreateInvoice(ctx context.Context, req *pb.Create
 		return nil, associateStatusCode(s.logError(err))
 	}
 
-	resp, err := invoiceModelToRPCInvoice(inv)
+	resp, err := newInvoice(inv)
 	if err != nil {
 		return nil, associateStatusCode(s.logError(err))
 	}
@@ -60,7 +60,7 @@ func (s *paymentServiceServer) LookupInvoice(ctx context.Context, req *pb.Lookup
 		return nil, associateStatusCode(s.logError(err))
 	}
 
-	resp, err := invoiceModelToRPCInvoice(inv)
+	resp, err := newInvoice(inv)
 	if err != nil {
 		return nil, associateStatusCode(s.logError(err))
 	}
@@ -92,6 +92,45 @@ func (s *paymentServiceServer) Pay(ctx context.Context,
 	return &pb.PayResponse{
 		Payment: resp,
 	}, nil
+}
+
+// SubscribeInvoices returns a stream over which
+// invoices that have reached a final state are received.
+func (s *paymentServiceServer) SubscribeInvoices(_ *pb.SubscribeInvoicesRequest,
+	srv pb.PaymentService_SubscribeInvoicesServer) error {
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	invChannel, err := s.App.SubscribeInvoices(ctx)
+	if err != nil {
+		return associateStatusCode(s.logError(
+			fmt.Errorf("client subscription failed: %w", err)))
+	}
+
+invoiceLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			s.Log.Printf("client subscription ended")
+			break invoiceLoop
+		case inv, ok := <-invChannel:
+			if !ok {
+				s.Log.Printf("subscription channel closed")
+				break invoiceLoop
+			}
+
+			invoice, err := newInvoice(inv)
+			if err != nil {
+				return associateStatusCode(s.logError(err))
+			}
+			if err := srv.Send(invoice); err != nil {
+				return associateStatusCode(s.logError(err))
+			}
+		}
+	}
+
+	return nil
 }
 
 func newPayment(payment *model.Payment) (*pb.Payment, error) {
@@ -200,6 +239,126 @@ func newPaymentHTLC(h lnchat.HTLCAttempt) (*pb.PaymentHTLC, error) {
 		Preimage:         hPreimage,
 	}, nil
 
+}
+
+var (
+	invoiceStateMap = map[lnchat.InvoiceState]pb.InvoiceState{
+		lnchat.InvoiceOPEN:      pb.InvoiceState_INVOICE_OPEN,
+		lnchat.InvoiceACCEPTED:  pb.InvoiceState_INVOICE_ACCEPTED,
+		lnchat.InvoiceSETTLED:   pb.InvoiceState_INVOICE_SETTLED,
+		lnchat.InvoiceCANCELLED: pb.InvoiceState_INVOICE_CANCELLED,
+	}
+	invoiceHTLCStateMap = map[lnrpc.InvoiceHTLCState]pb.InvoiceHTLCState{
+		lnrpc.InvoiceHTLCState_ACCEPTED: pb.InvoiceHTLCState_INVOICE_HTLC_ACCEPTED,
+		lnrpc.InvoiceHTLCState_SETTLED:  pb.InvoiceHTLCState_INVOICE_HTLC_SETTLED,
+		lnrpc.InvoiceHTLCState_CANCELED: pb.InvoiceHTLCState_INVOICE_HTLC_CANCELLED,
+	}
+)
+
+func newInvoice(invoice *model.Invoice) (*pb.Invoice, error) {
+	var err error
+	var created, settled *timestamppb.Timestamp
+	if invoice.CreatedTimeSec > 0 {
+		ts := time.Unix(invoice.CreatedTimeSec, 0)
+		if created, err = newProtoTimestamp(ts); err != nil {
+			return nil, fmt.Errorf("marshal error: invalid timestamp: %v", err)
+		}
+	}
+	if invoice.SettleTimeSec > 0 {
+		ts := time.Unix(invoice.SettleTimeSec, 0)
+		if settled, err = newProtoTimestamp(ts); err != nil {
+			return nil, fmt.Errorf("marshal error: invalid timestamp: %v", err)
+		}
+	}
+
+	preimage, err := lntypes.MakePreimage(invoice.Preimage)
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: invalid preimage: %v", err)
+	}
+
+	hints, err := newInvoiceHints(invoice.RouteHints)
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: route hints error: %v", err)
+	}
+
+	htlcs, err := newInvoiceHTLCs(invoice.Htlcs)
+	if err != nil {
+		return nil, fmt.Errorf("marshal error: htlc error: %v", err)
+	}
+
+	return &pb.Invoice{
+		Memo:             invoice.Memo,
+		Hash:             invoice.Hash,
+		Preimage:         preimage.String(),
+		PaymentRequest:   invoice.PaymentRequest,
+		ValueMsat:        uint64(invoice.Value.Msat()),
+		AmtPaidMsat:      uint64(invoice.AmtPaid.Msat()),
+		CreatedTimestamp: created,
+		SettledTimestamp: settled,
+		Expiry:           invoice.Expiry,
+		Private:          invoice.Private,
+		RouteHints:       hints,
+		State:            invoiceStateMap[invoice.State],
+		AddIndex:         invoice.AddIndex,
+		SettleIndex:      invoice.SettleIndex,
+		InvoiceHtlcs:     htlcs,
+	}, nil
+}
+
+func newInvoiceHTLCs(htlcs []lnchat.InvoiceHTLC) ([]*pb.InvoiceHTLC, error) {
+	res := make([]*pb.InvoiceHTLC, len(htlcs))
+	for i, htlc := range htlcs {
+		var err error
+		var accept, resolve *timestamppb.Timestamp
+		if htlc.AcceptTimeSec > 0 {
+			ts := time.Unix(htlc.AcceptTimeSec, 0)
+			if accept, err = newProtoTimestamp(ts); err != nil {
+				return nil, fmt.Errorf("marshal error: "+
+					"invalid timestamp: %v", err)
+			}
+		}
+		if htlc.ResolveTimeSec > 0 {
+			ts := time.Unix(htlc.ResolveTimeSec, 0)
+			if resolve, err = newProtoTimestamp(ts); err != nil {
+				return nil, fmt.Errorf("marshal error: "+
+					"invalid timestamp: %v", err)
+			}
+		}
+
+		res[i] = &pb.InvoiceHTLC{
+			ChanId:           htlc.ChanID,
+			AmtMsat:          uint64(htlc.Amount.Msat()),
+			State:            invoiceHTLCStateMap[htlc.State],
+			AcceptTimestamp:  accept,
+			ResolveTimestamp: resolve,
+			ExpiryHeight:     htlc.ExpiryHeight,
+		}
+	}
+
+	return res, nil
+}
+
+func newInvoiceHints(hints []lnchat.RouteHint) ([]*pb.RouteHint, error) {
+	res := make([]*pb.RouteHint, len(hints))
+	for i, hint := range hints {
+		hintHops := make([]*pb.HopHint, len(hint.HopHints))
+
+		for j, hop := range hint.HopHints {
+			hintHops[j] = &pb.HopHint{
+				Pubkey:          hop.NodeID.String(),
+				ChanId:          hop.ChanID,
+				FeeBaseMsat:     hop.FeeBaseMsat,
+				FeeRate:         hop.FeeRate,
+				CltvExpiryDelta: hop.CltvExpiryDelta,
+			}
+		}
+
+		res[i] = &pb.RouteHint{
+			HopHints: hintHops,
+		}
+	}
+
+	return res, nil
 }
 
 // NewPaymentServiceServer initializes a new payment service.
