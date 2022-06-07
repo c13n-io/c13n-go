@@ -11,6 +11,7 @@ import (
 
 	"github.com/c13n-io/c13n-go/lnchat"
 	"github.com/c13n-io/c13n-go/model"
+	"github.com/c13n-io/c13n-go/store"
 )
 
 // SendMessage attempts to send a message.
@@ -116,8 +117,16 @@ func (app *App) SendMessage(ctx context.Context, discID uint64, amtMsat int64, p
 		return nil, newCompositeError(errs)
 	}
 
-	// Associate payments with the message
+	// Store payments and associate them with the message
 	for _, payment := range payments {
+		if err := app.Database.AddPayments(payment); err != nil {
+			// Ignore error if it indicates payment is already stored
+			var existsErr *store.AlreadyExistsError
+			if !errors.As(err, &existsErr) {
+				errs = append(errs, err)
+			}
+		}
+
 		rawMsg.WithPaymentIndexes(payment.PaymentIndex)
 	}
 	msg := &model.MessageAggregate{
@@ -125,10 +134,7 @@ func (app *App) SendMessage(ctx context.Context, discID uint64, amtMsat int64, p
 		Payments:   payments,
 	}
 
-	// Store payments and raw message
-	if err := app.Database.AddPayments(msg.Payments...); err != nil {
-		return msg, errors.Wrap(err, "could not store payments")
-	}
+	// Store raw message
 	if err := app.Database.AddRawMessage(msg.RawMessage); err != nil {
 		return msg, errors.Wrap(err, "could not store message")
 	}
@@ -137,7 +143,7 @@ func (app *App) SendMessage(ctx context.Context, discID uint64, amtMsat int64, p
 }
 
 // defaultPaymentFilter is a payment update filter,
-// accepting only successful payment updates.
+// accepting only final payment updates.
 func defaultPaymentFilter(p *lnchat.Payment) bool {
 	return p.Status == lnchat.PaymentSUCCEEDED ||
 		p.Status == lnchat.PaymentFAILED
@@ -182,7 +188,10 @@ func (app *App) SendPayment(ctx context.Context,
 
 	// Store payment
 	if err := app.Database.AddPayments(payment); err != nil {
-		return payment, err
+		var existsErr *store.AlreadyExistsError
+		if !errors.As(err, &existsErr) {
+			return payment, err
+		}
 	}
 
 	return payment, nil

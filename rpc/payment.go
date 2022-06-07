@@ -133,6 +133,45 @@ invoiceLoop:
 	return nil
 }
 
+// SubscribePayments returns a stream over which
+// notifications of finished payments are received.
+func (s *paymentServiceServer) SubscribePayments(_ *pb.SubscribePaymentsRequest,
+	srv pb.PaymentService_SubscribePaymentsServer) error {
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	payChannel, err := s.App.SubscribePayments(ctx)
+	if err != nil {
+		return associateStatusCode(s.logError(
+			fmt.Errorf("client subscription failed: %w", err)))
+	}
+
+paymentLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			s.Log.Printf("client subscription ended")
+			break paymentLoop
+		case pmnt, ok := <-payChannel:
+			if !ok {
+				s.Log.Printf("subscription channel closed")
+				break paymentLoop
+			}
+
+			payment, err := newPayment(pmnt)
+			if err != nil {
+				return associateStatusCode(s.logError(err))
+			}
+			if err := srv.Send(payment); err != nil {
+				return associateStatusCode(s.logError(err))
+			}
+		}
+	}
+
+	return nil
+}
+
 func newPayment(payment *model.Payment) (*pb.Payment, error) {
 	var err error
 	var createdTime, resolvedTime *timestamppb.Timestamp

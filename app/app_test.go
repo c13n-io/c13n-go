@@ -82,11 +82,13 @@ func TestAppInitSuccess(t *testing.T) {
 		// Mock self info
 		mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
 
-		mockLNManager.On("SubscribeInvoiceUpdates",
-			mock.Anything, uint64(1), mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+		mockDB.On("GetLastInvoiceIndex").Return(uint64(1), nil).Once()
+		mockDB.On("GetLastPaymentIndex").Return(uint64(3), nil).Once()
 
-		mockDB.On("GetLastInvoiceIndex").Return(
-			uint64(1), nil).Once()
+		mockLNManager.On("SubscribeInvoiceUpdates", mock.Anything, uint64(1),
+			mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+		mockLNManager.On("SubscribePaymentUpdates", mock.Anything, uint64(3),
+			mock.AnythingOfType("func(*lnchat.Payment) bool")).Return(nil, nil)
 
 		mockDB.On("Close").Return(nil).Once()
 		mockLNManager.On("Close").Return(nil).Once()
@@ -191,7 +193,7 @@ func TestBackoffFn(t *testing.T) {
 	relativeErr := 0.05
 
 	for _, c := range cases {
-		res := subscriptionBackoffFn(c.n)
+		res := backoff(c.n)
 		assert.InEpsilonf(t, c.expected, res, relativeErr, "backoff for n=%d"+
 			" should be within %.2f of %v", c.n, relativeErr, c.expected)
 	}
@@ -211,10 +213,16 @@ func TestAppInitSubscriptionIndex(t *testing.T) {
 	}
 	mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
 
-	var _, lastReceivedIdx uint64 = 3, 72
+	var lastPaymentIdx, lastInvoiceIdx uint64 = 3, 72
 
-	mockDB.On("GetLastInvoiceIndex").Return(
-		lastReceivedIdx, nil).Once()
+	mockDB.On("GetLastInvoiceIndex").Return(lastInvoiceIdx, nil).Once()
+	mockDB.On("GetLastPaymentIndex").Return(lastPaymentIdx, nil).Once()
+
+	mockLNManager.On("SubscribeInvoiceUpdates", mock.Anything, lastInvoiceIdx,
+		mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+	mockLNManager.On("SubscribePaymentUpdates", mock.Anything, lastPaymentIdx,
+		mock.AnythingOfType("func(*lnchat.Payment) bool")).Return(nil, nil)
+
 	mockDB.On("Close").Return(nil).Once()
 
 	mockLNManager.On("Close").Return(nil).Once()

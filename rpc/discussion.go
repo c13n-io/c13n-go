@@ -269,7 +269,7 @@ func newMessage(aggregate *model.MessageAggregate) (*pb.Message, error) {
 // NewDiscussionServiceServer initializes a new discussion service.
 func NewDiscussionServiceServer(app *app.App) pb.DiscussionServiceServer {
 	return &discussionServiceServer{
-		Log: slog.NewLogger("message-service"),
+		Log: slog.NewLogger("discussion-service"),
 		App: app,
 	}
 }

@@ -33,11 +33,13 @@ func TestGetSelfInfoSuccess(t *testing.T) {
 		// Mock self info
 		mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
 
-		mockDB.On("GetLastInvoiceIndex").Return(
-			uint64(1), nil).Once()
+		mockDB.On("GetLastInvoiceIndex").Return(uint64(1), nil).Once()
+		mockDB.On("GetLastPaymentIndex").Return(uint64(42), nil).Once()
 
-		mockLNManager.On("SubscribeInvoiceUpdates",
-			mock.Anything, uint64(1), mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+		mockLNManager.On("SubscribeInvoiceUpdates", mock.Anything, uint64(1),
+			mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+		mockLNManager.On("SubscribePaymentUpdates", mock.Anything, uint64(42),
+			mock.AnythingOfType("func(*lnchat.Payment) bool")).Return(nil, nil)
 
 		mockDB.On("Close").Return(nil).Once()
 		mockLNManager.On("Close").Return(nil).Once()
@@ -107,11 +109,13 @@ func TestGetSelfBalanceSuccess(t *testing.T) {
 		// Mock self info
 		mockLNManager.On("GetSelfInfo", mock.Anything).Return(selfInfo, nil).Once()
 
-		mockDB.On("GetLastInvoiceIndex").Return(
-			uint64(1), nil).Once()
+		mockDB.On("GetLastInvoiceIndex").Return(uint64(1), nil).Once()
+		mockDB.On("GetLastPaymentIndex").Return(uint64(42), nil).Once()
 
-		mockLNManager.On("SubscribeInvoiceUpdates",
-			mock.Anything, uint64(1), mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+		mockLNManager.On("SubscribeInvoiceUpdates", mock.Anything, uint64(1),
+			mock.AnythingOfType("func(*lnchat.Invoice) bool")).Return(nil, nil)
+		mockLNManager.On("SubscribePaymentUpdates", mock.Anything, uint64(42),
+			mock.AnythingOfType("func(*lnchat.Payment) bool")).Return(nil, nil)
 
 		mockDB.On("Close").Return(nil).Once()
 		mockLNManager.On("Close").Return(nil).Once()

@@ -41,6 +41,7 @@ const (
 	// The below constants define the bus event topics.
 	messageTopic = "message"
 	invoiceTopic = "invoice"
+	paymentTopic = "payment"
 )
 
 func (app *App) publishMessage(msg *model.Message) error {
@@ -119,6 +120,41 @@ func (app *App) SubscribeInvoices(ctx context.Context) (<-chan *model.Invoice, e
 			}
 
 			clientCh <- inv
+		}
+	}()
+	return clientCh, nil
+}
+
+func (app *App) publishPayment(pmnt *model.Payment) error {
+	pmntBytes, err := json.Marshal(pmnt)
+	if err != nil {
+		return BusError{op: "publish", topic: paymentTopic, e: err}
+	}
+
+	return app.publish(paymentTopic, pmntBytes)
+}
+
+func (app *App) SubscribePayments(ctx context.Context) (<-chan *model.Payment, error) {
+	subCh, err := app.subscribe(ctx, paymentTopic)
+	if err != nil {
+		return nil, err
+	}
+
+	clientCh := make(chan *model.Payment)
+	go func() {
+		defer close(clientCh)
+
+		for subMsg := range subCh {
+			subMsg.Ack()
+
+			pmnt := new(model.Payment)
+			if err := json.Unmarshal(subMsg.Payload, pmnt); err != nil {
+				e := BusError{op: "subscribe", topic: paymentTopic, e: err}
+				app.Log.Error(e)
+				continue
+			}
+
+			clientCh <- pmnt
 		}
 	}()
 	return clientCh, nil
