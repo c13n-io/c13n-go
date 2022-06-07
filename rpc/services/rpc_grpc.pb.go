@@ -697,12 +697,14 @@ type MessageServiceClient interface {
 	//In case of failure (payment amount too large or small, payload too large),
 	//an empty response is returned.
 	EstimateMessage(ctx context.Context, in *EstimateMessageRequest, opts ...grpc.CallOption) (*EstimateMessageResponse, error)
+	// Deprecated: Do not use.
 	//*
 	//Sends a message
 	//
 	//In case of failure (payment amount too large or small, payload too large),
 	//an empty response is returned.
 	SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
+	// Deprecated: Do not use.
 	//*
 	//Creates a unidirectional stream from server to client
 	//over which all received messages are sent.
@@ -728,6 +730,7 @@ func (c *messageServiceClient) EstimateMessage(ctx context.Context, in *Estimate
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *messageServiceClient) SendMessage(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error) {
 	out := new(SendMessageResponse)
 	err := c.cc.Invoke(ctx, "/services.MessageService/SendMessage", in, out, opts...)
@@ -737,6 +740,7 @@ func (c *messageServiceClient) SendMessage(ctx context.Context, in *SendMessageR
 	return out, nil
 }
 
+// Deprecated: Do not use.
 func (c *messageServiceClient) SubscribeMessages(ctx context.Context, in *SubscribeMessageRequest, opts ...grpc.CallOption) (MessageService_SubscribeMessagesClient, error) {
 	stream, err := c.cc.NewStream(ctx, &MessageService_ServiceDesc.Streams[0], "/services.MessageService/SubscribeMessages", opts...)
 	if err != nil {
@@ -779,12 +783,14 @@ type MessageServiceServer interface {
 	//In case of failure (payment amount too large or small, payload too large),
 	//an empty response is returned.
 	EstimateMessage(context.Context, *EstimateMessageRequest) (*EstimateMessageResponse, error)
+	// Deprecated: Do not use.
 	//*
 	//Sends a message
 	//
 	//In case of failure (payment amount too large or small, payload too large),
 	//an empty response is returned.
 	SendMessage(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
+	// Deprecated: Do not use.
 	//*
 	//Creates a unidirectional stream from server to client
 	//over which all received messages are sent.
