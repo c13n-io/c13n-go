@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/lightningnetwork/lnd/lnrpc"
-	"github.com/lightningnetwork/lnd/lntypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -35,27 +34,16 @@ func mustJSONMarshalMessage(t *testing.T, participants []string, payload string)
 }
 
 func mustExtractRawMessage(t *testing.T, inv *lnchat.Invoice) *model.RawMessage {
-	rawMsg, err := payloadExtractor(inv, func(_, _ []byte, _ string) (
-		bool, error) {
+	noopVerify := func(_, _ []byte, _ string) (bool, error) {
 		return true, nil
-	})
+	}
+
+	rawMsg, err := payloadExtractor(inv.GetCustomRecords(), noopVerify)
 	require.NoError(t, err)
+
+	rawMsg.InvoiceSettleIndex = inv.SettleIndex
 
 	return rawMsg
-}
-
-func mustMakePreimageHash(t *testing.T, hash string) []byte {
-	h, err := lntypes.MakeHashFromStr(hash)
-	require.NoError(t, err)
-
-	return h[:]
-}
-
-func mustMakePreimage(t *testing.T, preimage []byte) lntypes.Preimage {
-	p, err := lntypes.MakePreimage(preimage)
-	require.NoError(t, err)
-
-	return p
 }
 
 func TestSubscribeInvoices(t *testing.T) {
@@ -148,13 +136,13 @@ func TestSubscribeInvoices(t *testing.T) {
 	type invoiceUpdateOp struct {
 		data                     lnchat.InvoiceUpdate
 		addInvoiceErr            error
-		payloadExists            bool
+		carriesPayload           bool
 		payloadSigned            bool
 		verifySigExtractedPubkey string
 		verifySigErr             error
 		rawMsg                   *model.RawMessage
-		canUnmarshalPayload      bool
-		discExists               bool
+		canExtractPayload        bool
+		discAlreadyExists        bool
 		discParticipants         []string
 		discussion               *model.Discussion
 		discID                   uint64
@@ -162,7 +150,7 @@ func TestSubscribeInvoices(t *testing.T) {
 		addDiscussionErr         error
 		addRawMsgErr             error
 		addRawMsgID              uint64
-		message                  *MaybeMessage
+		message                  *model.MessageAggregate
 	}
 
 	cases := []struct {
@@ -177,13 +165,13 @@ func TestSubscribeInvoices(t *testing.T) {
 				{
 					data:                     invoiceUpdateList[0],
 					addInvoiceErr:            nil,
-					payloadExists:            true,
+					carriesPayload:           true,
 					payloadSigned:            true,
 					verifySigExtractedPubkey: srcAddr.String(),
 					verifySigErr:             nil,
 					rawMsg:                   mustExtractRawMessage(t, invoiceUpdateList[0].Inv),
-					canUnmarshalPayload:      true,
-					discExists:               true,
+					canExtractPayload:        true,
+					discAlreadyExists:        true,
 					discParticipants:         []string{srcAddr.String()},
 					discussion: &model.Discussion{
 						Participants:  []string{srcAddr.String()},
@@ -196,22 +184,21 @@ func TestSubscribeInvoices(t *testing.T) {
 					addDiscussionErr:         nil,
 					addRawMsgErr:             nil,
 					addRawMsgID:              42,
-					message: &MaybeMessage{
-						Message: &model.Message{
-							ID:             42,
-							DiscussionID:   13,
-							Payload:        "test message",
-							AmtMsat:        124,
-							Sender:         srcAddr.String(),
-							Receiver:       selfAddr.String(),
-							SenderVerified: true,
-							SentTimeNs:     time.Unix(invoiceUpdateList[0].Inv.CreatedTimeSec, 0).UnixNano(),
-							ReceivedTimeNs: time.Unix(invoiceUpdateList[0].Inv.SettleTimeSec, 0).UnixNano(),
-							Index:          invoiceUpdateList[0].Inv.SettleIndex,
-							PayReq:         "dummy payment request",
-							SuccessProb:    1.,
-							PreimageHash:   mustMakePreimageHash(t, invoiceUpdateList[0].Inv.Hash),
-							Preimage:       mustMakePreimage(t, invoiceUpdateList[0].Inv.Preimage),
+					message: &model.MessageAggregate{
+						RawMessage: &model.RawMessage{
+							ID:           42,
+							DiscussionID: 13,
+							RawPayload: invoiceUpdateList[0].Inv.Htlcs[0].
+								CustomRecords[PayloadTypeKey],
+							Sender: srcAddr.String(),
+							Signature: invoiceUpdateList[0].Inv.Htlcs[0].
+								CustomRecords[SignatureTypeKey],
+							SignatureVerified:  true,
+							InvoiceSettleIndex: invoiceUpdateList[0].Inv.SettleIndex,
+						},
+						Invoice: &model.Invoice{
+							CreatorAddress: selfAddr.String(),
+							Invoice:        *invoiceUpdateList[0].Inv,
 						},
 					},
 				},
@@ -227,9 +214,9 @@ func TestSubscribeInvoices(t *testing.T) {
 			subscrInvUpdatesErr: nil,
 			invoiceUpdateOps: []invoiceUpdateOp{
 				{
-					data:          invoiceUpdateList[1],
-					addInvoiceErr: fmt.Errorf("AddInvoice dummy error"),
-					payloadExists: false,
+					data:           invoiceUpdateList[1],
+					addInvoiceErr:  fmt.Errorf("AddInvoice dummy error"),
+					carriesPayload: false,
 				},
 			},
 		},
@@ -240,13 +227,13 @@ func TestSubscribeInvoices(t *testing.T) {
 				{
 					data:                     invoiceUpdateList[0],
 					addInvoiceErr:            nil,
-					payloadExists:            true,
+					carriesPayload:           true,
 					payloadSigned:            true,
 					verifySigExtractedPubkey: srcAddr.String(),
 					verifySigErr:             nil,
 					rawMsg:                   mustExtractRawMessage(t, invoiceUpdateList[0].Inv),
-					canUnmarshalPayload:      true,
-					discExists:               true,
+					canExtractPayload:        true,
+					discAlreadyExists:        true,
 					discParticipants:         []string{srcAddr.String()},
 					discussion:               nil,
 					discID:                   0,
@@ -262,13 +249,13 @@ func TestSubscribeInvoices(t *testing.T) {
 				{
 					data:                     invoiceUpdateList[0],
 					addInvoiceErr:            nil,
-					payloadExists:            true,
+					carriesPayload:           true,
 					payloadSigned:            true,
 					verifySigExtractedPubkey: srcAddr.String(),
 					verifySigErr:             nil,
 					rawMsg:                   mustExtractRawMessage(t, invoiceUpdateList[0].Inv),
-					canUnmarshalPayload:      true,
-					discExists:               true,
+					canExtractPayload:        true,
+					discAlreadyExists:        true,
 					discParticipants:         []string{srcAddr.String()},
 					discussion: &model.Discussion{
 						Participants:  []string{srcAddr.String()},
@@ -281,7 +268,6 @@ func TestSubscribeInvoices(t *testing.T) {
 					addDiscussionErr:         nil,
 					addRawMsgErr:             fmt.Errorf("dummy AddRawMessage error"),
 					addRawMsgID:              0,
-					message:                  nil,
 				},
 			},
 		},
@@ -292,12 +278,12 @@ func TestSubscribeInvoices(t *testing.T) {
 				{
 					data:                     invoiceUpdateList[2],
 					addInvoiceErr:            nil,
-					payloadExists:            true,
+					carriesPayload:           true,
 					payloadSigned:            true,
 					verifySigExtractedPubkey: srcAddr.String(),
 					verifySigErr:             nil,
 					rawMsg:                   mustExtractRawMessage(t, invoiceUpdateList[2].Inv),
-					canUnmarshalPayload:      false,
+					canExtractPayload:        false,
 				},
 			},
 		},
@@ -359,7 +345,7 @@ func TestSubscribeInvoices(t *testing.T) {
 						mockDB.On("AddInvoice", invModel).Return(
 							invUpdate.addInvoiceErr).Once()
 					}
-					if !invUpdate.payloadExists {
+					if !invUpdate.carriesPayload {
 						continue
 					}
 					if invUpdate.payloadSigned {
@@ -370,17 +356,16 @@ func TestSubscribeInvoices(t *testing.T) {
 							msg, sig).Return(invUpdate.verifySigExtractedPubkey,
 							invUpdate.verifySigErr).Once()
 					}
-					if !invUpdate.canUnmarshalPayload {
+					if !invUpdate.canExtractPayload {
 						continue
 					}
-					if invUpdate.canUnmarshalPayload {
-						disc := discWithID(invUpdate.discussion, invUpdate.discID)
 
-						mockDB.On("GetDiscussionByParticipants",
-							invUpdate.discParticipants).Return(disc,
-							invUpdate.getDiscByParticipantsErr).Once()
-					}
-					if !invUpdate.discExists {
+					disc := discWithID(invUpdate.discussion, invUpdate.discID)
+					mockDB.On("GetDiscussionByParticipants",
+						invUpdate.discParticipants).Return(disc,
+						invUpdate.getDiscByParticipantsErr).Once()
+
+					if !invUpdate.discAlreadyExists {
 						disc := discWithID(invUpdate.discussion, invUpdate.discID)
 
 						mockDB.On("AddDiscussion", invUpdate.discussion).Return(
@@ -418,20 +403,34 @@ func TestSubscribeInvoices(t *testing.T) {
 			ctxc, cancel := context.WithCancel(context.Background())
 			defer cancel()
 
+			invCh, err := app.SubscribeInvoices(ctxc)
+			assert.NoError(t, err)
+
 			msgCh, err := app.SubscribeMessages(ctxc)
 			assert.NoError(t, err)
 
-			for i := 0; i < len(c.invoiceUpdateOps); i++ {
-				if !c.invoiceUpdateOps[i].payloadExists ||
-					!c.invoiceUpdateOps[i].canUnmarshalPayload ||
-					c.invoiceUpdateOps[i].message == nil {
+			for i, update := range c.invoiceUpdateOps {
+				if update.data.Inv == nil {
 					continue
 				}
 
-				maybeMsg, ok := <-msgCh
-				assert.Truef(t, ok, "Expected message %d not received prior to channel close", i)
+				publishedInv, ok := <-invCh
+				assert.Truef(t, ok, "expected invoice %d, not received prior to channel close", i)
 
-				assert.EqualValues(t, c.invoiceUpdateOps[i].message, &maybeMsg)
+				expectedInvoice := &model.Invoice{
+					CreatorAddress: selfAddr.String(),
+					Invoice:        *update.data.Inv,
+				}
+				assert.EqualValues(t, expectedInvoice, publishedInv)
+
+				if update.message == nil {
+					continue
+				}
+
+				publishedMsg, ok := <-msgCh
+				assert.Truef(t, ok, "expected message %d, not received prior to channel close", i)
+
+				assert.EqualValues(t, *update.message, publishedMsg)
 			}
 		})
 	}

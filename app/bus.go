@@ -44,7 +44,7 @@ const (
 	paymentTopic = "payment"
 )
 
-func (app *App) publishMessage(msg *model.Message) error {
+func (app *App) publishMessage(msg model.MessageAggregate) error {
 	// Marshal as json for publishing in bus.
 	msgBytes, err := json.Marshal(msg)
 	if err != nil {
@@ -54,40 +54,36 @@ func (app *App) publishMessage(msg *model.Message) error {
 	return app.publish(messageTopic, msgBytes)
 }
 
-type MaybeMessage struct {
-	Message *model.Message
-	Error   error
-}
-
-// SubscribeMessages returns a channel over which received messages are sent.
+// SubscribeMessages returns a subscription for message notifications.
 // The subscriber is responsible for draining the channel
 // once the subscription terminates.
-func (app *App) SubscribeMessages(ctx context.Context) (<-chan MaybeMessage, error) {
+func (app *App) SubscribeMessages(ctx context.Context) (<-chan model.MessageAggregate, error) {
 	subCh, err := app.subscribe(ctx, messageTopic)
 	if err != nil {
 		return nil, err
 	}
 
-	msgCh := make(chan MaybeMessage)
+	clientCh := make(chan model.MessageAggregate)
 	go func() {
-		defer close(msgCh)
+		defer close(clientCh)
 
 		// Forward messages until subscriber exits.
 		for subMsg := range subCh {
 			subMsg.Ack()
 
 			// Unmarshal message data in a fresh variable.
-			msg := new(model.Message)
-			err := json.Unmarshal(subMsg.Payload, msg)
-
-			msgCh <- MaybeMessage{
-				Message: msg,
-				Error:   err,
+			msg := new(model.MessageAggregate)
+			if err := json.Unmarshal(subMsg.Payload, msg); err != nil {
+				e := BusError{op: "subscribe", topic: messageTopic, e: err}
+				app.Log.Error(e)
+				continue
 			}
+
+			clientCh <- *msg
 		}
 	}()
 
-	return msgCh, nil
+	return clientCh, nil
 }
 
 func (app *App) publishInvoice(inv *model.Invoice) error {

@@ -935,6 +935,10 @@ type DiscussionServiceClient interface {
 	//*
 	//Sends a message.
 	Send(ctx context.Context, in *SendRequest, opts ...grpc.CallOption) (*SendResponse, error)
+	//*
+	//Creates a unidirectional stream
+	//over which to be notified of all transmitted messages.
+	Subscribe(ctx context.Context, in *SubscribeMessagesRequest, opts ...grpc.CallOption) (DiscussionService_SubscribeClient, error)
 }
 
 type discussionServiceClient struct {
@@ -1054,6 +1058,38 @@ func (c *discussionServiceClient) Send(ctx context.Context, in *SendRequest, opt
 	return out, nil
 }
 
+func (c *discussionServiceClient) Subscribe(ctx context.Context, in *SubscribeMessagesRequest, opts ...grpc.CallOption) (DiscussionService_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &DiscussionService_ServiceDesc.Streams[2], "/services.DiscussionService/Subscribe", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &discussionServiceSubscribeClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DiscussionService_SubscribeClient interface {
+	Recv() (*Message, error)
+	grpc.ClientStream
+}
+
+type discussionServiceSubscribeClient struct {
+	grpc.ClientStream
+}
+
+func (x *discussionServiceSubscribeClient) Recv() (*Message, error) {
+	m := new(Message)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // DiscussionServiceServer is the server API for DiscussionService service.
 // All implementations must embed UnimplementedDiscussionServiceServer
 // for forward compatibility
@@ -1086,6 +1122,10 @@ type DiscussionServiceServer interface {
 	//*
 	//Sends a message.
 	Send(context.Context, *SendRequest) (*SendResponse, error)
+	//*
+	//Creates a unidirectional stream
+	//over which to be notified of all transmitted messages.
+	Subscribe(*SubscribeMessagesRequest, DiscussionService_SubscribeServer) error
 	mustEmbedUnimplementedDiscussionServiceServer()
 }
 
@@ -1113,6 +1153,9 @@ func (UnimplementedDiscussionServiceServer) RemoveDiscussion(context.Context, *R
 }
 func (UnimplementedDiscussionServiceServer) Send(context.Context, *SendRequest) (*SendResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
+}
+func (UnimplementedDiscussionServiceServer) Subscribe(*SubscribeMessagesRequest, DiscussionService_SubscribeServer) error {
+	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 func (UnimplementedDiscussionServiceServer) mustEmbedUnimplementedDiscussionServiceServer() {}
 
@@ -1259,6 +1302,27 @@ func _DiscussionService_Send_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DiscussionService_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SubscribeMessagesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DiscussionServiceServer).Subscribe(m, &discussionServiceSubscribeServer{stream})
+}
+
+type DiscussionService_SubscribeServer interface {
+	Send(*Message) error
+	grpc.ServerStream
+}
+
+type discussionServiceSubscribeServer struct {
+	grpc.ServerStream
+}
+
+func (x *discussionServiceSubscribeServer) Send(m *Message) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // DiscussionService_ServiceDesc is the grpc.ServiceDesc for DiscussionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1296,6 +1360,11 @@ var DiscussionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetDiscussionHistoryByID",
 			Handler:       _DiscussionService_GetDiscussionHistoryByID_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Subscribe",
+			Handler:       _DiscussionService_Subscribe_Handler,
 			ServerStreams: true,
 		},
 	},

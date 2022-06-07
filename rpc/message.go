@@ -98,20 +98,25 @@ messageLoop:
 		case <-ctx.Done():
 			s.Log.Printf("Context cancelled")
 			break messageLoop
-		case msg, ok := <-msgChannel:
+		case message, ok := <-msgChannel:
 			if !ok {
 				s.Log.Printf("Subscription channel closed.")
 				break messageLoop
 			}
-			if msg.Error != nil {
-				return associateStatusCode(s.logError(
-					fmt.Errorf("message subscription error")))
+
+			// For behaviour compatibility, ignore sent messages.
+			if len(message.Payments) != 0 {
+				continue
 			}
 
 			// Forward received message to grpc stream
-			resp, err := messageModelToSubscribeMessageResponse(msg.Message)
+			msg, err := newMessage(&message)
 			if err != nil {
 				return associateStatusCode(s.logError(err))
+			}
+
+			resp := &pb.SubscribeMessageResponse{
+				ReceivedMessage: msg,
 			}
 			if err := srv.Send(resp); err != nil {
 				return associateStatusCode(s.logError(err))

@@ -512,6 +512,11 @@ service DiscussionService {
 	 Sends a message.
 	*/
 	rpc Send(SendRequest) returns (SendResponse) {}
+	/**
+	 Creates a unidirectional stream
+	 over which to be notified of all transmitted messages.
+	*/
+	rpc Subscribe(SubscribeMessagesRequest) returns (stream Message) {}
 }
 
 /** Represents the information for a specific discussion. */
@@ -886,4 +891,8 @@ message SubscribeInvoicesRequest {
 
 /** Corresponds to a subscription request for payment updates. */
 message SubscribePaymentsRequest {
+}
+
+/** Corresponds to a message subscription request. */
+message SubscribeMessagesRequest {
 }

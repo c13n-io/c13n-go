@@ -3,8 +3,6 @@ package app
 import (
 	"fmt"
 
-	"github.com/lightningnetwork/lnd/lnrpc"
-
 	"github.com/c13n-io/c13n-go/lnchat"
 	"github.com/c13n-io/c13n-go/model"
 )
@@ -23,50 +21,41 @@ const (
 	SignatureTypeKey
 )
 
-// payloadExtractor extracts a RawMessage from an Invoice.
-func payloadExtractor(inv *lnchat.Invoice,
-	signatureVerifier func([]byte, []byte, string) (bool, error),
-) (*model.RawMessage, error) {
+// payloadExtractor extracts a RawMessage from a set of custom records.
+func payloadExtractor(customRecords []map[uint64][]byte,
+	verifySig func([]byte, []byte, string) (bool, error)) (*model.RawMessage, error) {
+
+	if len(customRecords) != 1 {
+		return nil, fmt.Errorf("payload extraction failed "+
+			"for records with length %d", len(customRecords))
+	}
+	records := customRecords[0]
+
 	rawMsg := new(model.RawMessage)
 
-	var customRecords map[uint64][]byte
-	for _, htlc := range inv.Htlcs {
-		if htlc.State == lnrpc.InvoiceHTLCState_SETTLED &&
-			len(htlc.CustomRecords) != 0 {
-			customRecords = htlc.CustomRecords
-			break
-		}
-	}
-	if customRecords == nil {
-		return nil, fmt.Errorf("no payload present on invoice "+
-			"with hash %s", inv.Hash)
-	}
-
-	if payload, ok := customRecords[PayloadTypeKey]; ok {
+	if payload, ok := records[PayloadTypeKey]; ok {
 		rawMsg.RawPayload = payload
 	}
 
-	if sender, ok := customRecords[SenderTypeKey]; ok {
+	if sender, ok := records[SenderTypeKey]; ok {
 		senderAddr, err := lnchat.NewNodeFromBytes(sender)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("could not decode sender address: %w", err)
 		}
 		rawMsg.Sender = senderAddr.String()
 	}
 
-	if signature, ok := customRecords[SignatureTypeKey]; ok {
+	if signature, ok := records[SignatureTypeKey]; ok {
 		rawMsg.Signature = signature
 	}
 
-	switch verified, err := signatureVerifier(rawMsg.RawPayload,
+	switch verified, err := verifySig(rawMsg.RawPayload,
 		rawMsg.Signature, rawMsg.Sender); err {
 	case nil:
 		rawMsg.SignatureVerified = verified
 	default:
 		return nil, fmt.Errorf("cannot verify message signature: %w", err)
 	}
-
-	rawMsg.InvoiceSettleIndex = inv.SettleIndex
 
 	return rawMsg, nil
 }

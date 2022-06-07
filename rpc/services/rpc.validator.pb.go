@@ -534,3 +534,6 @@ func (this *SubscribeInvoicesRequest) Validate() error {
 func (this *SubscribePaymentsRequest) Validate() error {
 	return nil
 }
+func (this *SubscribeMessagesRequest) Validate() error {
+	return nil
+}
