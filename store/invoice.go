@@ -8,7 +8,7 @@ import (
 
 // AddInvoice stores an invoice.
 func (db *bhDatabase) AddInvoice(inv *model.Invoice) error {
-	return db.bh.Badger().Update(func(txn *badger.Txn) error {
+	return retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		invoiceKey := inv.SettleIndex
 		return db.bh.TxInsert(txn, invoiceKey, inv)
 	})

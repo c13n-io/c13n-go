@@ -15,6 +15,8 @@ var (
 
 type txnFunc = func(txn *badger.Txn) error
 
+// Wrapper function for badger update transactions
+// that should be retried due to a conflict error.
 func retryConflicts(m func(txnFunc) error, q txnFunc) error {
 	maxRetries := 1000
 	for i := 0; i < maxRetries; i++ {

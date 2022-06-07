@@ -13,7 +13,7 @@ import (
 // and updates the last discussion message.
 // An error is returned if its associated invoice or payment indexes are missing.
 func (db *bhDatabase) AddRawMessage(rawMsg *model.RawMessage) error {
-	return db.bh.Badger().Update(func(txn *badger.Txn) error {
+	return retryConflicts(db.bh.Badger().Update, func(txn *badger.Txn) error {
 		// Verify the existence of the associated invoice or payment
 		invIdx := rawMsg.InvoiceSettleIndex
 		paymentIdxs := rawMsg.PaymentIndexes
