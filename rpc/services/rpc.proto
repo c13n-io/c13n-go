@@ -706,6 +706,11 @@ service PaymentService {
 	 the requested amount to the destination.
 	*/
 	rpc GetRoute(RouteRequest) returns (RouteResponse) {}
+
+	/**
+	 Retrieves invoices from the database.
+	*/
+	rpc GetInvoices(GetInvoicesRequest) returns (stream Invoice) {}
 }
 
 /** Corresponds to an invoice creation request. */
@@ -930,4 +935,10 @@ message RouteRequest {
 message RouteResponse {
 	/** A route that can fulfil the requested payment. */
 	PaymentRoute route = 1;
+}
+
+/** Corresponds to an invoice retrieval request. */
+message GetInvoicesRequest {
+	/** The pagination options of the request. */
+	KeySetPageOptions page_options = 1;
 }
