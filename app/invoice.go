@@ -40,3 +40,13 @@ func (app *App) LookupInvoice(ctx context.Context, payReq string) (*model.Invoic
 		Invoice:        *inv,
 	}, nil
 }
+
+// GetInvoices retrieves stored invoices.
+func (app *App) GetInvoices(_ context.Context, pageOpts model.PageOptions) ([]*model.Invoice, error) {
+	invoices, err := app.Database.GetInvoices(pageOpts)
+	if err != nil {
+		return nil, newErrorf(err, "could not retrieve invoices")
+	}
+
+	return invoices, nil
+}

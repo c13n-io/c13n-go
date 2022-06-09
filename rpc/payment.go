@@ -172,6 +172,32 @@ paymentLoop:
 	return nil
 }
 
+// GetInvoices retrieves stored invoices.
+func (s *paymentServiceServer) GetInvoices(req *pb.GetInvoicesRequest,
+	srv pb.PaymentService_GetInvoicesServer) error {
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	pageOpts := pageOptionsFromKeySet(req.GetPageOptions())
+	invoices, err := s.App.GetInvoices(ctx, pageOpts)
+	if err != nil {
+		return associateStatusCode(s.logError(err))
+	}
+
+	for _, inv := range invoices {
+		invoice, err := newInvoice(inv)
+		if err != nil {
+			return associateStatusCode(s.logError(err))
+		}
+		if err := srv.Send(invoice); err != nil {
+			return associateStatusCode(s.logError(err))
+		}
+	}
+
+	return nil
+}
+
 // GetRoute discovers and returns a route
 // that can accomodate the requested payment.
 func (s *paymentServiceServer) GetRoute(ctx context.Context,
