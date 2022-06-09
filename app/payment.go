@@ -221,6 +221,16 @@ func (app *App) send(ctx context.Context, dest string, amtMsat int64, payReq str
 	return lastUpdate, nil
 }
 
+// GetPayments retrieves stored payments.
+func (app *App) GetPayments(_ context.Context, pageOpts model.PageOptions) ([]*model.Payment, error) {
+	payments, err := app.Database.GetPayments(pageOpts)
+	if err != nil {
+		return nil, newErrorf(err, "could not retrieve payments")
+	}
+
+	return payments, nil
+}
+
 // SendPay attempts to send a payment.
 // A payment fulfils the payment request, if one is provided,
 // otherwise it is addressed to the discussion participants.

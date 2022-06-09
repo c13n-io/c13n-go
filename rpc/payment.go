@@ -198,6 +198,32 @@ func (s *paymentServiceServer) GetInvoices(req *pb.GetInvoicesRequest,
 	return nil
 }
 
+// GetPayments retrieves stored payments.
+func (s *paymentServiceServer) GetPayments(req *pb.GetPaymentsRequest,
+	srv pb.PaymentService_GetPaymentsServer) error {
+
+	ctx, cancel := context.WithCancel(srv.Context())
+	defer cancel()
+
+	pageOpts := pageOptionsFromKeySet(req.GetPageOptions())
+	payments, err := s.App.GetPayments(ctx, pageOpts)
+	if err != nil {
+		return associateStatusCode(s.logError(err))
+	}
+
+	for _, pmnt := range payments {
+		payment, err := newPayment(pmnt)
+		if err != nil {
+			return associateStatusCode(s.logError(err))
+		}
+		if err := srv.Send(payment); err != nil {
+			return associateStatusCode(s.logError(err))
+		}
+	}
+
+	return nil
+}
+
 // GetRoute discovers and returns a route
 // that can accomodate the requested payment.
 func (s *paymentServiceServer) GetRoute(ctx context.Context,
