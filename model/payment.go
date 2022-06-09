@@ -27,30 +27,25 @@ func (p *Payment) Type() string {
 
 // Indexes satisfies badgerhold.Storer interface for Payment type.
 func (p *Payment) Indexes() map[string]badgerhold.Index {
-	indexIdxFunc := func(name string, value interface{}) ([]byte, error) {
-		var p *Payment
-
-		switch v := value.(type) {
-		case *Payment:
-			p = v
-		// Workaround for badgerhold issue !43
-		case **Payment:
-			p = *v
-		default:
-			return nil, fmt.Errorf("PaymentIndex: expected Payment, got %T", value)
-		}
-
-		// Return the PaymentIndex.
-		b := make([]byte, 8)
-		binary.BigEndian.PutUint64(b, p.PaymentIndex)
-
-		return b, nil
+	getPayment := func(value interface{}) (pmnt *Payment, ok bool) {
+		pmnt, ok = value.(*Payment)
+		return
 	}
 
 	return map[string]badgerhold.Index{
 		"PaymentIndex": badgerhold.Index{
-			IndexFunc: indexIdxFunc,
-			Unique:    true,
+			IndexFunc: func(_ string, value interface{}) ([]byte, error) {
+				pmnt, ok := getPayment(value)
+				if !ok {
+					return nil, fmt.Errorf("PaymentIndex: "+
+						"expected Payment, got %T", value)
+				}
+
+				b := make([]byte, 8)
+				binary.BigEndian.PutUint64(b, pmnt.PaymentIndex)
+				return b, nil
+			},
+			Unique: true,
 		},
 	}
 }
