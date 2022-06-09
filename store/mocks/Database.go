@@ -347,6 +347,29 @@ func (_m *Database) GetMessages(discussionUID uint64, pageOpts model.PageOptions
 	return r0, r1
 }
 
+// GetPayments provides a mock function with given fields: pageOpts
+func (_m *Database) GetPayments(pageOpts model.PageOptions) ([]*model.Payment, error) {
+	ret := _m.Called(pageOpts)
+
+	var r0 []*model.Payment
+	if rf, ok := ret.Get(0).(func(model.PageOptions) []*model.Payment); ok {
+		r0 = rf(pageOpts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Payment)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(model.PageOptions) error); ok {
+		r1 = rf(pageOpts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // RemoveContact provides a mock function with given fields: address
 func (_m *Database) RemoveContact(address string) (*model.Contact, error) {
 	ret := _m.Called(address)

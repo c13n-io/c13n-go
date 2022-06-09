@@ -44,3 +44,25 @@ func (db *bhDatabase) GetLastPaymentIndex() (paymentIdx uint64, err error) {
 
 	return
 }
+
+// GetPayments retrieves payments, based on the provided pagination options.
+func (db *bhDatabase) GetPayments(pageOpts model.PageOptions) ([]*model.Payment, error) {
+	q := &badgerhold.Query{}
+	switch {
+	case pageOpts.LastID != 0 && pageOpts.Reverse:
+		q = badgerhold.Where("PaymentIndex").Le(pageOpts.LastID)
+	case pageOpts.LastID != 0:
+		q = badgerhold.Where("PaymentIndex").Ge(pageOpts.LastID)
+	}
+	q = q.SortBy("PaymentIndex").Limit(int(pageOpts.PageSize))
+	if pageOpts.Reverse {
+		q = q.Reverse()
+	}
+
+	var payments []*model.Payment
+	if err := db.bh.Find(&payments, q); err != nil {
+		return nil, err
+	}
+
+	return payments, nil
+}
