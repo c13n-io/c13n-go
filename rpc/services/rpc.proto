@@ -711,6 +711,10 @@ service PaymentService {
 	 Retrieves invoices from the database.
 	*/
 	rpc GetInvoices(GetInvoicesRequest) returns (stream Invoice) {}
+	/**
+	 Retrieves payments from the database.
+	*/
+	rpc GetPayments(GetPaymentsRequest) returns (stream Payment) {}
 }
 
 /** Corresponds to an invoice creation request. */
@@ -939,6 +943,12 @@ message RouteResponse {
 
 /** Corresponds to an invoice retrieval request. */
 message GetInvoicesRequest {
+	/** The pagination options of the request. */
+	KeySetPageOptions page_options = 1;
+}
+
+/** Corresponds to a payment retrieval request. */
+message GetPaymentsRequest {
 	/** The pagination options of the request. */
 	KeySetPageOptions page_options = 1;
 }

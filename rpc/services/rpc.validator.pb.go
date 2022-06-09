@@ -561,3 +561,11 @@ func (this *GetInvoicesRequest) Validate() error {
 	}
 	return nil
 }
+func (this *GetPaymentsRequest) Validate() error {
+	if this.PageOptions != nil {
+		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.PageOptions); err != nil {
+			return github_com_mwitkow_go_proto_validators.FieldError("PageOptions", err)
+		}
+	}
+	return nil
+}
