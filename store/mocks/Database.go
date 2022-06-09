@@ -259,6 +259,29 @@ func (_m *Database) GetDiscussions(seekIndex uint64, pageSize uint64) ([]model.D
 	return r0, r1
 }
 
+// GetInvoices provides a mock function with given fields: pageOpts
+func (_m *Database) GetInvoices(pageOpts model.PageOptions) ([]*model.Invoice, error) {
+	ret := _m.Called(pageOpts)
+
+	var r0 []*model.Invoice
+	if rf, ok := ret.Get(0).(func(model.PageOptions) []*model.Invoice); ok {
+		r0 = rf(pageOpts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Invoice)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(model.PageOptions) error); ok {
+		r1 = rf(pageOpts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetLastInvoiceIndex provides a mock function with given fields:
 func (_m *Database) GetLastInvoiceIndex() (uint64, error) {
 	ret := _m.Called()
