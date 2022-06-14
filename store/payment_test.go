@@ -35,7 +35,11 @@ func generatePayment(t *testing.T, payee string, amt lnchat.Amount,
 
 func TestAddPayments(t *testing.T) {
 	dest := "444444444444444444444444444444444444444444444444444444444444444444"
-	testPayment := generatePayment(t, dest, 5432, lnchat.PaymentSUCCEEDED)
+	testPayments := []*model.Payment{
+		generatePayment(t, dest, 5432, lnchat.PaymentSUCCEEDED),
+		generatePayment(t, dest, 4321, lnchat.PaymentSUCCEEDED),
+		generatePayment(t, dest, 3210, lnchat.PaymentSUCCEEDED),
+	}
 
 	cases := []struct {
 		name string
@@ -47,8 +51,22 @@ func TestAddPayments(t *testing.T) {
 				db, cleanup := createInMemoryDB(t)
 				defer cleanup()
 
-				err := db.AddPayments(testPayment)
+				err := db.AddPayments(testPayments[0])
 				assert.NoError(t, err)
+			},
+		},
+		{
+			name: "multiple",
+			test: func(t *testing.T) {
+				db, cleanup := createInMemoryDB(t)
+				defer cleanup()
+
+				err := db.AddPayments(testPayments...)
+				assert.NoError(t, err)
+
+				payments, err := db.GetPayments(model.PageOptions{})
+				assert.NoError(t, err)
+				assert.Len(t, payments, len(testPayments))
 			},
 		},
 		{
@@ -57,12 +75,12 @@ func TestAddPayments(t *testing.T) {
 				db, cleanup := createInMemoryDB(t)
 				defer cleanup()
 
-				err := db.AddPayments(testPayment)
+				err := db.AddPayments(testPayments[0])
 				require.NoError(t, err)
 
-				expectedErr := alreadyExists(testPayment)
+				expectedErr := alreadyExists(testPayments[0])
 
-				err = db.AddPayments(testPayment)
+				err = db.AddPayments(testPayments[0])
 				assert.EqualError(t, err, expectedErr.Error())
 			},
 		},

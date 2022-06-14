@@ -18,6 +18,8 @@ func (db *bhDatabase) AddPayments(payments ...*model.Payment) error {
 			paymentKey := payment.PaymentIndex
 
 			switch err := db.bh.TxInsert(txn, paymentKey, payment); err {
+			case nil:
+				// On success, continue
 			case badgerhold.ErrKeyExists:
 				return alreadyExists(payment)
 			default:
