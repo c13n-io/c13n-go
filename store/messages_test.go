@@ -141,17 +141,6 @@ func generateOutgoing(t *testing.T, receivers ...string) (
 	return rawMsg, payments
 }
 
-func TestAddPayments(t *testing.T) {
-	db, cleanup := createInMemoryDB(t)
-	defer cleanup()
-
-	_, payments := generateOutgoing(t,
-		generateHex(t, 33), generateHex(t, 33))
-
-	err := db.AddPayments(payments...)
-	assert.NoError(t, err)
-}
-
 func TestAddRawMessage(t *testing.T) {
 	cases := []struct {
 		name    string
