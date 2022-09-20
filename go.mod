@@ -7,6 +7,7 @@ require (
 	github.com/antonfisher/nested-logrus-formatter v1.1.0
 	github.com/btcsuite/btcd v0.22.0-beta.0.20211005184431-e3449998be39
 	github.com/btcsuite/btcutil v1.0.3-0.20210527170813-e2ba6805a890
+	github.com/c13n-io/lndata-go v1.0.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dgraph-io/badger/v3 v3.2103.2
 	github.com/go-errors/errors v1.0.1
@@ -28,7 +29,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/grpc v1.38.0
-	google.golang.org/protobuf v1.27.1
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/macaroon.v2 v2.1.0
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637
 )

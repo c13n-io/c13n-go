@@ -1,7 +1,5 @@
 package lndata
 
-type Address = [33]byte
-
 // Transmission is the type for a data transmission.
 type Transmission struct {
 	Data                []byte
