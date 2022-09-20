@@ -12,9 +12,21 @@ import (
 var ErrDestinationRequired = fmt.Errorf("data signing " +
 	"requires valid destination address")
 
+// ErrSizeTooSmall indicates a fragment request
+// smaller than the minimum allowed size.
+type ErrSizeTooSmall struct {
+	MinSize uint32
+}
+
+func (e ErrSizeTooSmall) Error() string {
+	return fmt.Sprintf("requested fragment size too small: "+
+		"minimum allowed size %d", e.MinSize)
+}
+
 // Sharder allows dynamic fragmentation of the provided data.
 type Sharder struct {
-	signer Signer
+	signer          Signer
+	minFragmentSize uint32
 
 	lock         sync.RWMutex
 	transmission Transmission
@@ -45,9 +57,10 @@ func NewSharder(data []byte, dest []byte, signer Signer) (*Sharder, error) {
 	}
 
 	return &Sharder{
-		signer:       signer,
-		transmission: t,
-		fragments:    newStates(uint32(len(t.Data))),
+		signer:          signer,
+		minFragmentSize: calculateEnvelopeOverhead(&t, signer),
+		transmission:    t,
+		fragments:       newStates(uint32(len(t.Data))),
 	}, nil
 }
 
@@ -58,7 +71,11 @@ func NewSharder(data []byte, dest []byte, signer Signer) (*Sharder, error) {
 // An error is returned if the fragment cannot be marshalled
 // or if signing fails with error.
 func (s *Sharder) Get(size uint32) (fs Fields, cancelFunc func(), err error) {
-	frag, ok := s.selectFragment(size)
+	if size < s.minFragmentSize {
+		return nil, nil, ErrSizeTooSmall{s.minFragmentSize}
+	}
+
+	frag, ok := s.selectFragment(size - s.minFragmentSize)
 	if !ok {
 		return
 	}

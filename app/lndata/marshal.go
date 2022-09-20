@@ -3,6 +3,7 @@ package lndata
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"reflect"
 
 	"google.golang.org/protobuf/proto"
@@ -178,4 +179,60 @@ func unmarshalSignature(wireSig []byte) (
 	}
 
 	return sig.GetSig(), sig.GetSenderPK(), nil
+}
+
+// calculateEnvelopeOverhead calculates the maximum overhead
+// of an encoded fragment for a specific transmission and signer.
+func calculateEnvelopeOverhead(t *Transmission, signer Signer) uint32 {
+	if t == nil {
+		return 0
+	}
+
+	// Calculates the required encoded size by constructing
+	// and serializing minimal DataStruct and DataSig instances.
+	// Also, the result takes into account the map encoding size.
+	totalSize := uint32(len(t.Data))
+	minPayload := []byte{0x01}
+	data := &wire.DataStruct{
+		Version: DataStructVersion,
+		Fragment: &wire.FragmentInfo{
+			FragsetId: t.FragsetId,
+			TotalSize: totalSize,
+			Offset:    totalSize,
+		},
+		Payload: minPayload,
+	}
+	dataLen := uint32(proto.Size(data))
+	total := bigSize(DataStructKey) + bigSize(uint64(dataLen)) + dataLen
+
+	if signer != nil {
+		sig := &wire.DataSig{
+			Version:  DataSigVersion,
+			Sig:      make([]byte, signer.MaxSize()),
+			SenderPK: make([]byte, AddressSize),
+		}
+		sigLen := uint32(proto.Size(sig))
+		total += bigSize(DataSigKey) + bigSize(uint64(sigLen)) + sigLen
+	}
+
+	return total
+}
+
+// bigSize calculates the length of TLV varint wire encoding
+// of a uint64 value as specified in the BigSize format of BOLT-01.
+func bigSize(val uint64) uint32 {
+	// The encoded length is simply the length of the lowest
+	// uint type required to contain the value, plus a 1-byte
+	// discriminant (unless the value itself fits in 1 byte
+	// accounting for the discriminant byte values).
+	switch {
+	case val < 0xfd:
+		return 1
+	case val <= math.MaxUint16:
+		return 3
+	case val <= math.MaxUint32:
+		return 5
+	}
+
+	return 9
 }
