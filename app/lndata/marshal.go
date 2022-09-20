@@ -40,6 +40,62 @@ func concatenate(a, b []byte) []byte {
 	return result
 }
 
+// marshalAndSign marshals and signs a fragment
+// to the provided destination address.
+func marshalAndSign(frag fragment, destination Address,
+	signer Signer) (map[uint64][]byte, error) {
+
+	fields := make(map[uint64][]byte)
+	data, err := marshalData(frag)
+	if err != nil {
+		return nil, err
+	}
+	fields[DataStructKey] = data
+
+	if signer != nil {
+		payloadToSign := concatenate(destination[:], data)
+		rawSig, err := signer.Sign(payloadToSign)
+		if err != nil {
+			return nil, err
+		}
+		source := signer.Address()
+		sig, err := marshalSignature(rawSig, source[:])
+		if err != nil {
+			return nil, err
+		}
+
+		fields[DataSigKey] = sig
+	}
+
+	return fields, nil
+}
+
+func marshalData(f fragment) ([]byte, error) {
+	data := &wire.DataStruct{
+		Version: DataStructVersion,
+		Payload: f.payload,
+	}
+	if f.totalSize > uint32(len(f.payload)) {
+		data.Fragment = &wire.FragmentInfo{
+			Offset:    f.start,
+			TotalSize: f.totalSize,
+			FragsetId: f.fragsetId,
+		}
+	}
+
+	return proto.Marshal(data)
+}
+
+func marshalSignature(rawSig, sourceAddr []byte) ([]byte, error) {
+	sig := &wire.DataSig{
+		Version:  DataSigVersion,
+		Sig:      rawSig,
+		SenderPK: sourceAddr,
+	}
+
+	return proto.Marshal(sig)
+}
+
 // unmarshalAndVerify unmarshals and verifies a fragment from a set of fields
 // and returns it, along with the purported sender address (if signed).
 // If the provided data was unsigned, the returned sender address is invalid.
